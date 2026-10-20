@@ -8,6 +8,7 @@ Coding agents tend to over-build. They add validation nobody asked for, retries,
 |---|---|---|
 | [`under-engineering`](skills/under-engineering/SKILL.md) | Minimum-code checkpoint, plus limits while writing | Before writing or changing code for a feature, fix, module or refactor |
 | [`um-maybe`](skills/um-maybe/SKILL.md) | "Hallway check": a weaker colleague agent with no context challenges the plan | On any plan before implementing, and from inside `under-engineering` |
+| [`under-engineering-review`](skills/under-engineering-review/SKILL.md) | Reviews existing code against the same limits and reports findings with IDs and proposed fixes | When asked to review or audit a route, module, folder, package or diff |
 | [`call-depth`](skills/call-depth/SKILL.md) | Measures call-chain depth, memory hops, cyclomatic complexity and layout, using parsers instead of reading | Whenever depth, complexity or size has to be measured |
 
 ## How they fit together
@@ -61,6 +62,25 @@ You pitch your plan in the hallway to a colleague who knows nothing about it. Th
 
 **Proof** means the human asked for it (quoted), or something they asked for can't work without it (a short chain ending at a quote). "Best practice", "future-proofing" and "it's cleaner" are not proof.
 
+### under-engineering-review
+
+Reviews **existing** code against the same limits without changing it. The agent proposes fixes and edits nothing unless the developer asks.
+
+1. **Scope.** Turns the request into a file list (paths, a package, or `git diff --name-only <ref>`) and a list of roots.
+2. **Trace.** Uses `call-depth` to trace each root. Every file the trace reaches joins the scope, and the files on traced paths are *on-path*.
+3. **Measure.** Runs `layout.py`, the language adapter and the complexity tool over the file list. Raw output goes to a file in `/tmp`, so it never fills the agent's context.
+4. **Spot governance.** Notes policy enforcement in code (allow-lists, retention, compliance gates, policy rate limits) as infrastructure candidates, without judging it.
+5. **Report.** A table of checks against limits for on-path code, the 10 worst findings, governance items, and "fix first" (at most 3). Each finding has an ID such as `D1` or `C2`, so the developer can reply "do M1 and C2".
+
+```
+| Check           | Limit   | On-path | Worst              |
+|-----------------|---------|---------|--------------------|
+| Call depth      | 3       | 2/5     | 5 POST /orders     |
+| Memory hops     | 0       | 3       | LOOKUP_CALL ...    |
+| Complexity      | 10      | 1       | 14 place_order (nesting 4) |
+...
+```
+
 ### call-depth
 
 **Measure with programs, not by reading.** For every measurement, `call-depth` prefers the project's own tools, then a parser, then grep, with grep results labelled approximate.
@@ -85,7 +105,7 @@ With the [`skills`](https://github.com/vercel-labs/skills) CLI:
 npx skills add theclocker/under-engineering-skills
 ```
 
-Or copy the folders from `skills/` into your agent's skills directory, for example `~/.claude/skills/` for Claude Code or `.claude/skills/` in a project. Install all three, because `under-engineering` calls the other two.
+Or copy the folders from `skills/` into your agent's skills directory, for example `~/.claude/skills/` for Claude Code or `.claude/skills/` in a project. Install all four: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`.
 
 To make the checkpoint run every time, add a line to your `AGENTS.md` or `CLAUDE.md`:
 
@@ -107,8 +127,6 @@ Every limit is a flag or a stated default, and the project's own config wins:
 - the complexity threshold comes from ruff `max-complexity`, ESLint `complexity` and similar settings
 - the scripts take `--max-function-lines`, `--max-file-lines`, `--max-folder-files` and `--max-folder-words`
 - the depth limit (3) and the size limits live in plain Markdown in each `SKILL.md`; edit them to suit your team
-
-`under-engineering` mentions an `under-engineering-review` skill for reviewing existing code without changing it. That skill is not in this repository yet.
 
 ## License
 
