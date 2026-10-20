@@ -1,0 +1,38 @@
+# code-standards: project config. Committed with the project; edit freely.
+
+# Files to review, by extension. Every tool picks its parser from the extension and skips files it
+# can't read, so supporting another language means adding its extension here.
+extensions = [".py", ".ts", ".tsx"]
+# Extensions in the repo that are deliberately not reviewed. A changed file whose extension is in
+# neither list is reported, so a new file type gets a decision instead of being skipped silently.
+not_reviewed = [".json", ".md", ".yml", ".toml"]
+base = "origin/main"                  # changed files = diff from the merge-base with this ref
+exclude = ["**/migrations/**", "**/generated/**", "**/*.d.ts"]   # globs every tool skips
+
+[thresholds]
+complexity = 10          # lizard cyclomatic complexity, flagged when above
+function_lines = 80      # lizard function length in lines
+params = 5               # lizard parameter count
+duplicate_tokens = 50    # jscpd --min-tokens
+
+[duplication]
+# "changed": compare changed files with each other (fast).
+# "repo": scan the whole repo, keep only clones that touch a changed file (catches copies of old code; slower).
+scope = "changed"
+
+# Project linters, run as the project configures them. Files are appended to `command`.
+# format: ruff | eslint | oxlint | biome, or for any other linter:
+#   sarif  SARIF 2.1 JSON (golangci-lint, rubocop, clippy via clippy-sarif, semgrep, detekt, ruff, ...)
+#   unix   `path:line[:col]: message` lines
+# extensions: the files this linter receives (default: all reviewed extensions).
+[[linters]]
+name = "ruff"  # found via pyproject.toml [tool.ruff]
+format = "ruff"
+command = ["ruff", "check", "--output-format", "json", "--force-exclude", "--no-cache"]
+extensions = [".py", ".pyi"]
+
+[[linters]]
+name = "oxlint"  # found via .oxlintrc.json
+format = "oxlint"
+command = ["oxlint", "--format", "json"]
+extensions = [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"]

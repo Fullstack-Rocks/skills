@@ -1,0 +1,13 @@
+# Example only: init does not copy this. A project rule lives at .code-standards/rules/<id>.yml.
+id: cs-no-direct-fetch
+language: Tsx                      # covers .ts too, via languageGlobs in sgconfig.yml
+severity: warning                  # error = "never"; warning = "avoid"; info = "prefer"
+message: Call the API through apiClient, not fetch()
+note: apiClient adds auth headers, retries and error mapping. Taught 2026-01-15 (see negations.log.md).
+files:
+  - "src/components/**"            # globs relative to the project root
+rule:
+  any:
+    - pattern: fetch($$$ARGS)
+    - pattern: window.fetch($$$ARGS)
+fix: apiClient.request($$$ARGS)

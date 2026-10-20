@@ -1,0 +1,11 @@
+{
+  "name": "code-standards-demo",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@ast-grep/cli": "0.50.0",
+    "jscpd": "5.4.1",
+    "oxlint": "1.89.0",
+    "typescript": "5.9.3"
+  }
+}

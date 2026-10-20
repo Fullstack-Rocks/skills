@@ -1,0 +1,13 @@
+# Example only. A project's fixtures live at .code-standards/rule-tests/<id>-test.yml.
+# invalid: must match (the flagged code plus variants). valid: near-misses that must not match.
+id: cs-no-direct-fetch
+invalid:
+  - |
+    export function Orders() {
+      useEffect(() => { fetch("/api/orders").then(setOrders); }, []);
+    }
+  - 'window.fetch(url, { method: "POST" });'
+valid:
+  - apiClient.request("/api/orders");
+  - const fetch = useQuery(key);
+  - prefetch("/api/orders");

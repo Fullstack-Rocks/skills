@@ -1,0 +1,20 @@
+id: cs-env-outside-config
+language: Python
+severity: error
+message: Read configuration from app.config.settings, not os.getenv / os.environ
+note: Env reads scattered across modules hide required config and skip validation. Only app/config.py reads the environment.
+ignores:
+  - "app/config.py"
+rule:
+  any:
+    - pattern: os.getenv($$$ARGS)
+    - pattern: os.environ[$KEY]
+    - pattern: os.environ.get($$$ARGS)
+    - all:  # bare getenv(...) in a module that does `from os import getenv`
+        - pattern: getenv($$$ARGS)
+        - inside:
+            kind: module
+            stopBy: end
+            has:
+              kind: import_from_statement
+              regex: '^from\s+os\s+import\b.*\bgetenv\b'

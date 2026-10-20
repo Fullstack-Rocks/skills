@@ -1,0 +1,26 @@
+id: cs-env-outside-config
+invalid:
+  - api_key = os.getenv("PAYMENTS_API_KEY")
+  - |
+    def connect():
+        return os.getenv("DATABASE_URL", "sqlite://")
+  - smtp_host = os.environ["SMTP_HOST"]
+  - days = int(os.environ.get("RETENTION_DAYS", "30"))
+  - |
+    from os import getenv
+    key = getenv("PAYMENTS_API_KEY")
+  - |
+    from os import path, getenv
+    def load_smtp():
+        return getenv("SMTP_HOST", "localhost")
+valid:
+  - api_key = settings.payments_api_key
+  - path = os.path.join(base, "orders")
+  - value = config.getenv("PAYMENTS_API_KEY")
+  - path_info = request.environ["PATH_INFO"]
+  - |
+    environ = {"SMTP_HOST": "localhost"}
+    host = environ["SMTP_HOST"]
+  - |
+    from app.flags import getenv
+    enabled = getenv("NEW_CHECKOUT")
