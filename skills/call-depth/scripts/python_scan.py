@@ -1,17 +1,26 @@
+"""Python-only checks that need Python's own parser; scan.py covers length, complexity and memory hops.
+
+IMPLICIT_PROTOCOL: a typing.Protocol no scanned class inherits (calls through it are memory hops).
+--check-types adds UNTYPED_PARAM and ANY_PARAM.
+
+Usage: python3 python_scan.py [--check-types] <paths>
+"""
+import sys
+
+if sys.version_info < (3, 10):
+    sys.exit(f"This script needs Python 3.10+ (this is {sys.version.split()[0]}). "
+             "Rerun with python3.10+ or: uv run --no-project --python 3.12 -- python " + " ".join(sys.argv))
+
 import argparse
 import ast
 from dataclasses import dataclass, field
 from pathlib import Path
 
-DYNAMIC_FUNCTIONS = {"eval", "exec", "__import__", "globals", "locals"}
-ATTRIBUTE_FUNCTIONS = {"getattr", "setattr"}
-DYNAMIC_ATTRIBUTES = {"import_module", "call_function", "methodcaller"}
 SKIPPED_PARTS = {".git", ".venv", "venv", "__pycache__", "node_modules", "build", "dist"}
 
 
 @dataclass
 class Scan:
-    max_function_lines: int
     check_types: bool = False
     findings: list[str] = field(default_factory=list)
     protocols: dict[str, str] = field(default_factory=dict)
@@ -24,39 +33,6 @@ def base_name(node: ast.expr) -> str:
     if isinstance(node, ast.Attribute):
         return node.attr
     return node.id if isinstance(node, ast.Name) else ""
-
-
-def call_target(node: ast.Call) -> str:
-    if isinstance(node.func, ast.Name):
-        return node.func.id
-    return node.func.attr if isinstance(node.func, ast.Attribute) else ""
-
-
-def attribute_name(node: ast.Call) -> ast.expr | None:
-    return node.args[1] if len(node.args) > 1 else None
-
-
-def check_attribute_call(node: ast.Call, where: str, called: bool, scan: Scan) -> None:
-    name = attribute_name(node)
-    detail = ast.unparse(name) if name is not None else ""
-    if called:
-        scan.findings.append(f"DYNAMIC_CALL\t{where}\t{call_target(node)}({detail})(...)")
-    elif not isinstance(name, ast.Constant):
-        scan.findings.append(f"DYNAMIC_ATTR\t{where}\t{call_target(node)}({detail})")
-
-
-def check_call(node: ast.Call, where: str, called: bool, scan: Scan) -> None:
-    target = call_target(node)
-    if target in ATTRIBUTE_FUNCTIONS:
-        check_attribute_call(node, where, called, scan)
-    elif target in DYNAMIC_FUNCTIONS or target in DYNAMIC_ATTRIBUTES:
-        scan.findings.append(f"DYNAMIC_CALL\t{where}\t{target}(...)")
-    elif isinstance(node.func, ast.Subscript):
-        scan.findings.append(f"LOOKUP_CALL\t{where}\t{ast.unparse(node.func)}(...)")
-
-
-def directly_called(tree: ast.AST) -> set[int]:
-    return {id(node.func) for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Call)}
 
 
 def untyped_parameters(node: ast.FunctionDef | ast.AsyncFunctionDef, in_class: bool) -> list[str]:
@@ -84,9 +60,6 @@ def _mentions_any(annotation: ast.expr) -> bool:
 def check_function(
     node: ast.FunctionDef | ast.AsyncFunctionDef, where: str, in_class: bool, scan: Scan
 ) -> None:
-    length = (node.end_lineno or node.lineno) - node.lineno + 1
-    if length > scan.max_function_lines:
-        scan.findings.append(f"FUNCTION_LENGTH\t{where}\t{node.name} {length} lines > {scan.max_function_lines}")
     if scan.check_types:
         missing = untyped_parameters(node, in_class)
         if missing:
@@ -109,13 +82,10 @@ def scan_file(path: Path, scan: Scan) -> None:
     except (SyntaxError, UnicodeDecodeError) as error:
         scan.findings.append(f"PARSE_ERROR\t{path}\t{error}")
         return
-    called = directly_called(tree)
     methods = class_methods(tree)
     for node in ast.walk(tree):
         where = f"{path}:{getattr(node, 'lineno', 0)}"
-        if isinstance(node, ast.Call):
-            check_call(node, where, id(node) in called, scan)
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             check_function(node, where, id(node) in methods, scan)
         elif isinstance(node, ast.ClassDef):
             check_class(node, where, scan)
@@ -138,12 +108,11 @@ def python_files(path: Path) -> list[Path]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Report dynamic calls, unimplemented Protocols and long functions.")
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("paths", nargs="+", type=Path)
-    parser.add_argument("--max-function-lines", type=int, default=80)
     parser.add_argument("--check-types", action="store_true", help="report parameters without annotations")
     arguments = parser.parse_args()
-    scan = Scan(arguments.max_function_lines, arguments.check_types)
+    scan = Scan(arguments.check_types)
     scan.findings.extend(f"MISSING_PATH\t{path}\tdoes not exist" for path in arguments.paths if not path.exists())
     files = sorted({file for path in arguments.paths for file in python_files(path.resolve())})
     for file in files:

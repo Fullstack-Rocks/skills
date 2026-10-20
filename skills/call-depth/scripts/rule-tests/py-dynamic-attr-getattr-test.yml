@@ -1,0 +1,8 @@
+id: py-dynamic-attr-getattr
+invalid:
+  - handler = getattr(step, name)
+  - setattr(obj, field, value)
+  - value = getattr(obj, key, None)
+valid:
+  - value = getattr(obj, "fixed")
+  - getattr(step, name)(payload)

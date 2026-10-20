@@ -1,0 +1,9 @@
+id: java-dynamic-call-reflection
+language: Java
+severity: info
+message: class or method chosen by name through reflection
+rule:
+  kind: method_invocation
+  has:
+    field: name
+    regex: ^(forName|getMethod|getDeclaredMethod|invoke|newInstance)$

@@ -1,0 +1,7 @@
+id: py-lookup-call-subscript
+invalid:
+  - handlers[kind](payload)
+  - self.routes[path]()
+valid:
+  - value = handlers[kind]
+  - handler(payload)

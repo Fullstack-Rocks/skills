@@ -1,0 +1,7 @@
+id: ts-dynamic-call-module
+invalid:
+  - const m = require(name);
+  - const page = await import(`./pages/${slug}`);
+valid:
+  - const fs = require("fs");
+  - const m = await import("./module");

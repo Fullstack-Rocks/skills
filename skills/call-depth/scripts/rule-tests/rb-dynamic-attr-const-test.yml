@@ -1,0 +1,7 @@
+id: rb-dynamic-attr-const
+invalid:
+  - Object.const_get(class_name)
+  - obj.instance_variable_get(ivar)
+valid:
+  - Object.const_defined?(name)
+  - obj.name

@@ -1,0 +1,46 @@
+id: ts-lookup-call-subscript
+language: Tsx
+severity: info
+message: call through a computed member, usually a registry
+rule:
+  kind: call_expression
+  has:
+    field: function
+    kind: subscript_expression
+    has:
+      field: index
+      not:
+        kind: string
+---
+id: ts-dynamic-call-eval
+language: Tsx
+severity: info
+message: code built at runtime
+rule:
+  any:
+    - pattern: eval($$$)
+    - pattern: new Function($$$)
+    - pattern: Function($$$)
+---
+id: ts-dynamic-call-module
+language: Tsx
+severity: info
+message: module chosen at runtime
+rule:
+  any:
+    - pattern: require($X)
+    - pattern: import($X)
+constraints:
+  X:
+    not:
+      kind: string
+---
+id: ts-dynamic-call-reflect
+language: Tsx
+severity: info
+message: Reflect call resolved at runtime
+rule:
+  pattern: Reflect.$M($$$)
+constraints:
+  M:
+    regex: ^(apply|construct|get)$

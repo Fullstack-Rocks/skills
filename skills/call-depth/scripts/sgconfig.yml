@@ -1,0 +1,8 @@
+# ast-grep config for call-depth's scan.py: the bundled memory-hop rule packs, one file per language.
+ruleDirs:
+  - rules
+testConfigs:
+  - testDir: rule-tests
+# The whole JS/TS family is parsed as Tsx, so one pack covers it.
+languageGlobs:
+  tsx: ["*.ts", "*.mts", "*.cts", "*.js", "*.jsx", "*.mjs", "*.cjs"]

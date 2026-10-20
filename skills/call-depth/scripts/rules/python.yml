@@ -1,0 +1,55 @@
+# Rule ids carry the finding kind: *-dynamic-call-* -> DYNAMIC_CALL, *-dynamic-attr-* -> DYNAMIC_ATTR,
+# *-lookup-call-* -> LOOKUP_CALL. scan.py maps them by that substring.
+id: py-dynamic-call-getattr
+language: Python
+severity: info
+message: getattr(...)(...) calls a method chosen at runtime
+rule:
+  pattern: getattr($$$)
+  inside:
+    kind: call
+    field: function
+---
+id: py-dynamic-call-builtin
+language: Python
+severity: info
+message: code or module chosen at runtime
+rule:
+  any:
+    - pattern: eval($$$)
+    - pattern: exec($$$)
+    - pattern: __import__($$$)
+    - pattern: importlib.import_module($$$)
+    - pattern: import_module($$$)
+    - pattern: operator.methodcaller($$$)
+    - pattern: methodcaller($$$)
+    - pattern: globals()
+    - pattern: locals()
+---
+id: py-dynamic-attr-getattr
+language: Python
+severity: info
+message: attribute looked up by a non-constant name; a hop only if the result gets called
+rule:
+  any:
+    - pattern: getattr($O, $N)
+    - pattern: getattr($O, $N, $D)
+    - pattern: setattr($O, $N, $V)
+  not:
+    inside:
+      kind: call
+      field: function
+constraints:
+  N:
+    not:
+      kind: string
+---
+id: py-lookup-call-subscript
+language: Python
+severity: info
+message: call through a subscript, usually a registry
+rule:
+  kind: call
+  has:
+    field: function
+    kind: subscript

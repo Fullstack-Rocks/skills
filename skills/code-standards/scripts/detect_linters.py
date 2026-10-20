@@ -5,14 +5,21 @@ Each extension in the repo is listed with its file count and the ast-grep langua
 
 Usage: python3 detect_linters.py [--root DIR] [--sgconfig FILE]
 """
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit(f"code-standards needs Python 3.11+ (this is {sys.version.split()[0]}). "
+             "Rerun with python3.11+ or: uv run --no-project --python 3.12 -- python " + " ".join(sys.argv))
+
 import argparse
 import json
-import shutil
 import subprocess
 import tempfile
 import tomllib
 from collections import Counter
 from pathlib import Path
+
+from install_tools import find_tool
 
 PYTHON = [".py", ".pyi"]
 JS_TS = [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"]
@@ -30,18 +37,6 @@ KNOWN_LINTERS = {
                           "--files-ignore-unknown=true"], "format": "biome", "extensions": JS_TS},
 }
 CENSUS_LIMIT = 30
-
-ENV_BIN_DIRS = [".venv/bin", "venv/bin", "node_modules/.bin"]
-
-
-def find_tool(root: Path, name: str) -> str | None:
-    """The project's own environment first, then PATH. Never a downloader such as npx."""
-    for folder in ENV_BIN_DIRS:
-        candidate = root / folder / name
-        if candidate.is_file():
-            return str(candidate)
-    return shutil.which(name)
-
 
 def project_files(root: Path) -> list[str]:
     result = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"],

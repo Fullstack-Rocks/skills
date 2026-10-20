@@ -1,0 +1,9 @@
+id: cs-dynamic-call-reflection
+language: CSharp
+severity: info
+message: type or method chosen by name through reflection
+rule:
+  kind: invocation_expression
+  has:
+    field: function
+    regex: \.(CreateInstance|GetMethod|GetType|InvokeMember|Invoke)$

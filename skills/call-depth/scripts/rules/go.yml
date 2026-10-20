@@ -1,0 +1,28 @@
+id: go-dynamic-call-reflect
+language: Go
+severity: info
+message: method chosen by name through reflection
+rule:
+  kind: call_expression
+  has:
+    field: function
+    kind: selector_expression
+    has:
+      field: field
+      regex: ^(MethodByName|FieldByName|Call)$
+---
+id: go-lookup-call-map
+language: Go
+severity: info
+message: call through an indexed value, usually a map of funcs (or a generic instantiation; confirm)
+rule:
+  any:
+    - kind: call_expression
+      has:
+        field: function
+        kind: index_expression
+    # tree-sitter-go can't tell m[k](x) from a generic conversion T[K](x) and parses it as the latter
+    - kind: type_conversion_expression
+      has:
+        field: type
+        kind: generic_type

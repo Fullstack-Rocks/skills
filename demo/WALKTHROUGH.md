@@ -185,12 +185,19 @@ SAVE
 
 ## 5. Missing tools
 
-With no tools installed and no git repo (a copy of one file, run with a bare `PATH`), the run still succeeds and prints:
+With no tools installed and no git repo (a copy of one file, run with a bare `PATH`), the run still succeeds. Each warning says how to fix it:
 
 ```
 1 files, no findings, 1 standards in scope. ...
-WARNING ast-grep: ast-grep not found. Install: npm i -g @ast-grep/cli@0.50.0  (or: brew install ast-grep)
-WARNING lizard: lizard not found. Install: uv tool install lizard==1.24.1  (or: pipx install lizard==1.24.1)
-WARNING jscpd: jscpd not found. Install: npm i -g jscpd@5.4.1
-WARNING ruff: ruff is configured but not installed in the project or on PATH
+WARNING ast-grep: ast-grep not found. To install it, run python3 <skill>/scripts/install_tools.py
+WARNING lizard: lizard not found. To install it, run python3 <skill>/scripts/install_tools.py
+WARNING jscpd: jscpd not found. To install it, run python3 <skill>/scripts/install_tools.py
+WARNING ruff: ruff is configured but not installed. Install the project's dev dependencies with its lockfile command (npm ci, uv sync --frozen, ...)
 ```
+
+The agent doesn't stop at the warning. It runs `install_tools.py`, which installs the pinned versions at user level with whichever installer exists (npm -g, uv tool, pipx, cargo or pip --user), then reruns the review. In a fresh headless session with ast-grep and jscpd missing and the system Python at 3.9:
+- the agent ran the scripts through `uv run --no-project --python 3.12`
+- it installed ast-grep 0.50.0 and jscpd 5.4.1 with npm
+- it told the developer in one line
+- ruff was configured but the project has no lockfile, so it asked before installing ruff
+- the project folder was left untouched

@@ -1,0 +1,24 @@
+id: php-dynamic-call-function
+language: Php
+severity: info
+message: function chosen at runtime
+rule:
+  any:
+    - kind: function_call_expression
+      has:
+        field: function
+        regex: ^call_user_func(_array)?$
+    - kind: function_call_expression
+      has:
+        field: function
+        kind: variable_name
+---
+id: php-dynamic-call-method
+language: Php
+severity: info
+message: method chosen by a variable name
+rule:
+  kind: member_call_expression
+  has:
+    field: name
+    kind: variable_name

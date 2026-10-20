@@ -1,0 +1,6 @@
+id: go-lookup-call-map
+invalid:
+  - 'func f() { handlers[kind](payload) }'
+valid:
+  - 'func f() { h := handlers[kind]; _ = h }'
+  - 'func f() { handle(payload) }'

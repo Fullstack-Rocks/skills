@@ -1,0 +1,7 @@
+id: ts-dynamic-call-reflect
+invalid:
+  - Reflect.apply(fn, self, args);
+  - Reflect.get(target, key);
+valid:
+  - Reflect.ownKeys(target);
+  - reflect.apply(fn);

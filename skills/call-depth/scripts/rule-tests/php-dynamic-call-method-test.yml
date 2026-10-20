@@ -1,0 +1,6 @@
+id: php-dynamic-call-method
+invalid:
+  - '<?php $obj->$method($payload);'
+valid:
+  - '<?php $obj->run($payload);'
+  - '<?php $obj->name;'

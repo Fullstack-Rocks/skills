@@ -1,0 +1,7 @@
+id: rb-dynamic-call-send
+invalid:
+  - obj.send(name, arg)
+  - obj.public_send(:"#{action}")
+valid:
+  - obj.sender(name)
+  - mailer.deliver(msg)

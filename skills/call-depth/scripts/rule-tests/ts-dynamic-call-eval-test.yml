@@ -1,0 +1,7 @@
+id: ts-dynamic-call-eval
+invalid:
+  - eval(code);
+  - const f = new Function("a", body);
+valid:
+  - evaluate(code);
+  - const fn = () => 1;
