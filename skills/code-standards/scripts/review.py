@@ -9,12 +9,17 @@ picks its own parser by extension, skipping files it can't read.
 
 Usage: python3 review.py [--base REF | --all | --files F ...] [--out FILE]
 """
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit(f"code-standards needs Python 3.11+ (this is {sys.version.split()[0]}). "
+             "Rerun with python3.11+ or: uv run --no-project --python 3.12 -- python " + " ".join(sys.argv))
+
 import argparse
 import csv
 import json
 import re
 import subprocess
-import sys
 import tempfile
 import time
 import tomllib
@@ -24,13 +29,9 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from detect_linters import find_tool
+from install_tools import install_hint
 
 STANDARDS_DIR = ".code-standards"
-INSTALL_HINTS = {
-    "ast-grep": "npm i -g @ast-grep/cli@0.50.0  (or: brew install ast-grep)",
-    "lizard": "uv tool install lizard==1.24.1  (or: pipx install lizard==1.24.1)",
-    "jscpd": "npm i -g jscpd@5.4.1",
-}
 SEVERITY = {
     "error": "error", "fatal": "error", "blocker": "error", "critical": "error",
     "warning": "warning", "warn": "warning", "major": "warning", "minor": "warning",
@@ -139,7 +140,7 @@ def run(command: list[str], root: Path, ok_codes=(0, 1)) -> str:
 def tool(root: Path, name: str) -> str:
     binary = find_tool(root, name)
     if not binary:
-        raise ToolMissing(f"{name} not found. Install: {INSTALL_HINTS.get(name, 'see the project README')}")
+        raise ToolMissing(f"{name} not found. To install it, {install_hint(name)}")
     return binary
 
 
@@ -222,7 +223,8 @@ GENERIC_PARSERS = {"sarif": parse_sarif, "unix": parse_unix}
 def run_linter(spec: dict, files: list[str], root: Path) -> list[dict]:
     binary = find_tool(root, spec["command"][0])
     if not binary:
-        raise ToolMissing(f"{spec['name']} is configured but not installed in the project or on PATH")
+        raise ToolMissing(f"{spec['name']} is configured but not installed. Install the project's dev dependencies "
+                          "with its lockfile command (npm ci, uv sync --frozen, ...)")
     out = run([binary, *spec["command"][1:], *files], root, ok_codes=tuple(spec.get("ok_codes", (0, 1))))
     if spec["format"] in PARSERS:
         return PARSERS[spec["format"]](out, root)

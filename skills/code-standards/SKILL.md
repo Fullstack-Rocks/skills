@@ -19,6 +19,17 @@ Everything in `.code-standards/` is **project-owned and meant to be committed**:
 
 Scripts are in this skill's `scripts/` folder. Run them with `python3`; they find the project root by walking up to `.code-standards/`. Rule syntax is in [`references/ast-grep-rules.md`](references/ast-grep-rules.md), and you need it only when writing or refining a rule.
 
+## Tools
+
+The scripts need Python 3.11+. If `python3` is older, use `python3.13`/`python3.12` when one exists, otherwise `uv run --no-project --python 3.12 -- python scripts/<script>.py`. uv fetches the interpreter, and `--no-project` keeps it away from the project's environment and lockfile; a plain `uv run` inside a Python project would sync and rewrite its `.venv`.
+
+The skill needs ast-grep, lizard and jscpd. **Install what's missing yourself**: when any script reports a missing tool, or before the first run on a machine, run `python3 scripts/install_tools.py`.
+- It installs pinned versions at user level (npm -g, uv tool, pipx, cargo or pip --user, whichever exists) and leaves the project's manifests, lockfiles and environments alone.
+- After it finishes, rerun what failed and tell the developer in one line what was installed.
+- If it exits 1, no installer was available for some tool. Give the developer the manual command it printed, and continue with the tools you have; the report lists what didn't run.
+
+A project linter that's configured but not installed comes from the project's own dev dependencies. Install them with the project's lockfile command (`npm ci`, `pnpm install --frozen-lockfile`, `yarn install --immutable`, `uv sync --frozen`, `poetry install --sync`), which doesn't edit manifests or lockfiles. Ask first only when the project has no lockfile.
+
 ## Pick the mode
 
 - The project has no `.code-standards/config.toml`: run **init**, then continue with what was asked.
@@ -28,7 +39,7 @@ Scripts are in this skill's `scripts/` folder. Run them with `python3`; they fin
 ## init
 
 1. `python3 scripts/init.py`. It scaffolds `.code-standards/` and reports the detected linters and an extension `census`: each extension in the repo, its file count, and the ast-grep language that parses it. Code extensions that ast-grep parses go in `extensions`; the rest go in `not_reviewed`.
-   - If a linter is configured but not installed, or ast-grep, lizard or jscpd is missing, list the install commands from the README and ask before installing anything. Without ast-grep, `extensions` starts empty; fill it from the census together with the developer.
+   - If ast-grep, lizard, jscpd or a configured linter is missing, install it as described in **Tools**. If ast-grep was missing, `extensions` is empty: rerun `python3 scripts/detect_linters.py --sgconfig .code-standards/sgconfig.yml` after installing, and fill `extensions` and `not_reviewed` from its census.
    - The project may use a linter that `init` doesn't recognise (golangci-lint, rubocop, clippy, …). Add a `[[linters]]` block for it, with a command that prints SARIF (`format = "sarif"`) or `path:line:col: message` lines (`format = "unix"`), and the extensions it lints.
 2. **Interview** in one message, with at most these five questions:
    - What does clean code mean in this project?
@@ -45,7 +56,7 @@ Done when `config.toml` lists the right linters and the approved entries are wri
 
 ## review
 
-1. Run `python3 scripts/review.py --out /tmp/cs-review.json`. Scope defaults to the files changed since the merge-base with `base`, plus staged and untracked files. Pass `--base REF`, `--all`, or `--files ...` when the developer names a scope. The command prints a summary line with timing, and lists tool errors and missing-tool warnings. A `NOTE` line means changed files have an extension in neither `extensions` nor `not_reviewed`. Report that those files weren't reviewed, and ask which list each extension belongs in. Read findings from the JSON (`findings[]`, sorted by severity then file) with `python3 -c` or `jq`, not by dumping the whole file.
+1. Run `python3 scripts/review.py --out /tmp/cs-review.json`. Scope defaults to the files changed since the merge-base with `base`, plus staged and untracked files. Pass `--base REF`, `--all`, or `--files ...` when the developer names a scope. The command prints a summary line with timing, and lists tool errors and missing-tool warnings. For a missing tool, install it (**Tools**) and rerun before reporting. A `NOTE` line means changed files have an extension in neither `extensions` nor `not_reviewed`. Report that those files weren't reviewed, and ask which list each extension belongs in. Read findings from the JSON (`findings[]`, sorted by severity then file) with `python3 -c` or `jq`, not by dumping the whole file.
 2. **Standards pass.** `standards[]` lists each entry whose `scope` matches, and the files it matches. For each entry, read `.code-standards/standards.md` and the changed code in its files: `git diff <diff_from> -- <file>`, or the whole file when it's new. Check the entry against that code. Apply only the listed entries, and only to their listed files.
 3. **Report**, grouped by severity, then by file:
 

@@ -5,9 +5,16 @@ Each extension in the repo is listed with its file count and the ast-grep langua
 
 Usage: python3 detect_linters.py [--root DIR] [--sgconfig FILE]
 """
+import sys
+
+if sys.version_info < (3, 11):
+    sys.exit(f"code-standards needs Python 3.11+ (this is {sys.version.split()[0]}). "
+             "Rerun with python3.11+ or: uv run --no-project --python 3.12 -- python " + " ".join(sys.argv))
+
 import argparse
 import json
 import shutil
+import site
 import subprocess
 import tempfile
 import tomllib
@@ -32,15 +39,20 @@ KNOWN_LINTERS = {
 CENSUS_LIMIT = 30
 
 ENV_BIN_DIRS = [".venv/bin", "venv/bin", "node_modules/.bin"]
+# Where uv/pipx and cargo put user-level tools, in case that folder isn't on PATH yet.
+USER_BIN_DIRS = [Path.home() / ".local/bin", Path.home() / ".cargo/bin", Path(site.getuserbase()) / "bin"]
 
 
 def find_tool(root: Path, name: str) -> str | None:
-    """The project's own environment first, then PATH. Never a downloader such as npx."""
+    """The project's own environment first, then PATH, then user-level tool folders. Never a downloader."""
     for folder in ENV_BIN_DIRS:
         candidate = root / folder / name
         if candidate.is_file():
             return str(candidate)
-    return shutil.which(name)
+    found = shutil.which(name)
+    if found:
+        return found
+    return next((str(d / name) for d in USER_BIN_DIRS if (d / name).is_file()), None)
 
 
 def project_files(root: Path) -> list[str]:

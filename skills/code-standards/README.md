@@ -20,17 +20,19 @@ At init, the skill counts the repo's extensions and asks ast-grep which language
 
 ## Install the tools
 
-Python 3.11+ runs the scripts, which use only the standard library. Install the tools globally, or as dev dependencies of a project. The scripts look in `.venv/bin` and `node_modules/.bin` before `PATH`, and never download anything.
+**The agent installs them itself.** When a tool is missing, it runs `scripts/install_tools.py`. The script installs pinned versions at user level with whichever installer exists (npm -g, uv tool, pipx, cargo, or pip --user) and leaves the project's manifests, lockfiles and environments alone. A linter the project configures but hasn't installed comes from the project's own lockfile command (`npm ci`, `uv sync --frozen`, …).
+
+To install them by hand instead:
 
 | Tool | Pinned version | Install |
 |---|---|---|
-| ast-grep | 0.50.0 | `npm i -g @ast-grep/cli@0.50.0` (or `brew install ast-grep`, or `cargo install ast-grep --locked --version 0.50.0`) |
-| lizard | 1.24.1 | `uv tool install lizard==1.24.1` (or `pipx install lizard==1.24.1`) |
-| jscpd | 5.4.1 | `npm i -g jscpd@5.4.1` |
+| ast-grep | 0.50.0 | `npm i -g @ast-grep/cli@0.50.0`, or `uv tool install ast-grep-cli==0.50.0`, `pipx install ast-grep-cli==0.50.0`, `cargo install ast-grep --locked --version 0.50.0` |
+| lizard | 1.24.1 | `uv tool install lizard==1.24.1`, or `pipx install lizard==1.24.1`, `pip install --user lizard==1.24.1` |
+| jscpd | 5.4.1 | `npm i -g jscpd@5.4.1` (needs Node.js) |
 
-The project's linters run from the project's own environment, as the project configures them. ruff, eslint, oxlint, biome and flake8 are detected automatically. Any other linter is a `[[linters]]` block in `config.toml`, with a command that prints SARIF (`format = "sarif"`: golangci-lint, rubocop, clippy, semgrep, detekt and many more) or `path:line:col: message` lines (`format = "unix"`). The skill never edits their configs.
+Python 3.11+ runs the scripts, which use only the standard library. The scripts look for tools in the project's `.venv/bin` and `node_modules/.bin` first, then `PATH`, then `~/.local/bin` and `~/.cargo/bin`. A review never downloads anything.
 
-If a tool is missing, the review continues without it and reports a warning with the install command.
+If a tool is still missing, the review continues without it and reports a warning saying how to install it.
 
 ## What it adds to a repo
 
@@ -86,6 +88,7 @@ To suppress a single finding, add `# ast-grep-ignore: <rule-id>` (or `// …`) o
 | `scripts/init.py` | Scaffolds `.code-standards/` from `templates/` and writes `config.toml` with the detected linters |
 | `scripts/detect_linters.py [--sgconfig FILE]` | Prints the extension census (count and ast-grep language per extension) and the detected linters as JSON |
 | `scripts/review.py [--base REF \| --all \| --files …] [--out FILE]` | Runs linters, ast-grep, lizard and jscpd in parallel and writes one JSON report: `findings[]` (`source`, `rule_id`, `severity`, `file`, `line`, `end_line`, `message`, `snippet`, optional `fix`), `standards[]` in scope, `timing`, `files_scanned`, per-tool `errors` and missing-tool `warnings` |
+| `scripts/install_tools.py [--dry-run]` | Installs any missing tool at its pinned version, at user level. Exit codes: 0 everything available, 1 something needs a manual install |
 | `scripts/check_rule.py <id> [--expected N]` | `ast-grep test` for one rule plus a repo-wide hit count. Exit codes: 0 save, 1 fix the rule or fixtures, 2 ask the developer |
 
 See [`../../demo/WALKTHROUGH.md`](../../demo/WALKTHROUGH.md) for a full run.
