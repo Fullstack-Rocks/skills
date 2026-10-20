@@ -178,7 +178,7 @@ Reviews **existing** code against the same limits without changing it. The agent
 
 1. **Scope.** Turns the request into a file list (paths, a package, or `git diff --name-only <ref>`) and a list of roots.
 2. **Trace.** Uses `call-depth` to trace each root. Every file the trace reaches joins the scope, and the files on traced paths are *on-path*.
-3. **Measure.** Runs `layout.py`, the language adapter and the complexity tool over the file list. Raw output goes to a file in `/tmp`, so it never fills the agent's context.
+3. **Measure.** Runs `layout.py` and `call-depth`'s `scan.py` (length, complexity, memory hops) over the file list. Raw output goes to a file in `/tmp`, so it never fills the agent's context.
 4. **Spot governance.** Notes policy enforcement in code (allow-lists, retention, compliance gates, policy rate limits) as infrastructure candidates, without judging it.
 5. **Report.** A table of checks against limits for on-path code, the 10 worst findings, governance items, and "fix first" (at most 3). Each finding has an ID such as `D1` or `C2`, so the developer can reply "do M1 and C2".
 
@@ -202,15 +202,15 @@ For every measurement, `call-depth` prefers the project's own tools, then a pars
 
 - **Chain depth.** Traces from a root (route, tool, job, CLI, handler), including framework-run sub-roots such as dependencies and middleware. Each project-owned call adds 1. A **memory hop**, a call go-to-definition can't follow (dynamic dispatch, registries, structural interfaces, callbacks), adds 2.
 - **Complexity.** Uses the project's configured threshold, or 10 by default. It flattens with guard clauses, then a named function per branch, then separate functions instead of flag parameters.
-- **Bundled scripts.** They print TAB-separated `KIND<TAB>location<TAB>detail` findings:
+- **Bundled scripts.** They need no runtime from the project being measured. They print TAB-separated `KIND<TAB>location<TAB>detail` findings:
 
 | Script | Language | Reports |
 |---|---|---|
 | `scripts/layout.py <paths>` | any | `FILE_LENGTH`, `FOLDER_SIZE`, `FOLDER_NAME` |
-| `scripts/adapters/python_scan.py [--check-types] <paths>` | Python | `FUNCTION_LENGTH`, `DYNAMIC_CALL`, `DYNAMIC_ATTR`, `LOOKUP_CALL`, `IMPLICIT_PROTOCOL`, plus `UNTYPED_PARAM`/`ANY_PARAM` with `--check-types` |
-| `scripts/adapters/ts_scan.mjs --project <root> <paths>` | JS / TS | `FUNCTION_LENGTH`, `DYNAMIC_CALL`, `LOOKUP_CALL` |
+| `scripts/scan.py <paths>` | any | `FUNCTION_LENGTH`, `COMPLEXITY` (lizard); `DYNAMIC_CALL`, `DYNAMIC_ATTR`, `LOOKUP_CALL` (ast-grep rule packs for Python, JS/TS, Go, Ruby, Java, C#, PHP) |
+| `scripts/python_scan.py [--check-types] <paths>` | Python | `IMPLICIT_PROTOCOL`, plus `UNTYPED_PARAM`/`ANY_PARAM` with `--check-types` |
 
-[`references/languages.md`](skills/call-depth/references/languages.md) lists parsers, complexity tools and grep fallbacks for Go, Rust, Java, Kotlin, C#, Ruby, PHP, Swift and more, so the agent can write an adapter for any language.
+A language without a rule pack is reported as `NO_RULES` rather than skipped silently. [`references/languages.md`](skills/call-depth/references/languages.md) shows how to add a pack (one YAML file plus test fixtures), and lists the grep fallback for those languages. The agent installs ast-grep and lizard itself, at pinned versions, when they're missing.
 
 </details>
 
@@ -239,16 +239,15 @@ The pinned tool versions and the config format are in [`skills/code-standards/RE
 
 - **Subagents with model selection** for `um-maybe` and the module-plan scorer. Without subagents, the agent plays the colleague or scorer itself from the text alone and says so.
 - **Python 3.10+** for the `call-depth` scripts, and **3.11+** for the `code-standards` scripts. Both use only the standard library.
-- **Node.js**, plus `typescript` installed in the target project, for `ts_scan.mjs`.
-- A complexity tool for your language, such as ruff, ESLint or lizard (see `languages.md`). `call-depth` asks before using anything outside the project's own environment.
-- **ast-grep, lizard and jscpd** for `code-standards`. The agent installs them itself; you need at least one of npm, uv, pipx, cargo or pip, plus Node.js for jscpd.
+- **ast-grep and lizard** (`call-depth`, `code-standards`) and **jscpd** (`code-standards`). The agent installs them itself, at pinned versions and user level, with whichever of npm, uv, pipx, cargo or pip the machine has. Only jscpd needs Node.js.
+- Nothing from the project being measured: no Node.js, `typescript` or language toolchain is required. The project's own linters are used when it configures them.
 
 ## Customizing
 
 Every limit is a flag or a stated default, and the project's own config wins:
 
 - the complexity threshold comes from ruff `max-complexity`, ESLint `complexity` and similar settings
-- the scripts take `--max-function-lines`, `--max-file-lines`, `--max-folder-files` and `--max-folder-words`
+- the scripts take `--max-function-lines`, `--max-complexity`, `--max-file-lines`, `--max-folder-files` and `--max-folder-words`
 - the depth limit (3) and the size limits live in plain Markdown in each `SKILL.md`; edit them to suit your team
 - `code-standards` keeps its thresholds, extensions and linters in the project's `.code-standards/config.toml`
 

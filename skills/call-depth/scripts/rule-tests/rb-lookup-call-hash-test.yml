@@ -1,0 +1,6 @@
+id: rb-lookup-call-hash
+invalid:
+  - HANDLERS[kind].call(payload)
+valid:
+  - handler.call(payload)
+  - HANDLERS[kind]

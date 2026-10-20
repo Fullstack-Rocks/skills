@@ -1,0 +1,8 @@
+id: py-dynamic-call-builtin
+invalid:
+  - eval(expr)
+  - module = importlib.import_module(path)
+  - globals()[name]()
+valid:
+  - evaluate(expr)
+  - import importlib

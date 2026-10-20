@@ -1,0 +1,6 @@
+id: go-dynamic-call-reflect
+invalid:
+  - 'func f() { reflect.ValueOf(svc).MethodByName(name).Call(nil) }'
+valid:
+  - 'func f() { svc.Run(name) }'
+  - 'func f() { fmt.Println(name) }'

@@ -1,0 +1,7 @@
+id: cs-dynamic-call-reflection
+invalid:
+  - 'class A { void F() { var o = Activator.CreateInstance(t); } }'
+  - 'class A { void F() { t.GetMethod(name).Invoke(o, null); } }'
+valid:
+  - 'class A { void F() { service.Run(name); } }'
+  - 'class A { void F() { list.Add(1); } }'

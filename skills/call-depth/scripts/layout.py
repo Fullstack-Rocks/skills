@@ -1,3 +1,9 @@
+import sys
+
+if sys.version_info < (3, 10):
+    sys.exit(f"This script needs Python 3.10+ (this is {sys.version.split()[0]}). "
+             "Rerun with python3.10+ or: uv run --no-project --python 3.12 -- python " + " ".join(sys.argv))
+
 import argparse
 import re
 import subprocess

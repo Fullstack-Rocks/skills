@@ -18,7 +18,7 @@ Done when you have a root list and a starting file list.
 
 ## 2. Trace
 
-Load `call-depth` and settle which tools you'll use (ask about any outside the project's environment). Run the language adapter on the starting files so the memory hops are known, then trace each root: weighted depth, memory hops, and the deepest path. For a route or feature, every file the trace reaches joins the file list, and the files on the traced paths are **on-path**.
+Load `call-depth`; it installs the parser tools it needs. Run `scan.py` (plus `python_scan.py` for Python) on the starting files so the memory hops are known, then trace each root: weighted depth, memory hops, and the deepest path. For a route or feature, every file the trace reaches joins the file list, and the files on the traced paths are **on-path**.
 
 Done when every root has a traced chain and the file list is complete.
 
@@ -27,8 +27,8 @@ Done when every root has a traced chain and the file list is complete.
 Run everything programmatically over the file list:
 
 1. `layout.py` on the folders
-2. the language adapter on the files
-3. the complexity tool at the project's threshold, or 10
+2. `scan.py --max-complexity <project threshold, or 10>` on the files, for length, complexity and memory hops; `python_scan.py --check-types` too for Python
+3. the project's own complexity linter, when it configures one
 
 Redirect output to `/tmp/uer-<scope>.txt` along with the full chains, and read it back with `grep`/`cut` in the terminal, so raw output never fills the context. Read code only to confirm flags and to measure nesting for over-threshold functions.
 

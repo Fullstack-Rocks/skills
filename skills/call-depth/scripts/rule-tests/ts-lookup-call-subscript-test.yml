@@ -1,0 +1,7 @@
+id: ts-lookup-call-subscript
+invalid:
+  - handlers[kind](payload);
+  - this.routes[path]?.();
+valid:
+  - obj["method"](x);
+  - const h = handlers[kind];

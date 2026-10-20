@@ -13,13 +13,13 @@ if sys.version_info < (3, 11):
 
 import argparse
 import json
-import shutil
-import site
 import subprocess
 import tempfile
 import tomllib
 from collections import Counter
 from pathlib import Path
+
+from install_tools import find_tool
 
 PYTHON = [".py", ".pyi"]
 JS_TS = [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"]
@@ -37,23 +37,6 @@ KNOWN_LINTERS = {
                           "--files-ignore-unknown=true"], "format": "biome", "extensions": JS_TS},
 }
 CENSUS_LIMIT = 30
-
-ENV_BIN_DIRS = [".venv/bin", "venv/bin", "node_modules/.bin"]
-# Where uv/pipx and cargo put user-level tools, in case that folder isn't on PATH yet.
-USER_BIN_DIRS = [Path.home() / ".local/bin", Path.home() / ".cargo/bin", Path(site.getuserbase()) / "bin"]
-
-
-def find_tool(root: Path, name: str) -> str | None:
-    """The project's own environment first, then PATH, then user-level tool folders. Never a downloader."""
-    for folder in ENV_BIN_DIRS:
-        candidate = root / folder / name
-        if candidate.is_file():
-            return str(candidate)
-    found = shutil.which(name)
-    if found:
-        return found
-    return next((str(d / name) for d in USER_BIN_DIRS if (d / name).is_file()), None)
-
 
 def project_files(root: Path) -> list[str]:
     result = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"],

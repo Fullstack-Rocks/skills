@@ -1,0 +1,7 @@
+id: py-dynamic-call-getattr
+invalid:
+  - getattr(step, name)(payload)
+  - getattr(step, "run")()
+valid:
+  - handler = getattr(step, name)
+  - print(getattr(step, name))

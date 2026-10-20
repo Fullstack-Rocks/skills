@@ -1,0 +1,7 @@
+id: php-dynamic-call-function
+invalid:
+  - '<?php call_user_func($handler, $payload);'
+  - '<?php $fn($payload);'
+valid:
+  - '<?php handle($payload);'
+  - '<?php strlen($s);'

@@ -1,0 +1,33 @@
+id: rb-dynamic-call-send
+language: Ruby
+severity: info
+message: method chosen at runtime
+rule:
+  kind: call
+  has:
+    field: method
+    regex: ^(send|public_send|__send__|instance_eval|class_eval|instance_exec|eval|define_method)$
+---
+id: rb-dynamic-attr-const
+language: Ruby
+severity: info
+message: constant or variable looked up by name
+rule:
+  kind: call
+  has:
+    field: method
+    regex: ^(const_get|instance_variable_get|class_variable_get)$
+---
+id: rb-lookup-call-hash
+language: Ruby
+severity: info
+message: callable fetched from a collection, usually a registry
+rule:
+  kind: call
+  all:
+    - has:
+        field: method
+        regex: ^call$
+    - has:
+        field: receiver
+        kind: element_reference

@@ -1,0 +1,6 @@
+id: java-dynamic-call-reflection
+invalid:
+  - 'class A { void f() throws Exception { Class.forName(name).getMethod(m).invoke(obj); } }'
+valid:
+  - 'class A { void f() { service.run(name); } }'
+  - 'class A { void f() { list.get(0); } }'

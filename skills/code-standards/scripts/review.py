@@ -28,8 +28,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 from urllib.parse import unquote
 
-from detect_linters import find_tool
-from install_tools import install_hint
+from install_tools import find_tool, install_hint
 
 STANDARDS_DIR = ".code-standards"
 SEVERITY = {
@@ -251,7 +250,7 @@ def run_ast_grep(files: list[str], root: Path) -> list[dict]:
 
 def run_lizard(files: list[str], root: Path, config: dict) -> list[dict]:
     limits = config["thresholds"]
-    threads = ["-t", "4"] if len(files) > 40 else []
+    threads = ["-t", "4"] if len(files) > 500 else []  # process start-up outweighs the gain below that
     out = run([tool(root, "lizard"), "--csv", *threads, *files], root)  # skips files it has no parser for
     results = []
     for row in csv.reader(out.splitlines()):
