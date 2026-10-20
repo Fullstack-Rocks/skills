@@ -1,0 +1,13 @@
+[project]
+name = "shop-demo"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[dependency-groups]
+dev = ["ruff==0.17.1", "lizard==1.24.1"]
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "B"]

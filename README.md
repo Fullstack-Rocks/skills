@@ -10,6 +10,7 @@ Coding agents tend to over-build. They add validation nobody asked for, retries,
 | [`um-maybe`](skills/um-maybe/SKILL.md) | "Hallway check": a weaker colleague agent with no context challenges the plan | On any plan before implementing, and from inside `under-engineering` |
 | [`under-engineering-review`](skills/under-engineering-review/SKILL.md) | Reviews existing code against the same limits and reports findings with IDs and proposed fixes | When asked to review or audit a route, module, folder, package or diff |
 | [`call-depth`](skills/call-depth/SKILL.md) | Measures call-chain depth, memory hops, cyclomatic complexity and layout, using parsers instead of reading | Whenever depth, complexity or size has to be measured |
+| [`code-standards`](skills/code-standards/SKILL.md) | Reviews changes with the project's linters, taught ast-grep rules and a learned `standards.md`, and turns rejected code into tested rules | On review requests, "is this clean?", when the developer rejects a pattern, or to set up standards |
 
 ## How they fit together
 
@@ -97,6 +98,21 @@ Reviews **existing** code against the same limits without changing it. The agent
 
 [`references/languages.md`](skills/call-depth/references/languages.md) lists parsers, complexity tools and grep fallbacks for Go, Rust, Java, Kotlin, C#, Ruby, PHP, Swift and more, so the agent can write an adapter for any language.
 
+### code-standards
+
+Style review that learns. Each review runs three layers on the changed files:
+1. the project's own linters
+2. project-owned ast-grep rules (`cs-*`)
+3. agent judgment against a prose `standards.md` (`std-*`)
+
+lizard (complexity, length, parameters) and jscpd (duplication) run alongside. The deterministic layers run in parallel and finish in well under a second on about 50 files. It works with any language the tools parse: config lists file extensions, not languages.
+
+- **init** scaffolds `.code-standards/`, detects the project's linters, asks five questions at most, and drafts `standards.md` from 2–3 exemplary files.
+- **review** reports findings by severity and file. Each finding cites a rule id.
+- **negate** runs when you say "we never do X" about some code. It first proposes the bypasses a narrow rule would miss, so you don't have to ask twice. Then it refines an existing rule, or writes a new one, plus `valid`/`invalid` fixtures, and saves it only after `ast-grep test` passes and a repo-wide false-positive check. It also logs the change in `negations.log.md`.
+
+Install commands for the pinned tools are in [`skills/code-standards/README.md`](skills/code-standards/README.md), and a full run on a demo project is in [`demo/WALKTHROUGH.md`](demo/WALKTHROUGH.md).
+
 ## Install
 
 With the [`skills`](https://github.com/vercel-labs/skills) CLI:
@@ -105,7 +121,7 @@ With the [`skills`](https://github.com/vercel-labs/skills) CLI:
 npx skills add theclocker/under-engineering-skills
 ```
 
-Or copy the folders from `skills/` into your agent's skills directory, for example `~/.claude/skills/` for Claude Code or `.claude/skills/` in a project. Install all four: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`.
+Or copy the folders from `skills/` into your agent's skills directory, for example `~/.claude/skills/` for Claude Code or `.claude/skills/` in a project. Install all four of the under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards` stands alone, but needs ast-grep, lizard and jscpd (see its README).
 
 To make the checkpoint run every time, add a line to your `AGENTS.md` or `CLAUDE.md`:
 
