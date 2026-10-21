@@ -72,15 +72,27 @@ Each skill answers one question, measured against Claude Code doing the same job
 
 ### code-standards: what does a review cost, and what does it find?
 
+<p align="center"><img src="assets/charts/code-standards.svg" alt="Chart: a whole-repo review takes 57 s with code-standards ($0.43, 17 of 17 issues) and 57 s alone ($0.36, 15 of 17); a 3-file change takes 30 s ($0.28, 8 of 8 planted smells) with it and 52 s ($0.21, 7 of 8) alone" width="100%"></p>
+
+<details>
+<summary>Numbers</summary>
+
 | Review of the demo shop | Claude Code + code-standards | Claude Code alone<br>(shell + the project's linters) |
 |---|---|---|
 | Whole repo, 55 files | 57 s · $0.43 · **17 of 17** issues | 57 s · $0.36 · 15 of 17 issues |
 | A 3-file change with 8 planted smells | 30 s · $0.28 · **8 of 8** found | 52 s · $0.21 · 7 of 8 found |
 
+</details>
+
 - **A review costs about the same with or without the skill:** 30–60 s and $0.20–0.45 here. What the skill changes is completeness. The agent starts from code-standards' linters, rules, complexity and duplication checks, so it reported every issue they find and checked `standards.md` on top. Claude alone missed two complexity findings, and on the change didn't flag the planted overly complex function.
 - **"Claude Code alone"** worked like a developer's checkout without the skill: a normal shell, the project's own linters installed (ruff, oxlint, tsc), and no ast-grep, jscpd or lizard. It ran the linters, used ruff's complexity rule, and read the rest. Answers were [graded by hand](benchmarks/results/code-standards/grading.md).
 
 ### under-engineering: how much code does a feature take?
+
+<p align="center"><img src="assets/charts/under-engineering.svg" alt="Chart: lines added with under-engineering against Claude Code alone: coupon 23 vs 38, rate limit 24 vs 59, CSV export 13 vs 33; 54% less code overall" width="100%"></p>
+
+<details>
+<summary>Numbers</summary>
 
 | Feature request | Claude Code alone | Claude Code + under-engineering |
 |---|---|---|
@@ -89,9 +101,13 @@ Each skill answers one question, measured against Claude Code doing the same job
 | Export invoices as CSV | 33 lines | **13 lines** |
 | **Total** | **130 lines** | **60 lines (−54%)** |
 
+</details>
+
 Neither version introduced new smells (memory hops, complexity, lint or duplication). The skill's checkpoint and hallway check cost more: $3.38 against $1.96 for the three features.
 
 ### call-depth: does the trace come out right?
+
+<p align="center"><img src="assets/charts/call-depth.svg" alt="Chart: the refund chain from POST /refund to Database.insert, weighted depth 7 with two hidden calls (+2 each); both Claude alone and Claude with call-depth got it right, and scan.py found both hidden calls in 0.11 s" width="100%"></p>
 
 On a refund route with a weighted depth of 7 and two hidden indirect calls (a dict registry and a `getattr` dispatch), **both versions got the depth and both calls right** when the prompt spelled out the counting rules. With the skill, nobody has to write those rules into the prompt, and `scan.py` finds both indirect calls across 58 files in **0.11 s**, before the agent reads any code.
 
@@ -136,6 +152,8 @@ uv tool install lizard==1.24.1          # or: pipx install lizard==1.24.1
 ---
 
 ## under-engineering
+
+<p align="center"><img src="assets/banners/under-engineering.svg" alt="under-engineering: The least code that works, checked before it's written." width="100%"></p>
 
 **The minimum-code checkpoint.** Before writing code, the agent states the minimum requirement, cuts every planned piece that doesn't map to it, and runs a hallway check (`um-maybe`). It then sends you **one** message covering:
 - **Depth:** would the call chain go over 3?
@@ -238,6 +256,8 @@ Code the agent wrote in the current session is fixed right away. Violations in e
 
 ## um-maybe
 
+<p align="center"><img src="assets/banners/um-maybe.svg" alt="um-maybe: A hallway check that asks: um, maybe you could just…" width="100%"></p>
+
 **The hallway check.** You pitch your plan in the hallway to a colleague who knows nothing about it. Their counter is usually "um, maybe you could just …". A subagent on a **weaker model** plays that colleague, seeing only the pitch. The agent concedes, defends each piece with **proof** (something you asked for, quoted), or admits it can't.
 
 <p align="center"><img src="assets/demos/um-maybe.gif" alt="Claude Code session: the agent plans a CSV export, runs a two-round hallway check with a lighter colleague agent, and sorts every piece into Simplified, Kept with proof and Unproven, asking only about the unproven ones" width="100%"></p>
@@ -262,6 +282,8 @@ Code the agent wrote in the current session is fixed right away. Violations in e
 ---
 
 ## under-engineering-review
+
+<p align="center"><img src="assets/banners/under-engineering-review.svg" alt="under-engineering-review: Audits existing code for depth, complexity and size." width="100%"></p>
 
 **Audit existing code** against the same limits, without changing it. The agent traces each root with `call-depth`, measures everything with parsers, and reports a table of checks plus the 10 worst findings. Each finding has an ID, so you can reply *"do M1 and M2"*.
 
@@ -318,6 +340,8 @@ While tracing, it also found that the refund route is never registered, and that
 
 ## call-depth
 
+<p align="center"><img src="assets/banners/call-depth.svg" alt="call-depth: Measures call chains with parsers, in any language." width="100%"></p>
+
 **Measure with programs, not by reading.** The agent traces a call chain from its root (route, tool, job, CLI, handler):
 - **Each project-owned call adds 1.**
 - **Each memory hop adds 2.** A memory hop is a call go-to-definition can't follow: a registry, `getattr`, reflection or a callback.
@@ -350,6 +374,8 @@ A language without a rule pack is reported as `NO_RULES` rather than skipped sil
 ---
 
 ## code-standards
+
+<p align="center"><img src="assets/banners/code-standards.svg" alt="code-standards: A code review that learns what your team rejects." width="100%"></p>
 
 **A code review that learns.** Each review runs three layers on the changed files:
 1. **your project's linters**, as configured
