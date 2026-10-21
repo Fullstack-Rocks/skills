@@ -11,7 +11,7 @@ Three layers review code, and every finding cites the rule that raised it:
 2. **ast-grep rules** in `.code-standards/rules/`: structural patterns the developers taught, ids `cs-*`.
 3. **Your judgment** against `.code-standards/standards.md`: prose entries, ids `std-*`, for what a pattern can't express.
 
-lizard (complexity, function length, parameters) and jscpd (duplication) run beside them with the thresholds in `config.toml`.
+lizard (complexity, function length, parameters) and jscpd (duplication) run beside them with the thresholds in `config.toml`. jscpd compares the reviewed files with the whole repo, so a copy of unchanged code is caught. If the repo's reviewed source is over `[duplication] repo_max_mb`, it compares them only with each other and the review prints a warning.
 
 The skill is **language-blind**. `config.toml` lists the file `extensions` to review, and each tool picks its own parser by extension. Any language that ast-grep, lizard or jscpd can parse works, and supporting a new one means adding its extension.
 
@@ -56,7 +56,7 @@ Done when `config.toml` lists the right linters and the approved entries are wri
 
 ## review
 
-1. Run `python3 scripts/review.py --out /tmp/cs-review.json`. Scope defaults to the files changed since the merge-base with `base`, plus staged and untracked files. Pass `--base REF`, `--all`, or `--files ...` when the developer names a scope. The command prints a summary line with timing, and lists tool errors and missing-tool warnings. For a missing tool, install it (**Tools**) and rerun before reporting. A `NOTE` line means changed files have an extension in neither `extensions` nor `not_reviewed`. Report that those files weren't reviewed, and ask which list each extension belongs in. Read findings from the JSON (`findings[]`, sorted by severity then file) with `python3 -c` or `jq`, not by dumping the whole file.
+1. Run `python3 scripts/review.py --out /tmp/cs-review.json`. Scope defaults to the files changed since the merge-base with `base`, plus staged and untracked files. Pass `--base REF`, `--all`, or `--files ...` when the developer names a scope. The command prints a summary line with timing, and lists tool errors and warnings. For a missing tool, install it (**Tools**) and rerun before reporting. A jscpd warning about `repo_max_mb` means copies of unchanged code weren't checked: say so under Tool problems. A `NOTE` line means changed files have an extension in neither `extensions` nor `not_reviewed`. Report that those files weren't reviewed, and ask which list each extension belongs in. Read findings from the JSON (`findings[]`, sorted by severity then file) with `python3 -c` or `jq`, not by dumping the whole file.
 2. **Standards pass.** `standards[]` lists each entry whose `scope` matches, and the files it matches. For each entry, read `.code-standards/standards.md` and the changed code in its files: `git diff <diff_from> -- <file>`, or the whole file when it's new. Check the entry against that code. Apply only the listed entries, and only to their listed files.
 3. **Report**, grouped by severity, then by file:
 
