@@ -1,0 +1,30 @@
+{
+  "suite": "under-engineering",
+  "task": "csv-export",
+  "condition": "with",
+  "model": "claude-opus-5-5[1m]",
+  "skills_loaded": [
+    "um-maybe",
+    "under-engineering"
+  ],
+  "cost_usd": 0.76,
+  "turns": 4,
+  "minutes": 1.6,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-z70edy87",
+  "answers": [
+    "I haven't written any code yet. I'd like one answer from you first, on whether to make this a shared helper.\n\n**Minimum:** a button in `InvoiceList` that turns the invoices already on screen into CSV text and downloads it as `invoices.csv`.\n\n**Plan check** (I ran the plan past a second, smaller agent; it took 2 rounds and it agreed with everything):\n- **Simplified:** I had planned a small helper function to build the CSV. I'll put that logic directly in the button's click handler instead.\n- **Kept:**\n  - The button, the CSV text and the download all come straight from your request (\"a button\u2026 that downloads the listed invoices as a CSV file\").\n  - The download happens in the browser, with no server endpoint. That's possible because the invoices are already loaded on the page.\n  - There's no comma or quote escaping. An invoice only has `id`, `orderId`, `dueDays` and `paid`, which are all numbers or true/false, so nothing needs escaping.\n  - An empty list downloads a file with just the header row. That needs no extra code.\n\n**Depth:** this adds no new layers. The click handler lives in the component, so it isn't a problem.\n\n**Shared helper:** the seven other list components (`CouponList`, `CustomerList`, `OrderList`, `ProductList`, `ReviewList`, `ShipmentList`, `WarehouseList`) look like they'd want the same button. Two options:\n- **A) Invoices only:** the CSV code stays inside `InvoiceList` (about 10 lines). If another list needs it later, we'd copy it or pull it out into a shared helper then.\n- **B) Shared helper:** a helper in `web/src/lib/` that any list can use with one import. It would need comma and quote escaping, because those other lists probably have text fields.\n\nI recommend **A**, because only invoices were asked for. **Should I go with A, or build B?**\n\nSeparately, I noticed something in existing code: `summarize` in `web/src/components/InvoiceList.tsx:24` is never used anywhere. I'll leave it alone unless you want it removed.",
+    "I added a **Download CSV** button above the invoice table in `web/src/components/InvoiceList.tsx`. I couldn't type-check or run it: the `web/` folder has no `package.json` or `tsconfig.json`, so it's untested.\n\n- **What it does:** clicking the button saves the invoices currently shown as `invoices.csv`. The file has a header row `id,orderId,dueDays,paid` and one line per invoice. An empty list gives a file with just the header.\n- **How:** the CSV is built in the browser from data already loaded on the page, so there's no server call. The code sits directly in the click handler, about 10 lines.\n- **No escaping:** an invoice only has number and true/false fields, so nothing needs quoting.\n- **Layout change:** the component used to return just the `<table>`. It now returns the button and the table side by side. Any page styling that assumed the table was the component's only element may need a look.\n\nEvery function stays within the size and complexity limits. One thing in existing code I left alone: `summarize` at the bottom of the same file is never used anywhere. Tell me if you want it removed."
+  ],
+  "metrics": {
+    "code_files_changed": 1,
+    "code_files_added": 0,
+    "other_files_added": [],
+    "lines_added": 13,
+    "lines_removed": 0,
+    "new_memory_hops": 0,
+    "new_complexity_over_10": 0,
+    "new_functions_over_80_lines": 0,
+    "new_review_findings": 0,
+    "introduced": []
+  }
+}

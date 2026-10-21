@@ -1,0 +1,30 @@
+{
+  "suite": "code-standards",
+  "task": "loyalty-review",
+  "condition": "without",
+  "model": "claude-opus-5-5[1m]",
+  "skills_loaded": [],
+  "cost_usd": 0.18,
+  "turns": 8,
+  "minutes": 0.5,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-1bdcac35",
+  "answers": [
+    "I found 12 problems across the three new files. These files are untracked, so this covers all of their contents. I checked them against the project's `.code-standards` rules. ruff and oxlint aren't installed here, so neither linter ran. lizard did run and reported nothing over the limits.\n\n**app/api/loyalty_routes.py**\n1. `app/api/loyalty_routes.py:10`: reads `os.environ.get(\"LOYALTY_RATE\", ...)` directly, which breaks the `cs-env-outside-config` rule. Add a `loyalty_rate` field to `Settings` in `app/config.py` and read it from `settings`.\n2. `app/api/loyalty_routes.py:11`: calls `get_db().fetch_one(...)` in the handler. That breaks `std-routes-delegate`, which says handlers get no direct `Database` calls and should pass `get_db()` to the service.\n3. `app/api/loyalty_routes.py:12-13`: when the customer doesn't exist, it returns `{\"points\": 0}` with a 200 status. It should be a 404: the service should raise `LookupError` and let the shared route handling turn that into a 404.\n4. `app/api/loyalty_routes.py:14-15`: the gold-tier rate doubling is business logic in the handler (`std-routes-delegate`). Tier rules are also split, with this one in the route and the tier bonuses in the service.\n5. `app/api/loyalty_routes.py:11`: `int(request.params[\"id\"])` throws an unhandled error on a non-numeric id instead of returning a 400. The existing `customer_routes` style does the same, so this is minor.\n\n**app/services/loyalty_service.py**\n6. `app/services/loyalty_service.py:8-9`: `find_customer` returns `None` for a missing record. That breaks `std-service-errors`, which says to `raise LookupError(f\"customer {customer_id} not found\")`.\n7. `app/services/loyalty_service.py:6-10`: `find_customer` duplicates `customer_service.get_customer`, and nothing calls it, since the route queries the database itself. The `if row is None: return None; return row` lines also do nothing extra; it's just `return db.fetch_one(...)`.\n8. `app/services/loyalty_service.py:1`: `json` is imported but never used.\n9. `app/services/loyalty_service.py:13`: `points_for` takes a plain `dict` instead of the `Customer` model, so lookups like `customer.get(\"spent_cents\", 0)` are untyped and a mistyped key fails silently. Its signature also forces every caller to work out the rate itself, which is why the route does the gold doubling.\n10. `app/services/loyalty_service.py:16-31`: the tier bonuses (50/20/5), referral bonuses, birthday bonus and the 1000 cap are hard-coded magic numbers in an if/elif chain. They would read better as a tier\u2192bonus map and named constants. The function's cyclomatic complexity is 10, exactly at the project limit. Also, gold customers get the doubled rate (from the route) and skip the 1000 cap; check that this is intended.\n\n**web/src/components/LoyaltyBadge.tsx**\n11. `web/src/components/LoyaltyBadge.tsx:10`: a leftover `debugger;` statement, which runs on every render.\n12. `web/src/components/LoyaltyBadge.tsx:6-8`:\n    - It calls `fetch` directly, which breaks `std-components-use-api-modules`. Add a `getLoyalty` function to `web/src/api/customer.ts` and use it.\n    - There's no error handling: a failed request or non-2xx response is an unhandled rejection or sets `undefined` points.\n    - There's no cleanup when `customerId` changes, so an old response can arrive late and overwrite the new value.\n    - Showing `0` while loading looks the same as a real zero balance.\n13. `web/src/components/LoyaltyBadge.tsx:14-25`: `summarize` is copied from `InvoiceList.tsx:24` and `OrderList.tsx:24`, now in a third place. It also has nothing to do with the loyalty badge. Move it to a shared util and import it from there."
+  ],
+  "metrics": {
+    "planted": 8,
+    "found": 7,
+    "found_ids": [
+      "env-read",
+      "route-db",
+      "service-none",
+      "complexity",
+      "direct-fetch",
+      "debugger",
+      "duplicate"
+    ],
+    "missed_ids": [
+      "unused-import"
+    ]
+  }
+}

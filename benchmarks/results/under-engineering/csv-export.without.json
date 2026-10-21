@@ -1,0 +1,26 @@
+{
+  "suite": "under-engineering",
+  "task": "csv-export",
+  "condition": "without",
+  "model": "claude-opus-5-5[1m]",
+  "skills_loaded": [],
+  "cost_usd": 0.43,
+  "turns": 8,
+  "minutes": 0.4,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-atv1cr7e",
+  "answers": [
+    "I added a \"Download CSV\" button to `InvoiceList` in `web/src/components/InvoiceList.tsx`. Clicking it saves the invoices currently in the list as `invoices.csv`, with the columns `id`, `orderId`, `dueDays` and `paid`. The button is greyed out until the invoices have loaded.\n\nThe file is built in the browser from data the component already has, so there's no new API call. Any value containing a comma, quote or line break is quoted so it won't break the columns. The component now returns the button and the table side by side instead of just the table, so check your CSS if anything relies on the table being its only element.\n\nI haven't tested the download in a browser. The linter's only complaint was something that was already in the file: an unused `summarize` function. The type check couldn't really run because React isn't installed in this repo, so all its errors were about missing React types rather than this change."
+  ],
+  "metrics": {
+    "code_files_changed": 1,
+    "code_files_added": 0,
+    "other_files_added": [],
+    "lines_added": 33,
+    "lines_removed": 11,
+    "new_memory_hops": 0,
+    "new_complexity_over_10": 0,
+    "new_functions_over_80_lines": 0,
+    "new_review_findings": 0,
+    "introduced": []
+  }
+}

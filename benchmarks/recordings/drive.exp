@@ -1,0 +1,45 @@
+#!/usr/bin/expect -f
+# usage: drive.exp <quiet-seconds> <prompt> [<follow-up> ...]
+# Drives interactive Claude Code: answers the first-run dialogs once, sends each message when the
+# previous turn has been quiet for <quiet-seconds>, then exits. Claude Code switches the terminal to
+# the kitty keyboard protocol, so Enter is sent as CSI 13 u, not a bare carriage return.
+set quiet [lindex $argv 0]
+set messages [lrange $argv 1 end]
+proc enter {} { send "\033\[13u" }
+spawn -noecho claude --strict-mcp-config --permission-mode acceptEdits --allowedTools "Bash Read Grep Glob Skill Edit Write Agent"
+set trusted 0
+set browser 0
+set timeout 30
+expect {
+  -re {trust.{0,30}this.{0,30}folder} {
+    if {!$trusted} { set trusted 1; sleep 1; send "\033\[B"; sleep 1; enter }
+    exp_continue
+  }
+  -re {use.{0,20}my.{0,20}browser} {
+    if {!$browser} { set browser 1; sleep 1; enter }
+    exp_continue
+  }
+  -re {accept.{0,16}edits.{0,16}on} {}
+  timeout {}
+}
+proc settle {secs} {
+  set timeout $secs
+  expect {
+    -re {.+} { exp_continue }
+    eof { exit 0 }
+    timeout {}
+  }
+}
+settle 3
+foreach message $messages {
+  send -- $message
+  sleep 1
+  enter
+  sleep 8
+  settle $quiet
+}
+send "/exit"
+sleep 0.5
+enter
+set timeout 20
+expect eof

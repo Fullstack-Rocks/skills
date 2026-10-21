@@ -1,0 +1,102 @@
+diff --git a/app/api/order_routes.py b/app/api/order_routes.py
+index 3fefd1c..27cf841 100644
+--- a/app/api/order_routes.py
++++ b/app/api/order_routes.py
+@@ -1,21 +1,27 @@
+ from app.db import get_db
+ from app.http import Request, Response, route
++from app.rate_limit import RateLimiter, rate_limited
+ from app.services import order_service
+ 
++orders_limiter = RateLimiter(limit=100, window_seconds=60)
++
+ 
+ @route("GET", "/orders/{id}")
++@rate_limited(orders_limiter)
+ def show_order(request: Request) -> Response:
+     order = order_service.get_order(get_db(), int(request.params["id"]))
+     return Response.json(order.__dict__)
+ 
+ 
+ @route("POST", "/orders")
++@rate_limited(orders_limiter)
+ def create_order(request: Request) -> Response:
+     order = order_service.create_order(get_db(), request.json())
+     return Response.json(order.__dict__, status=201)
+ 
+ 
+ @route("POST", "/orders/{id}/pay")
++@rate_limited(orders_limiter)
+ def pay_order(request: Request) -> Response:
+     import os
+     api_key = os.getenv("PAYMENTS_API_KEY")
+diff --git a/app/http.py b/app/http.py
+index f64a105..c6b43f1 100644
+--- a/app/http.py
++++ b/app/http.py
+@@ -11,6 +11,7 @@ class Request:
+     path: str
+     params: dict = field(default_factory=dict)
+     body: bytes = b""
++    headers: dict = field(default_factory=dict)  # lower-cased header names
+ 
+     def json(self) -> dict:
+         return json.loads(self.body or b"{}")
+diff --git a/app/rate_limit.py b/app/rate_limit.py
+new file mode 100644
+index 0000000..ea363a4
+--- /dev/null
++++ b/app/rate_limit.py
+@@ -0,0 +1,52 @@
++import threading
++import time
++from collections import deque
++from functools import wraps
++from typing import Callable
++
++from app.http import Request, Response
++
++CUSTOMER_HEADER = "x-customer-id"
++
++
++class RateLimiter:
++    """Sliding-window limiter: at most `limit` hits per `window_seconds` for each key."""
++
++    def __init__(
++        self, limit: int, window_seconds: float, clock: Callable[[], float] = time.monotonic
++    ) -> None:
++        self.limit = limit
++        self.window_seconds = window_seconds
++        self.clock = clock
++        self._hits: dict[str, deque[float]] = {}
++        self._lock = threading.Lock()
++
++    def acquire(self, key: str) -> float:
++        """Record a hit for `key`. Returns 0 if allowed, else seconds until the next hit would be allowed."""
++        now = self.clock()
++        with self._lock:
++            hits = self._hits.setdefault(key, deque())
++            while hits and hits[0] <= now - self.window_seconds:
++                hits.popleft()
++            if len(hits) >= self.limit:
++                return hits[0] + self.window_seconds - now
++            hits.append(now)
++            return 0.0
++
++
++def rate_limited(limiter: RateLimiter):
++    """Reject requests over `limiter`'s budget for the calling customer with 429."""
++    def decorate(handler: Callable[[Request], Response]) -> Callable[[Request], Response]:
++        @wraps(handler)
++        def wrapper(request: Request) -> Response:
++            customer_id = request.headers.get(CUSTOMER_HEADER)
++            if not customer_id:
++                return Response.json({"error": "X-Customer-Id header is required"}, status=400)
++            retry_after = limiter.acquire(customer_id)
++            if retry_after:
++                return Response.json(
++                    {"error": "rate limit exceeded", "retry_after_seconds": round(retry_after, 3)}, status=429
++                )
++            return handler(request)
++        return wrapper
++    return decorate

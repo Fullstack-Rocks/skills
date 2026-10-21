@@ -1,0 +1,36 @@
+{
+  "suite": "call-depth",
+  "task": "refund-trace",
+  "condition": "with",
+  "model": "claude-opus-5-5[1m]",
+  "skills_loaded": [
+    "call-depth"
+  ],
+  "cost_usd": 0.24,
+  "turns": 6,
+  "minutes": 0.5,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-gf2nr4nd",
+  "answers": [
+    "The weighted depth is **7** (5 calls, 2 of which go-to-definition can't follow), over the limit of 3. Both `scan.py` and `python_scan.py` ran across all 37 files in `app/`. The scan found the two untraceable calls, and I confirmed both by reading the code.\n\n```\nctx   route(\"POST\", \"/orders/{id}/refund\")   app/http.py:29                         [ctx]\nroot  refund_order(request)                  app/api/refund_routes.py:7\n  1   refund_service.refund                  app/services/refund_service.py:16\n  3   _refund_damaged | _refund_late         app/services/refund_service.py:5 / :9  [NOT LSP: dict registry REFUND_HANDLERS[reason]]  <- over 3\n  4   Ledger.record                          app/services/ledger.py:8               <- over 3\n  6   Ledger._write_refund | _write_credit   app/services/ledger.py:12 / :16        [NOT LSP: getattr f\"_write_{kind}\"]  <- over 3\n  7   Database.insert                        app/db.py:19                           <- over 3\ndepth 7 (calls 5, memory hops 2) \u00b7 limit 3\n```\n\n**The two calls go-to-definition can't follow (2 each):**\n- `app/services/refund_service.py:20`: `REFUND_HANDLERS[reason](db, order)`. The handler comes from a dict keyed by the request's `reason` field (`\"damaged\"` or `\"late\"`).\n- `app/services/ledger.py:10`: `getattr(self, f\"_write_{kind}\")(entry)`. The method name is built from a string: `\"refund\"` for damaged orders, `\"credit\"` for late ones.\n\n**Notes:**\n- **Both branches are equally deep.** \"damaged\" goes to `_refund_damaged`, then `_write_refund`. \"late\" goes to `_refund_late`, then `_write_credit`. Each reaches depth 7.\n- **Not counted:** `Ledger(db)` (its constructor only stores `db`), and `Request.json` and `Response.json` (thin wrappers around the standard library at depth 1).\n- **Shorter side branches:** `refund` also calls `Database.fetch_one` at depth 2. The route calls `get_db` at depth 1, which leads to `Database.__init__` at depth 2 (it opens the database connection).\n\nReplacing the two lookups with direct calls (an `if`/`match` on `reason` and on `kind`) would bring this down to depth 5."
+  ],
+  "metrics": {
+    "expected_depth": 7,
+    "reported_depths": [
+      7,
+      7,
+      7,
+      1,
+      2,
+      1,
+      2,
+      5
+    ],
+    "depth_correct": true,
+    "hops_expected": 2,
+    "hops_found": 2,
+    "hops_found_in": [
+      "refund_service.py",
+      "ledger.py"
+    ]
+  }
+}

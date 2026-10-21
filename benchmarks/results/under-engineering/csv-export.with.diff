@@ -1,0 +1,32 @@
+diff --git a/web/src/components/InvoiceList.tsx b/web/src/components/InvoiceList.tsx
+index 9445301..43b738c 100644
+--- a/web/src/components/InvoiceList.tsx
++++ b/web/src/components/InvoiceList.tsx
+@@ -6,7 +6,19 @@ export function InvoiceList({ ids }: { ids: number[] }) {
+   useEffect(() => {
+     Promise.all(ids.map(getInvoice)).then(setItems);
+   }, [ids]);
++  const downloadCsv = () => {
++    const rows = items.map((i) => [i.id, i.orderId, i.dueDays, i.paid].join(","));
++    const csv = ["id,orderId,dueDays,paid", ...rows].join("\n");
++    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
++    const link = document.createElement("a");
++    link.href = url;
++    link.download = "invoices.csv";
++    link.click();
++    URL.revokeObjectURL(url);
++  };
+   return (
++    <>
++    <button type="button" onClick={downloadCsv}>Download CSV</button>
+     <table className="invoice-list">
+       <tbody>
+       {items.map((item) => (
+@@ -18,6 +30,7 @@ export function InvoiceList({ ids }: { ids: number[] }) {
+       ))}
+       </tbody>
+     </table>
++    </>
+   );
+ }
+ 

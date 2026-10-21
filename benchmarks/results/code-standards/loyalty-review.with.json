@@ -1,0 +1,31 @@
+{
+  "suite": "code-standards",
+  "task": "loyalty-review",
+  "condition": "with",
+  "model": "claude-opus-5-5[1m]",
+  "skills_loaded": [
+    "code-standards"
+  ],
+  "cost_usd": 0.32,
+  "turns": 12,
+  "minutes": 0.8,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-dzrj7kp0",
+  "answers": [
+    "I ran the code-standards review on your 3 uncommitted files. It found 10 problems: 2 errors and 8 warnings. One linter, ruff, couldn't run (details at the end).\n\n```\nCode standards: uncommitted changes, 3 files, 3.3s (ast-grep 1.9s, lizard 0.06s, jscpd 3.3s, oxlint 2.5s; ruff not run)\n\nErrors\n  app/api/loyalty_routes.py\n    10  cs-env-outside-config     os.environ.get(\"LOYALTY_RATE\", ...): read it from app.config.settings instead\n  web/src/components/LoyaltyBadge.tsx\n    10  eslint(no-debugger)       leftover `debugger;` statement   [fix]\n\nWarnings\n  app/api/loyalty_routes.py\n    11  std-routes-delegate       the handler calls get_db().fetch_one(...) itself; pass get_db() to a loyalty_service function instead\n    12  std-routes-delegate       a missing customer returns {\"points\": 0} with status 200; the service should raise LookupError, which routes map to 404\n    14  std-routes-delegate       the gold-tier rate doubling is a business rule in the handler; move it into loyalty_service\n  app/services/loyalty_service.py\n     9  std-service-errors        find_customer returns None for a missing record; raise LookupError(f\"customer {customer_id} not found\")\n    13  lizard/complexity         points_for: complexity 11 (limit 10)\n  web/src/components/LoyaltyBadge.tsx\n     6  std-components-use-api-modules  the component calls fetch() directly; add a typed function in web/src/api/customer.ts (or wherever customers live) and import it\n    14  lizard/complexity         summarize: complexity 12 (limit 10)\n```\n\n**Tool problems:** ruff didn't run. It's in your Python dev dependencies (`ruff==0.17.1`), but there's no `uv.lock` or `poetry.lock`, so I didn't install it without asking first. When it runs, it will most likely flag `app/services/loyalty_service.py:1`, because `import json` is never used (rule F401). The tool hasn't confirmed that yet.\n\n**Setup:** I ran `npm ci` to install oxlint from your `package-lock.json`. It didn't change any manifest or lockfile.\n\nThe four standards findings in the route and the service all have the same fix. Add a `loyalty_service.get_points(db, customer_id)` that looks up the customer, raises `LookupError` if it's missing, and applies the tier rules. The handler then reads the param, makes that one call, and returns the result. `find_customer` already does the lookup but nothing calls it yet; it can become that function once it raises instead of returning None.\n\nShould I apply the fixes? Options are: install ruff (`uv sync`, which creates a lockfile), remove the `debugger`, refactor the route into the service, or all of these."
+  ],
+  "metrics": {
+    "planted": 8,
+    "auto_found": 8,
+    "auto_found_ids": [
+      "env-read",
+      "route-db",
+      "service-none",
+      "complexity",
+      "unused-import",
+      "direct-fetch",
+      "debugger",
+      "duplicate"
+    ],
+    "auto_missed_ids": []
+  }
+}

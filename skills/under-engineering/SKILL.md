@@ -64,7 +64,7 @@ When the developer confirms a module, read [`references/module-plan.md`](referen
 
 ## Step 5: Limits while writing
 
-Apply every limit to each function, file and folder as you write it. After finishing each function, measure with the `call-depth` scripts and complexity tool rather than by reading. Exceeding a limit needs a reason you state in the final report.
+Apply every limit to each function, file and folder as you write it. After finishing each function, measure with `call-depth`'s `scan.py` rather than by reading; it covers length, complexity and memory hops in any language, installs its own tools, and leaves the project's environment alone. Exceeding a limit needs a reason you state in the final report.
 
 - **Screen rule.** A function fits on one screen: aim for at most 80 lines. Go past 80 only with a stated reason, and only if its complexity stays under the threshold. Never let a function reach hundreds of lines. **One function does one thing.** An **entrypoint** is the function the developer knows to call. It may orchestrate: a sequence of well-named calls plus simple gates (guard clauses, plain `if`s). The developer should understand what it does, and when, from the names it calls. The real work lives in the functions it calls.
 - **Complexity.** Measure each function's cyclomatic complexity with `call-depth`. If it is over the threshold, inspect its nesting and flatten it: early returns, or a named function per branch.
