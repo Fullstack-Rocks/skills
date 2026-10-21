@@ -21,3 +21,19 @@ The `with` run loaded the user-level installed copy of the skill, whose `review.
 Earlier runs:
 - `v2/`: before this default, with `scope = "changed"`. Without 8/8, with 7/8: the review said "No duplication was found", because jscpd compared the changed files only with each other.
 - `v1/`: `points_for` sat at exactly 10. Without 7/8 (didn't flag complexity), with 7/8 (missed the duplicate).
+
+## Speed suite: read-only baseline
+
+The same 8 planted smells, graded from `../code-standards-speed/change.without.json`. Claude Code had only Read, Glob and Grep: no shell, so it reviewed by reading.
+
+| Planted smell | Found | Evidence |
+|---|---|---|
+| env-read | ✅ | "`loyalty_routes.py:10`: `LOYALTY_RATE` is read from `os.environ` on every request" |
+| route-db | ✅ | the route "queries the database directly instead of calling `loyalty_service.find_customer`" |
+| service-none | ✅ | `find_customer`'s "`if row is None: return None; return row`" |
+| complexity | ❌ | only "`points_for` has many branches that need [tests]"; not flagged as too complex |
+| unused-import | ✅ | "`loyalty_service.py:1`: `import json` is never used" |
+| direct-fetch | ✅ | "`LoyaltyBadge.tsx:6`: It calls `fetch` directly" |
+| debugger | ✅ | "`LoyaltyBadge.tsx:10`: A `debugger;` statement was left in" |
+| duplicate | ✅ | "a `summarize` function that now exists in three places" |
+| **Total** | **7 / 8** | |

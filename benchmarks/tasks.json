@@ -42,7 +42,10 @@
   },
   "code-standards-speed": {
     "kind": "speed",
-    "dev_tools": true,
+    "dev_tools": [
+      "scripts",
+      "with"
+    ],
     "conditions": [
       "scripts",
       "without",
@@ -67,6 +70,12 @@
     ],
     "without_removes": [
       ".code-standards"
-    ]
+    ],
+    "hide_tools": [
+      "without"
+    ],
+    "allowed_tools": {
+      "without": "Read Glob Grep"
+    }
   }
 }

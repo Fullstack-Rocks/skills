@@ -19,5 +19,11 @@
     "seconds": 29.5,
     "cost_usd": 0.28,
     "tokens": 258327
-  }
+  },
+  "commands": [
+    "ls -a .code-standards 2>&1; python3 --version",
+    "python3 /Users/demo/.claude/skills/code-standards/scripts/review.py --out /private/tmp/claude-501/-private-var-folders-xp-p0y8xk0560zcm5whk9018lp80000gn-T-fsr-bench-si4cs6i5/eaad2ab7-e994-4f9b-99b3-c9e0f8894c72/scratchpad/cs-review.json",
+    "python3 -c \"\nimport json;d=json.load(open('/private/tmp/claude-501/-private-var-folders-xp-p0y8xk0560zcm5whk9018lp80000gn-T-fsr-bench-si4cs6i5/eaad2ab7-e994-4f9b-99b3-c9e0f8894c72/scratchpad/cs-review.json'))\nprint({k:v for k,v in d.items() if k not in ('findings','standards')})\nfor f in d['findings']: print(f)\nfor s in d['standards']: print(s)\n\"; cat .code-standards/standards.md",
+    "cat -n app/api/loyalty_routes.py app/services/loyalty_service.py web/src/components/LoyaltyBadge.tsx"
+  ]
 }

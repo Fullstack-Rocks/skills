@@ -72,19 +72,14 @@ Each skill answers one question, measured against Claude Code doing the same job
 
 ### code-standards: how long does a review take, and what does it cost?
 
-| Review | code-standards scripts<br>(no model) | Claude Code<br>+ code-standards | Claude Code<br>alone |
+| Review of the demo shop | code-standards scripts<br>(no model) | Claude Code<br>+ code-standards | Claude Code alone<br>(reads the code) |
 |---|---|---|---|
-| Whole demo repo, 55 files | **0.14 s · $0** | 57 s · $0.43 | 66 s · $0.41 |
-| A 3-file change | **0.14 s · $0** | 30 s · $0.28 | 35 s · $0.16 |
+| Whole repo, 55 files | **0.14 s · $0** | 57 s · $0.43 | 99 s · $0.76 |
+| A 3-file change | **0.14 s · $0** | 30 s · $0.28 | 31 s · $0.38 |
 
-| Large open-source repo, every file | code-standards scripts | An LLM reading it once |
-|---|---|---|
-| FastAPI: 1,195 files, 128k lines | **3.8 s · $0** | ~1.1M tokens, more than a 1M-token context |
-| Excalidraw: 703 files, 225k lines | **2.2 s · $0** | ~2.2M tokens, about two full contexts |
-
-- **The deterministic layer** (linters, your `cs-*` rules, complexity, duplication) returns in well under a second on a normal change, at no cost. It finds the same issues every run, so it can gate every commit or PR. Agent time goes into reading `standards.md` and writing the report.
-- **What a review finds:** on a change with 8 planted smells, Claude alone and Claude + code-standards both found **8 of 8** ([graded by hand](benchmarks/results/code-standards/grading.md)).
-- **Conservative baseline:** "Claude alone" wasn't only reading files. It also ran ruff, oxlint, tsc, lizard and jscpd, which it found on the machine.
+- **"Claude Code alone"** can only read files (Read, Glob, Grep), with no shell, so no linter, analyzer or install can do the work for it. That's a review by reading. On the whole repo it took 64 turns.
+- **The scripts** (your linters, your `cs-*` rules, complexity and duplication) return in well under a second, at no cost, with the same results every run, so they can gate every commit or PR. The agent's time goes into checking `standards.md` and writing the report.
+- **Coverage, whole repo:** Claude + code-standards reported all 17 issues the scripts find. Claude alone, reading, found 15 of them; it missed a small copied table block. **Coverage, the change** (8 planted smells, [graded by hand](benchmarks/results/code-standards/grading.md)): Claude + code-standards found **8 of 8**. Claude alone found 7; it said `points_for` "has many branches" but didn't flag it as too complex.
 
 ### under-engineering: how much code does a feature take?
 

@@ -19,5 +19,12 @@
     "seconds": 57.2,
     "cost_usd": 0.43,
     "tokens": 338382
-  }
+  },
+  "commands": [
+    "ls -la && ls .code-standards 2>/dev/null && cat .code-standards/config.toml 2>/dev/null; git ls-files | head -100; python3 --version",
+    "PATH=\"$PWD/.venv/bin:$PWD/node_modules/.bin:$PATH\" python3 /Users/demo/.claude/skills/code-standards/scripts/review.py --all --out /private/tmp/claude-501/-private-var-folders-xp-p0y8xk0560zcm5whk9018lp80000gn-T-fsr-bench-wny0908z/68555cd2-48c4-493f-9b92-20ccdb24ac9e/scratchpad/cs-review.json; echo exit=$?",
+    "cd /private/tmp/claude-501/-private-var-folders-xp-p0y8xk0560zcm5whk9018lp80000gn-T-fsr-bench-wny0908z/68555cd2-48c4-493f-9b92-20ccdb24ac9e/scratchpad && python3 -c \"\nimport json;d=json.load(open('cs-review.json'))\nprint([k for k in d])\nfor f in d['findings']: print(f)\nprint('---')\nfor s in d['standards']: print(s)\nfor k in ('errors','warnings','tool_errors','notes'):\n  if k in d: print(k,d[k])\n\"; cat /private/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-wny0908z/.code-standards/standards.md",
+    "wc -l app/api/*.py app/services/*.py web/src/components/* web/src/hooks/* | tail -1; for f in app/api/*.py app/services/*.py; do echo \"=== $f\"; cat -n \"$f\"; done",
+    "for f in web/src/components/* web/src/hooks/*; do echo \"=== $f\"; cat -n \"$f\"; done; grep -rn \"fetch\\|apiClient\" web/src"
+  ]
 }

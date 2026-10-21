@@ -4,8 +4,8 @@ Each skill answers one question, compared with Claude Code doing the same job wi
 
 | Skill | Question | Answer |
 |---|---|---|
-| [code-standards](#code-standards-how-long-does-a-review-take-and-what-does-it-cost) | How long does a review take, and what does it cost? | Scripts: **0.14 s, $0** on the demo, 2–4 s on 700–1,200-file repos. Any agent review: 30–66 s, $0.16–0.43 |
-| [code-standards](#code-standards-what-does-a-review-find) | What does a review find? | 8 of 8 planted smells, the same as Claude alone |
+| [code-standards](#code-standards-how-long-does-a-review-take-and-what-does-it-cost) | How long does a review take, and what does it cost? | Scripts: **0.14 s, $0**. Claude + skill: 30–57 s, $0.28–0.43. Claude alone, reading: 31–99 s, $0.38–0.76 |
+| [code-standards](#code-standards-what-does-a-review-find) | What does a review find? | 8 of 8 planted smells. Claude alone found 8 with a shell and 7 reading only |
 | [under-engineering](#under-engineering-how-much-code-does-a-feature-take) | How much code does a feature take? | **130 → 60 lines (−54%)**, no new smells, at higher cost |
 | [call-depth](#call-depth-does-the-trace-come-out-right) | Does the trace come out right? | Yes, the same as Claude alone given the rules; `scan.py` finds the hidden calls in 0.11 s |
 
@@ -13,7 +13,7 @@ Each skill answers one question, compared with Claude Code doing the same job wi
 
 Every run starts from a fresh git copy of the [demo shop](../demo/), a Python API plus a React/TS client with 55 files. There are up to three conditions:
 
-- **without** (Claude Code alone): the `Skill` tool is blocked (`--disallowedTools Skill`).
+- **without** (Claude Code alone): the `Skill` tool is blocked (`--disallowedTools Skill`). In the code-standards speed suite it also gets no shell (only Read, Glob and Grep), so it reviews by reading.
 - **with** (Claude Code + skill): the agent is told to load the skill, which is how a project's `CLAUDE.md` or `AGENTS.md` line works.
 - **scripts** (code-standards only): `review.py` runs with no model at all. The median of 3 runs is reported.
 
@@ -25,38 +25,34 @@ Run on 2026-10-21 on an Apple M-series MacBook, with Claude Code 2.1.280 and `cl
 python3 benchmarks/run.py                                  # every suite and condition
 python3 benchmarks/run.py --suite code-standards-speed     # just one suite
 python3 benchmarks/run.py --rescore                        # recompute metrics from saved sandboxes; no agent runs
-python3 benchmarks/scale.py <path-to-a-repo>               # code-standards scripts on a real repo
 ```
 
 Each result is in `results/<suite>/<task>.<condition>.json`: metrics, cost, tokens, turns, the skills the agent actually loaded, and its final answers. Implementation tasks also save the `.diff`.
 
 ## code-standards: how long does a review take, and what does it cost?
 
-Two reviews of the demo: the whole repository, and the 3-file loyalty change from the [planted-smell fixture](fixtures/code-standards/). The agent runs get the project's dev tools pre-installed (ruff, oxlint), so neither pays for setup. In "Claude alone", `.code-standards/` is removed, so nothing from the skill is in the repo.
+Two reviews of the demo: the whole repository, and the 3-file loyalty change from the [planted-smell fixture](fixtures/code-standards/).
 
-| Review | Condition | Time to result | Cost | Tokens |
-|---|---|---|---|---|
-| Whole repo (55 files) | code-standards scripts | **0.14 s** | **$0** | 0 |
-| | Claude Code + code-standards | 57 s | $0.43 | 338k |
-| | Claude Code alone | 66 s | $0.41 | 271k |
-| 3-file change | code-standards scripts | **0.14 s** | **$0** | 0 |
-| | Claude Code + code-standards | 30 s | $0.28 | 258k |
-| | Claude Code alone | 35 s | $0.16 | 154k |
+- **Claude Code alone** gets only Read, Glob and Grep: no shell, so no linter, analyzer or install can do the work for it, and `.code-standards/` is removed from its copy.
+- **Claude Code + code-standards** and the **scripts** get the project's dev tools pre-installed in the sandbox (ruff, oxlint, lizard), so neither pays for setup.
 
-**On large real repositories** ([`scale.py`](scale.py), the scripts over every file, median of 3; the token figure is file characters ÷ 4, the least an LLM must read to see every file once):
+| Review | Condition | Time to result | Cost | Tokens | Shell commands |
+|---|---|---|---|---|---|
+| Whole repo (55 files) | code-standards scripts | **0.14 s** | **$0** | 0 | — |
+| | Claude Code + code-standards | 57 s | $0.43 | 338k | 5 |
+| | Claude Code alone (reads the code) | 99 s | $0.76 | 447k | 0 (64 turns) |
+| 3-file change | code-standards scripts | **0.14 s** | **$0** | 0 | — |
+| | Claude Code + code-standards | 30 s | $0.28 | 258k | 4 |
+| | Claude Code alone (reads the code) | 31 s | $0.38 | 181k | 0 |
 
-| Repo | Files reviewed | Lines | Scripts, full repo | Tokens to read it once |
-|---|---|---|---|---|
-| [FastAPI](https://github.com/fastapi/fastapi) `386a28a` | 1,195 | 128k | **3.8 s** | ~1.1M, more than a 1M-token context |
-| [Excalidraw](https://github.com/excalidraw/excalidraw) `1d4dc2c` | 703 | 225k | **2.2 s** | ~2.2M, about two full contexts |
-
-jscpd's duplication pass takes most of that time. Excalidraw's ESLint wasn't installed in the clone, so it didn't run. The first, untuned run on FastAPI reported 5,611 findings, 4,622 of them duplicates in its deliberately repetitive `tests/`. A real project would add `tests/**` to `exclude` or raise the token threshold.
+**What each review found**
+- **Whole repo:** the scripts report 17 issues. Claude + code-standards covered all 17 and added two from `standards.md`. Claude alone covered 15: it found the copied `summarize` but missed a 6-line table block shared by `ShipmentList.tsx` and `InvoiceList.tsx`. It added its own observations from reading, such as near-identical route handlers.
+- **The change:** Claude + code-standards found 8 of 8 planted smells. Claude alone, reading, found 7 of 8: it noted that `points_for` "has many branches that need [tests]" but didn't flag it as too complex ([grading](results/code-standards/grading.md#speed-suite-read-only-baseline)).
 
 **Reading it**
-- **Scripts:** the deterministic layers return in well under a second on a change, at no cost, with the same findings every run. That makes them cheap enough to gate every commit.
-- **Agents:** with or without the skill, an agent spends 30–66 s and $0.16–0.43 on the same small repo, mostly reading code and writing the report. The skill's agent was a little faster, and costs about the same or more, because it reads the skill and `standards.md` too.
-- **The baseline isn't naive:** Claude alone didn't just read files. It found and ran ruff, oxlint, tsc, lizard and jscpd. Without those tools on the machine, it would have to read and judge everything itself.
-- **A variant worth knowing:** when `.code-standards/` was left in the repo, Claude alone found its config and rebuilt the same tool pipeline by hand: 61 s and $0.37 for the whole repo, 55 s and $0.24 for the change (`*.without-config-present.json`).
+- **Scripts:** the deterministic layers return in well under a second, at no cost, with the same findings every run, so they can gate every commit.
+- **Agents:** an agent review costs 30–99 s and $0.28–0.76 on this small repo. Reading a whole repo costs the most, and more code means more to read. With the skill, the agent starts from the scripts' results and spends its time on `standards.md` and the report.
+- **Getting the baseline right took three tries.** With `.code-standards/` left in the repo, Claude alone found the config and rebuilt the tool pipeline by hand. With analyzers removed from `PATH`, it ran `npm ci` and `uv sync` to install the demo's dev dependencies, then ran them. Only taking away the shell made it review by reading.
 
 ## under-engineering: how much code does a feature take?
 
