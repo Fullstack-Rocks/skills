@@ -68,21 +68,32 @@ Every recording below is a real, interactive Claude Code session on the [demo sh
 
 ## Benchmarks
 
-The same agent on the same task in a fresh copy of the demo, with the skill blocked and with it loaded. Results are measured with this repo's own scanners. Claude Code 2.1.280, `claude-opus-5-5`, one run per task and condition. Method, raw results and caveats are in [`benchmarks/`](benchmarks/).
+Each skill answers one question, measured against Claude Code doing the same job without it. Same model (`claude-opus-5-5`), same task, a fresh copy of the [demo shop](demo/), one run per cell. Raw data, method and caveats are in [`benchmarks/`](benchmarks/).
 
-| | without skill | with skill |
+### code-standards: what does a review cost, and what does it find?
+
+| Review of the demo shop | Claude Code + code-standards | Claude Code alone<br>(shell + the project's linters) |
 |---|---|---|
-| **under-engineering**: lines added across 3 feature tasks | 130 | **60 (−54%)** |
-| Code files touched / new modules | 8 / 1 | **5 / 0** |
-| New smells introduced (memory hops, complexity, lint, duplication) | 0 | 0 |
-| Cost for the 3 tasks | $1.96 | $3.38 |
-| **code-standards**: planted smells found (out of 8) | 8 | 8 |
-| **call-depth**: correct weighted depth and both memory hops | ✅ | ✅ |
+| Whole repo, 55 files | 57 s · $0.43 · **17 of 17** issues | 57 s · $0.36 · 15 of 17 issues |
+| A 3-file change with 8 planted smells | 30 s · $0.28 · **8 of 8** found | 52 s · $0.21 · 7 of 8 found |
 
-What this shows, honestly:
-- **Code size.** `under-engineering` roughly halved the code for the same features, introduced no new smells, and costs more per task because of the checkpoint and the hallway check.
-- **Reviews.** On a one-off review a strong model that reads `standards.md` does as well as `code-standards`. The skill's edge is that every finding is backed by a rule that runs in seconds, and that it learns. Its one miss in the previous run was a copy of unchanged code. Duplication now compares changed files with the whole repo by default (up to 30 MB of source, about 1s), and it catches the copy.
-- **Tracing.** When the prompt spells out the counting rules, the plain agent traces correctly too. `call-depth` brings those rules, and a scanner, to every trace.
+- **A review costs about the same with or without the skill:** 30–60 s and $0.20–0.45 here. What the skill changes is completeness. The agent starts from code-standards' linters, rules, complexity and duplication checks, so it reported every issue they find and checked `standards.md` on top. Claude alone missed two complexity findings, and on the change didn't flag the planted overly complex function.
+- **"Claude Code alone"** worked like a developer's checkout without the skill: a normal shell, the project's own linters installed (ruff, oxlint, tsc), and no ast-grep, jscpd or lizard. It ran the linters, used ruff's complexity rule, and read the rest. Answers were [graded by hand](benchmarks/results/code-standards/grading.md).
+
+### under-engineering: how much code does a feature take?
+
+| Feature request | Claude Code alone | Claude Code + under-engineering |
+|---|---|---|
+| Apply a coupon to an order | 38 lines, 4 files | **23 lines, 2 files** |
+| Rate-limit the orders API | 59 lines, 3 files, a new module | **24 lines, 2 files** |
+| Export invoices as CSV | 33 lines | **13 lines** |
+| **Total** | **130 lines** | **60 lines (−54%)** |
+
+Neither version introduced new smells (memory hops, complexity, lint or duplication). The skill's checkpoint and hallway check cost more: $3.38 against $1.96 for the three features.
+
+### call-depth: does the trace come out right?
+
+On a refund route with a weighted depth of 7 and two hidden indirect calls (a dict registry and a `getattr` dispatch), **both versions got the depth and both calls right** when the prompt spelled out the counting rules. With the skill, nobody has to write those rules into the prompt, and `scan.py` finds both indirect calls across 58 files in **0.11 s**, before the agent reads any code.
 
 ## Install
 

@@ -1,25 +1,58 @@
 # Benchmarks
 
-The same agent, on the same task, in a fresh copy of the [demo shop](../demo/) (a Python API plus a React/TS client, 55 files), run two ways:
+Each skill answers one question, compared with Claude Code doing the same job without it:
 
-- **without**: the `Skill` tool is blocked (`--disallowedTools Skill`)
-- **with**: the agent is told to load the skill, which is how a project's `CLAUDE.md` or `AGENTS.md` line works
+| Skill | Question | Answer |
+|---|---|---|
+| [code-standards](#code-standards-what-does-a-review-cost) | What does a review cost? | About the same with or without the skill (30–57 s, $0.21–0.43). With it, the review is complete: 17 of 17 issues against 15 |
+| [code-standards](#code-standards-what-does-a-review-find) | What does a review find? | With `standards.md` readable by both: 8 of 8 each (see below). In the speed suite, without code-standards: 7 of 8 |
+| [under-engineering](#under-engineering-how-much-code-does-a-feature-take) | How much code does a feature take? | **130 → 60 lines (−54%)**, no new smells, at higher cost |
+| [call-depth](#call-depth-does-the-trace-come-out-right) | Does the trace come out right? | Yes, the same as Claude alone given the rules; `scan.py` finds the hidden calls in 0.11 s |
 
-Both runs get the same fixed reply ("go with your recommendation") if they stop to ask a question. Results are measured with this repo's own scanners: `call-depth`'s `scan.py` and `code-standards`' `review.py`. Each finding is compared with the same file before the change, so only what the run introduced counts.
+## How the runs work
 
-Run on 2026-10-21 with Claude Code 2.1.280 and `claude-opus-5-5`, **one run per task and condition**. That's enough to see the size of the effect, but these aren't statistics; rerun them yourself:
+Every run starts from a fresh git copy of the [demo shop](../demo/), a Python API plus a React/TS client with 55 files. There are two conditions:
+
+- **without** (Claude Code alone): the `Skill` tool is blocked (`--disallowedTools Skill`).
+- **with** (Claude Code + skill): the agent is told to load the skill, which is how a project's `CLAUDE.md` or `AGENTS.md` line works.
+
+Both agent conditions get the same fixed reply ("go with your recommendation") if they stop to ask a question. Results are measured with this repo's own scanners: `call-depth`'s `scan.py` and `code-standards`' `review.py`. For implementation tasks, each finding is compared with the same file before the change, so only what the run introduced counts.
+
+Run on 2026-10-21 on an Apple M-series MacBook, with Claude Code 2.1.280 and `claude-opus-5-5`, **one run per cell**. That's enough to see the size of an effect, but these aren't statistics. Rerun them:
 
 ```bash
-python3 benchmarks/run.py                      # every suite, both conditions (about $6, 10 minutes)
-python3 benchmarks/run.py --suite under-engineering --task coupon --condition with
-python3 benchmarks/run.py --rescore            # recompute metrics from the saved sandboxes; no agent runs
+python3 benchmarks/run.py                                  # every suite and condition
+python3 benchmarks/run.py --suite code-standards-speed     # just one suite
+python3 benchmarks/run.py --rescore                        # recompute metrics from saved sandboxes; no agent runs
 ```
 
-Each result is in `results/<suite>/<task>.<condition>.json`: metrics, cost, turns, the skills the agent actually loaded, and its final answers. Implementation tasks also save the `.diff`.
+Each result is in `results/<suite>/<task>.<condition>.json`: metrics, cost, tokens, turns, the skills the agent actually loaded, and its final answers. Implementation tasks also save the `.diff`.
 
-## under-engineering: three feature requests
+## code-standards: what does a review cost?
 
-| Task | Lines added (without → with) | Code files touched | New modules | New smells* | Cost |
+Two reviews of the demo: the whole repository, and the 3-file loyalty change from the [planted-smell fixture](fixtures/code-standards/).
+
+- **Claude Code alone** works like a developer's checkout without the skill. It has a normal shell and the project's declared dev tools installed (ruff, oxlint, tsc). It doesn't have the skill's tools: ast-grep, jscpd and lizard are hidden from `PATH`, and nothing in the project mentions them. `.code-standards/` is removed from its copy.
+- **Claude Code + code-standards** gets the same installed linters. The skill's tools come from their user-level installs.
+
+| Review | Condition | Time to result | Cost | Tokens | Shell commands |
+|---|---|---|---|---|---|
+| Whole repo (55 files) | Claude Code + code-standards | 57 s | $0.43 | 338k | 5 |
+| | Claude Code alone | 57 s | $0.36 | 303k | 6: ruff, oxlint, tsc, ruff's C901 complexity rule, reading |
+| 3-file change | Claude Code + code-standards | 30 s | $0.28 | 258k | 4 |
+| | Claude Code alone | 52 s | $0.21 | 233k | 4: `grep` and `cat`, no linters |
+
+**What each review found** ([grading](results/code-standards/grading.md#speed-suite-claude-code-alone))
+- **Whole repo:** code-standards' tools report 17 issues. Claude + code-standards covered all 17 and added two from `standards.md`. Claude alone covered 15. It didn't flag the two copies of `summarize` as too complex (complexity 12), though it recommended deleting them as dead code. It also reported wider duplication the scripts don't flag, such as near-identical service and route modules.
+- **The change:** Claude + code-standards found 8 of 8 planted smells. Claude alone found 7 of 8: it noted that `points_for` "has many branches" but didn't flag it as too complex. It also caught the unregistered route and a `None` value that would cause a `TypeError`.
+
+**Reading it**
+- **Agents:** an agent review costs about the same either way, 30–57 s and $0.21–0.43 here. With the skill, the agent starts from code-standards' tool results, so its review is complete and every finding traces to a rule. Without it, the agent judges complexity and duplication by eye, and misses some.
+- **A pitfall this benchmark hit.** At first the demo's own manifests listed the skill's tools (`jscpd`, `lizard`, `@ast-grep/cli`) as dev dependencies, so "Claude alone" read `package.json` and `pyproject.toml` and ran them, even installing them with `npm ci` and `uv sync`. The demo now declares only its real linters, and the baseline reflects a project without the skill.
+
+## under-engineering: how much code does a feature take?
+
+| Task | Lines added (Claude alone → + under-engineering) | Code files touched | New modules | New smells* | Cost |
 |---|---|---|---|---|---|
 | `coupon`: POST /orders/{id}/apply-coupon | 38 → **23** | 4 → **2** | 0 → 0 | 0 → 0 | $0.95 → $1.37 |
 | `rate-limit`: 100 requests/min per customer | 59 → **24** | 3 → **2** | 1 → **0** | 0 → 0 | $0.58 → $1.25 |
@@ -38,13 +71,13 @@ The `with` runs loaded `under-engineering`, and it pulled in `um-maybe` for the 
 
 **Found and fixed by the benchmark.** In `rate-limit/with`, the agent checked its own code with `uv run --group dev ruff …`. That synced the project's virtualenv and wrote a `uv.lock`. `under-engineering` now says to measure with `call-depth`'s `scan.py`, which installs its own tools and leaves the project alone.
 
-## code-standards: a change with 8 planted smells
+## code-standards: what does a review find?
 
 The [fixture](fixtures/code-standards/) adds a loyalty feature as uncommitted changes. Prompt: *"Review my uncommitted changes for code quality. List every problem you find, each with file:line."* Both runs could read the project's `.code-standards/standards.md`.
 
 Graded by hand from the saved answers; see [`results/code-standards/grading.md`](results/code-standards/grading.md) for the evidence behind each cell:
 
-| Planted smell | Kind | without | with |
+| Planted smell | Kind | Claude alone | Claude + code-standards |
 |---|---|---|---|
 | `os.environ.get` in a route | `cs-env-outside-config` rule | ✅ | ✅ |
 | Route calls `get_db().fetch_one` | `std-routes-delegate` | ✅ | ✅ |
@@ -68,14 +101,14 @@ The previous run (kept in `results/code-standards/v2/`) missed the copy, 7 of 8.
 
 An earlier run on a version of the fixture where `points_for` sat exactly at complexity 10 is kept in `results/code-standards/v1/`. There, both found 7 of 8: the baseline caught the copy, and the skill caught the complexity.
 
-## call-depth: trace a refund flow
+## call-depth: does the trace come out right?
 
 The [fixture](fixtures/call-depth/) adds `POST /orders/{id}/refund`. It has a weighted depth of 7 and two memory hops: a dict registry `REFUND_HANDLERS[reason](...)`, and a `getattr(self, f"_write_{kind}")(...)` dispatch. The prompt spelled out the counting rules: project-owned calls count 1, calls go-to-definition can't follow count 2.
 
-| | without | with |
+| | Claude alone | Claude + call-depth |
 |---|---|---|
 | Weighted depth 7 | ✅ | ✅ |
 | Both memory hops, with file:line | ✅ | ✅ |
 | Cost | $0.11 | $0.24 |
 
-With the rules in the prompt, the plain agent traced it correctly too. The skill's value is that nobody has to write those rules into the prompt, and that `scan.py` finds the hops by parsing, in any language, before the agent reads the code. The recording in the main README shows it at work.
+With the rules in the prompt, the plain agent traced it correctly too. The skill's value is that nobody has to write those rules into the prompt, and that `scan.py` finds both hops by parsing, in any language, before the agent reads the code: 0.11 s across the 58 files (median of 3). The recording in the main README shows it at work.

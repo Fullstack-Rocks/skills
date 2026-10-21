@@ -1,0 +1,30 @@
+{
+  "suite": "code-standards-speed",
+  "task": "full-repo",
+  "condition": "with",
+  "model": "claude-opus-5-5[1m]",
+  "skills_loaded": [
+    "code-standards"
+  ],
+  "cost_usd": 0.43,
+  "tokens": 338382,
+  "turns": 8,
+  "seconds": 57.2,
+  "answers": [
+    "I ran the full-repo review (`review.py --all`): 55 files, with ruff, oxlint, ast-grep, lizard and jscpd all working. It found **9 errors and 8 warnings**. I also read every file covered by the project's three written standards. Only one of them is broken, and it's in `app/api/order_routes.py`.\n\n## Errors\n\n**app/api/order_routes.py**\n- `21`: **cs-env-outside-config**. `os.getenv(\"PAYMENTS_API_KEY\")` reads the environment directly. Read it from `app.config.settings` instead. The `import os` on line 20 is also inside the function.\n\n**app/jobs/cleanup.py**\n- `8`: **cs-env-outside-config**. `int(os.environ.get(\"RETENTION_DAYS\", \"30\"))` should come from `settings`.\n\n**app/services/invoice_service.py**\n- `29`: **ruff F401**. `import json` is never used. `[fix]`\n- `30`: **cs-env-outside-config**. `os.environ[\"SMTP_HOST\"]` should come from `settings`. Once it does, the `import os` on line 1 can go.\n\n**app/services/order_service.py**\n- `20`: **ruff E501**. The line is 116 characters (limit 110). `[fix]` (wrap the `Order(...)` arguments)\n\n**app/services/shipment_service.py**\n- `30`: **cs-env-outside-config**. `getenv(\"DEFAULT_CARRIER\", \"ups\")` reads the environment directly. The rule also catches the `from os import getenv` form used here.\n\n**web/src/components/InvoiceList.tsx**\n- `24`: **oxlint no-unused-vars**. `summarize` is declared but never used.\n\n**web/src/components/OrderList.tsx**\n- `24`: **oxlint no-unused-vars**. `summarize` is declared but never used.\n\n**web/src/hooks/useOrderTotals.ts**\n- `12`: **oxlint no-debugger**. A leftover `debugger;` statement. `[fix]`\n\n## Warnings\n\n**app/api/order_routes.py**\n- `19\u201323`: **std-routes-delegate**. The `pay_order` handler reads config and decides what counts as charged (`bool(api_key)`) itself. That logic should move into a service function such as `order_service.pay_order(get_db(), id)`, so the handler only calls it and returns the result.\n\n**app/services/order_service.py**\n- `27\u201348`: **lizard/complexity**. `order_total_cents` scores 14 (limit 10). It mixes item pricing, the bulk discount, coupon checks and checking and applying the coupon, and customer-tier rules. Splitting it into helpers like `_line_total`, `_apply_coupon` and `_apply_tier_discount` would bring it under the limit.\n\n**web/src/components/InvoiceList.tsx**\n- `24\u201335`: **lizard/complexity**. `summarize` scores 12 (limit 10).\n- `16\u201335`: **jscpd/duplicate**. 20 lines are the same as `OrderList.tsx:16\u201335` (the end of the table plus the whole `summarize` function).\n- `10\u201315`: **jscpd/duplicate**. Same as `ShipmentList.tsx:10\u201315`. Both render `orderId` the same way, and the table class is `\"invoice-list\"` in both. That class name looks wrong in `ShipmentList`.\n\n**web/src/components/OrderList.tsx**\n- `24\u201335`: **lizard/complexity**. `summarize` scores 12 (limit 10).\n- `16\u201335`: **jscpd/duplicate**. This is the other copy of the `InvoiceList.tsx` block.\n\n**web/src/components/ShipmentList.tsx**\n- `10\u201315`: **jscpd/duplicate**. This is the other copy of the `InvoiceList.tsx:10\u201315` block.\n\n**web/src/hooks/useOrderTotals.ts**\n- `9`: **oxlint eqeqeq**. It uses `==` where it should use `===`. `[fix]`\n\n## Standards with no problems\n- **std-service-errors**: every service raises `LookupError` or `ValueError` with the entity and field in the message. None return sentinels or catch broad exceptions.\n- **std-components-use-api-modules**: every component and hook goes through `web/src/api/*`. Only `web/src/lib/apiClient.ts` calls `fetch`.\n- **std-routes-delegate**: every handler except `pay_order` passes straight through to its service.\n\n## Notes\n- No tool problems: every linter and analyzer ran, and no file types were left unreviewed.\n- The single duplicated `summarize` is the clearest cleanup. It's unused in both places, so deleting both copies clears 2 errors and 4 warnings at once.\n\nItems marked `[fix]` can be applied automatically (ruff, oxlint, or a trivial edit). I haven't changed anything yet; say the word and I'll apply them, along with the hand edits for the environment reads, the `pay_order` handler and `order_total_cents`."
+  ],
+  "minutes": 1.0,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-wny0908z",
+  "metrics": {
+    "seconds": 57.2,
+    "cost_usd": 0.43,
+    "tokens": 338382
+  },
+  "commands": [
+    "ls -la && ls .code-standards 2>/dev/null && cat .code-standards/config.toml 2>/dev/null; git ls-files | head -100; python3 --version",
+    "PATH=\"$PWD/.venv/bin:$PWD/node_modules/.bin:$PATH\" python3 /Users/demo/.claude/skills/code-standards/scripts/review.py --all --out /private/tmp/claude-501/-private-var-folders-xp-p0y8xk0560zcm5whk9018lp80000gn-T-fsr-bench-wny0908z/68555cd2-48c4-493f-9b92-20ccdb24ac9e/scratchpad/cs-review.json; echo exit=$?",
+    "cd /private/tmp/claude-501/-private-var-folders-xp-p0y8xk0560zcm5whk9018lp80000gn-T-fsr-bench-wny0908z/68555cd2-48c4-493f-9b92-20ccdb24ac9e/scratchpad && python3 -c \"\nimport json;d=json.load(open('cs-review.json'))\nprint([k for k in d])\nfor f in d['findings']: print(f)\nprint('---')\nfor s in d['standards']: print(s)\nfor k in ('errors','warnings','tool_errors','notes'):\n  if k in d: print(k,d[k])\n\"; cat /private/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-wny0908z/.code-standards/standards.md",
+    "wc -l app/api/*.py app/services/*.py web/src/components/* web/src/hooks/* | tail -1; for f in app/api/*.py app/services/*.py; do echo \"=== $f\"; cat -n \"$f\"; done",
+    "for f in web/src/components/* web/src/hooks/*; do echo \"=== $f\"; cat -n \"$f\"; done; grep -rn \"fetch\\|apiClient\" web/src"
+  ]
+}

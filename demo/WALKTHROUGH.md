@@ -15,11 +15,12 @@ Everything below was run on 2026-10-20 (macOS, Apple Silicon). The interview ans
 
 ## Setup
 
-The tools are pinned and installed locally (both folders are gitignored):
+The project's own linters install into `node_modules/` and `.venv/` (both gitignored). The skill's tools are pinned and install at user level, outside the project:
 
 ```bash
-npm install                        # @ast-grep/cli 0.50.0, jscpd 5.4.1, oxlint 1.89.0, typescript
-uv venv && uv pip install ruff==0.17.1 lizard==1.24.1
+npm install                        # the project's own linters: oxlint 1.89.0, typescript
+uv venv && uv pip install ruff==0.17.1
+python3 ../skills/code-standards/scripts/install_tools.py   # the skill's tools: ast-grep, lizard, jscpd
 ```
 
 ## 1. init
