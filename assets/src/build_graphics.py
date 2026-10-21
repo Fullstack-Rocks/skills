@@ -29,13 +29,17 @@ def font(name: str) -> str:
 def frame(height: int, body: str, title: str, desc: str, glow: float = 0.7, shade: float = 0.42) -> str:
     """The banner's canvas: black, rounded, a drifting blurred gradient, a shade, then `body`."""
     cy = height * 0.62
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{height}" viewBox="0 0 {W} {height}" role="img" aria-labelledby="t d">
+    size = f'width="{W}" height="{height}" viewBox="0 0 {W} {height}"'
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" {size} role="img" aria-labelledby="t d">
   <title id="t">{escape(title)}</title>
   <desc id="d">{escape(desc)}</desc>
   <style>
-    @font-face {{ font-family: "RHD"; font-weight: 500; src: url(data:font/woff2;base64,{font("rhd500.woff2")}) format("woff2"); }}
-    @font-face {{ font-family: "RHD"; font-weight: 600; src: url(data:font/woff2;base64,{font("rhd600.woff2")}) format("woff2"); }}
-    @font-face {{ font-family: "UNB"; font-weight: 600; src: url(data:font/woff2;base64,{font("unb600.woff2")}) format("woff2"); }}
+    @font-face {{ font-family: "RHD"; font-weight: 500;
+      src: url(data:font/woff2;base64,{font("rhd500.woff2")}) format("woff2"); }}
+    @font-face {{ font-family: "RHD"; font-weight: 600;
+      src: url(data:font/woff2;base64,{font("rhd600.woff2")}) format("woff2"); }}
+    @font-face {{ font-family: "UNB"; font-weight: 600;
+      src: url(data:font/woff2;base64,{font("unb600.woff2")}) format("woff2"); }}
     text {{ font-family: "RHD", "Red Hat Display", system-ui, sans-serif; }}
     .kicker {{ font-weight: 600; font-size: 13px; letter-spacing: 2.4px; fill: {LIME}; }}
     .title {{ font: 600 26px "UNB", "Unbounded", system-ui, sans-serif; fill: {TEXT}; letter-spacing: -0.3px; }}
@@ -128,7 +132,8 @@ def code_standards_chart() -> str:
     for title, index, scale, fmt in panels:
         x0 = left + index * (panel_w + gap)
         body.append(text(x0, top, title, "label"))
-        body.append(f'    <line x1="{x0}" y1="{top + 12}" x2="{x0 + panel_w}" y2="{top + 12}" stroke="rgba(255,255,255,0.14)"/>')
+        body.append(f'    <line x1="{x0}" y1="{top + 12}" x2="{x0 + panel_w}" y2="{top + 12}" '
+                    'stroke="rgba(255,255,255,0.14)"/>')
         for r, (label, sw, sa, cw, ca, total, fw, fa) in enumerate(rows):
             y = top + 46 + r * 96
             body.append(text(x0, y, label, "small"))
@@ -202,8 +207,10 @@ def call_depth_chart() -> str:
             x1, x2, ym = x + node_w + 3, x + node_w + gap - 3, top + 29
             dash = ' stroke-dasharray="4 4"' if hidden else ""
             color = LIME if hidden else "rgba(255,255,255,0.45)"
-            body.append(f'    <line x1="{x1}" y1="{ym}" x2="{x2 - 6}" y2="{ym}" stroke="{color}" stroke-width="2"{dash}/>')
-            body.append(f'    <path d="M{x2 - 7} {ym - 5} L{x2} {ym} L{x2 - 7} {ym + 5}" fill="none" stroke="{color}" stroke-width="2"/>')
+            body.append(f'    <line x1="{x1}" y1="{ym}" x2="{x2 - 6}" y2="{ym}" stroke="{color}" '
+                        f'stroke-width="2"{dash}/>')
+            body.append(f'    <path d="M{x2 - 7} {ym - 5} L{x2} {ym} L{x2 - 7} {ym + 5}" fill="none" '
+                        f'stroke="{color}" stroke-width="2"/>')
             body.append(text((x1 + x2) / 2, ym - 10, "+2" if hidden else "+1", "value" if hidden else "small", "middle",
                              f'fill="{LIME}"' if hidden else ""))
     body.append(text(56, top + 96, "Hidden calls (+2 each): REFUND_HANDLERS[reason] at refund_service.py:20 · "
@@ -219,7 +226,8 @@ def call_depth_chart() -> str:
         body.append(text(x + 46, top + 150, headline, "label"))
         body.append(text(x + 46, top + 172, sub, "small"))
     return frame(400, "\n".join(body), "call-depth benchmark",
-                 "Refund chain: weighted depth 7 with two hidden calls. Both Claude alone and Claude with call-depth got "
+                 "Refund chain: weighted depth 7 with two hidden calls. "
+                 "Both Claude alone and Claude with call-depth got "
                  "the depth and both hidden calls right; scan.py found both in 0.11 seconds.")
 
 
@@ -233,22 +241,27 @@ def motif(skill: str) -> str:
         "under-engineering": f'<path {w} d="M0 60 c20 -50 40 50 60 0 s30 -60 50 -10 s20 40 40 -20 s30 50 50 10"/>'
                              f'<path {s} d="M200 60 L360 60"/><circle cx="360" cy="60" r="5" fill="{LIME}"/>',
         "um-maybe": f'<rect {w} x="0" y="10" width="170" height="64" rx="16"/><path {w} d="M40 74 l-10 22 l30 -22"/>'
-                    f'<rect {s} x="190" y="40" width="170" height="64" rx="16"/><path {s} d="M320 104 l10 22 l-30 -22"/>'
+                    f'<rect {s} x="190" y="40" width="170" height="64" rx="16"/>'
+                    f'<path {s} d="M320 104 l10 22 l-30 -22"/>'
                     f'<circle cx="245" cy="72" r="4" fill="{LIME}"/><circle cx="275" cy="72" r="4" fill="{LIME}"/>'
                     f'<circle cx="305" cy="72" r="4" fill="{LIME}"/>',
         "under-engineering-review": f'<path {w} d="M10 100 L80 40 L150 90 L220 30 L290 80"/>'
-                                    + "".join(f'<circle cx="{x}" cy="{y}" r="6" fill="#000" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>'
+                                    + "".join(f'<circle cx="{x}" cy="{y}" r="6" fill="#000" '
+                                              'stroke="rgba(255,255,255,0.55)" stroke-width="2"/>'
                                               for x, y in [(10, 100), (80, 40), (150, 90), (220, 30), (290, 80)])
                                     + f'<circle {s} cx="230" cy="44" r="40"/><path {s} d="M259 73 L300 114"/>',
         "call-depth": "".join(f'<rect x="{i * 62}" y="{i * 22}" width="46" height="26" rx="7" '
                               + (f'fill="none" stroke="{LIME}" stroke-width="2.4"' if i in (2, 4)
                                  else 'fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2"') + '/>'
                               for i in range(6))
-                      + "".join(f'<path {s if i in (1, 3) else w} d="M{i * 62 + 46} {i * 22 + 13} L{i * 62 + 62} {i * 22 + 35}"/>'
+                      + "".join(f'<path {s if i in (1, 3) else w} '
+                                f'd="M{i * 62 + 46} {i * 22 + 13} L{i * 62 + 62} {i * 22 + 35}"/>'
                                 for i in range(5)),
-        "code-standards": "".join(f'<path {w} d="M0 {y} L{l} {y}"/>' for y, l in [(16, 200), (46, 240), (106, 220)])
-                          + f'<path {s} d="M0 76 L260 76"/><path stroke="{LIME}" stroke-width="2.4" d="M-6 76 L268 76" opacity="0.5"/>'
-                          + f'<path {s} d="M290 66 l10 10 l20 -22"/><rect {s} x="280" y="96" width="80" height="22" rx="6"/>',
+        "code-standards": "".join(f'<path {w} d="M0 {y} L{end} {y}"/>' for y, end in [(16, 200), (46, 240), (106, 220)])
+                          + f'<path {s} d="M0 76 L260 76"/>'
+                          + f'<path stroke="{LIME}" stroke-width="2.4" d="M-6 76 L268 76" opacity="0.5"/>'
+                          + f'<path {s} d="M290 66 l10 10 l20 -22"/>'
+                          + f'<rect {s} x="280" y="96" width="80" height="22" rx="6"/>',
     }
     return f'    <g transform="translate(860 52)">{drawings[skill]}</g>'
 
@@ -267,10 +280,12 @@ def banner(skill: str, tagline: str) -> str:
     size = 44 if len(skill) < 20 else 36
     body = [f'    <g transform="translate(56 40) scale(0.064)" fill="#fff">\n{logo}\n    </g>',
             text(96, 62, "FULLSTACK.ROCKS/SKILLS", "kicker"),
-            f'    <text x="56" y="{128 if size == 44 else 124}" style="font: 600 {size}px \'UNB\', \'Unbounded\', system-ui, sans-serif; fill: #fff; letter-spacing: -0.5px">{escape(skill)}</text>',
+            f'    <text x="56" y="{128 if size == 44 else 124}" style="font: 600 {size}px \'UNB\', \'Unbounded\', '
+            f'system-ui, sans-serif; fill: #fff; letter-spacing: -0.5px">{escape(skill)}</text>',
             text(56, 170, tagline, "label", extra='style="font-size: 19px; font-weight: 500; fill: #D1D5DB"'),
             motif(skill)]
-    return frame(212, "\n".join(body), f"{skill}: {tagline}", f"fullstack.rocks/skills · {skill}: {tagline}", glow=0.8, shade=0.36)
+    return frame(212, "\n".join(body), f"{skill}: {tagline}", f"fullstack.rocks/skills · {skill}: {tagline}",
+                 glow=0.8, shade=0.36)
 
 
 def main() -> None:
