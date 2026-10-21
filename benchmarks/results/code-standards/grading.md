@@ -22,18 +22,21 @@ Earlier runs:
 - `v2/`: before this default, with `scope = "changed"`. Without 8/8, with 7/8: the review said "No duplication was found", because jscpd compared the changed files only with each other.
 - `v1/`: `points_for` sat at exactly 10. Without 7/8 (didn't flag complexity), with 7/8 (missed the duplicate).
 
-## Speed suite: read-only baseline
+## Speed suite: Claude Code alone
 
-The same 8 planted smells, graded from `../code-standards-speed/change.without.json`. Claude Code had only Read, Glob and Grep: no shell, so it reviewed by reading.
+From `../code-standards-speed/*.without.json`. Claude Code had a normal shell, the project's linters (ruff, oxlint, tsc) and no code-standards.
+
+**The change, 8 planted smells: 7 of 8**
 
 | Planted smell | Found | Evidence |
 |---|---|---|
-| env-read | ✅ | "`loyalty_routes.py:10`: `LOYALTY_RATE` is read from `os.environ` on every request" |
-| route-db | ✅ | the route "queries the database directly instead of calling `loyalty_service.find_customer`" |
-| service-none | ✅ | `find_customer`'s "`if row is None: return None; return row`" |
-| complexity | ❌ | only "`points_for` has many branches that need [tests]"; not flagged as too complex |
-| unused-import | ✅ | "`loyalty_service.py:1`: `import json` is never used" |
-| direct-fetch | ✅ | "`LoyaltyBadge.tsx:6`: It calls `fetch` directly" |
-| debugger | ✅ | "`LoyaltyBadge.tsx:10`: A `debugger;` statement was left in" |
-| duplicate | ✅ | "a `summarize` function that now exists in three places" |
-| **Total** | **7 / 8** | |
+| env-read | ✅ | #2 "`loyalty_routes.py:10`: It reads `os.environ` directly" |
+| route-db | ✅ | #3 "The route queries the database itself instead of going through a service" |
+| service-none | ✅ | #7 `find_customer`'s "`if row is None: return None; return row`", and #4 says to raise `LookupError` |
+| complexity | ❌ | #15 only "no tests for `points_for`, even though it has many branches"; not flagged as too complex |
+| unused-import | ✅ | #6 "`import json` is never used" |
+| direct-fetch | ✅ | #16 "It uses raw `fetch` … instead of `apiClient`" |
+| debugger | ✅ | #20 "A `debugger;` statement is left in" |
+| duplicate | ✅ | #21 "It's also the third copy of the same function" |
+
+**The whole repo: 15 of the scripts' 17 findings.** It covered all 4 env reads, the unused import, the long line, both unused `summarize` copies, `debugger`, `==`, `order_total_cents` (through ruff C901), the `summarize` copy, and the table block shared by the `*List.tsx` components. It missed the complexity of the two `summarize` copies (12 each).

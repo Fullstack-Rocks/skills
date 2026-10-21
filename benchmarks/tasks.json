@@ -44,7 +44,8 @@
     "kind": "speed",
     "dev_tools": [
       "scripts",
-      "with"
+      "with",
+      "without"
     ],
     "conditions": [
       "scripts",
@@ -71,11 +72,13 @@
     "without_removes": [
       ".code-standards"
     ],
-    "hide_tools": [
-      "without"
-    ],
-    "allowed_tools": {
-      "without": "Read Glob Grep"
+    "hide_tools": {
+      "without": [
+        "ast-grep",
+        "sg",
+        "jscpd",
+        "lizard"
+      ]
     }
   }
 }

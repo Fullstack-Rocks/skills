@@ -2,7 +2,7 @@
   "suite": "code-standards-speed",
   "task": "change",
   "condition": "scripts",
-  "seconds": 0.14,
+  "seconds": 0.17,
   "cost_usd": 0,
   "tokens": 0,
   "turns": 0,
@@ -18,17 +18,17 @@
   ],
   "files_scanned": 3,
   "tool_timing": {
-    "ast-grep": 0.009,
-    "lizard": 0.057,
-    "jscpd": 0.051,
+    "ast-grep": 0.01,
+    "lizard": 0.048,
+    "jscpd": 0.077,
     "ruff": 0.013,
-    "oxlint": 0.038,
-    "total": 0.058
+    "oxlint": 0.067,
+    "total": 0.079
   },
   "minutes": 0.0,
-  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-vabz0v_1",
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-vjiguw6d",
   "metrics": {
-    "seconds": 0.14,
+    "seconds": 0.17,
     "cost_usd": 0,
     "tokens": 0
   }

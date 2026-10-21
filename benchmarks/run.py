@@ -39,11 +39,11 @@ def sh(cmd: list[str], cwd: Path, **kw) -> subprocess.CompletedProcess:
 
 
 def install_dev_tools(root: Path) -> None:
-    """The project's own linters, installed in the sandbox: copies, never links into demo/."""
+    """The project's declared dev tools (oxlint, tsc, ruff), installed in the sandbox: copies, never links."""
     sh(["cp", "-cR", str(DEMO / "node_modules"), str(root / "node_modules")], root)  # APFS clone: instant
     sh(["uv", "venv", "-q", str(root / ".venv")], root)
     python = str(root / ".venv/bin/python")
-    sh(["uv", "pip", "install", "-q", "--python", python, "ruff==0.17.1", "lizard==1.24.1"], root)
+    sh(["uv", "pip", "install", "-q", "--python", python, "ruff==0.17.1"], root)
 
 
 def sandbox(suite: dict, task: dict, condition: str) -> tuple[Path, str]:
@@ -67,19 +67,14 @@ def sandbox(suite: dict, task: dict, condition: str) -> tuple[Path, str]:
     return root, sh(["git", "rev-parse", "HEAD"], root).stdout.strip()
 
 
-# Code-analysis tools hidden from a condition that should review by reading (suite "hide_tools").
-ANALYZERS = {"ast-grep", "sg", "jscpd", "lizard", "ruff", "oxlint", "eslint", "biome", "tsc", "tsserver",
-             "flake8", "pylint", "mypy", "pyright", "semgrep"}
-
-
-def path_without_analyzers(root: Path) -> str:
-    """A PATH of symlinks to every command on the current PATH except the analyzers."""
+def path_without(root: Path, hidden: set[str]) -> str:
+    """A PATH of symlinks to every command on the current PATH except `hidden` (suite "hide_tools")."""
     shim = root.parent / f"{root.name}-bin"
     shim.mkdir(exist_ok=True)
     for folder in os.environ["PATH"].split(os.pathsep):
         for tool in Path(folder).glob("*") if Path(folder).is_dir() else []:
             target = shim / tool.name
-            if tool.name not in ANALYZERS and not target.exists() and os.access(tool, os.X_OK):
+            if tool.name not in hidden and not target.exists() and os.access(tool, os.X_OK):
                 target.symlink_to(tool)
     return str(shim)
 
@@ -113,7 +108,8 @@ def bash_commands(events: list[dict]) -> list[str]:
 
 
 def claude(root: Path, prompt: str, condition: str, suite: dict, session: str | None) -> dict:
-    env = {**os.environ, "PATH": path_without_analyzers(root)} if condition in suite.get("hide_tools", []) else None
+    hidden = set(suite.get("hide_tools", {}).get(condition, []))
+    env = {**os.environ, "PATH": path_without(root, hidden)} if hidden else None
     out = sh(claude_command(prompt, condition, suite, session), root, timeout=1800, env=env).stdout
     events = [json.loads(line) for line in out.splitlines() if line.startswith("{")]
     result = next((e for e in reversed(events) if e.get("type") == "result"), {})
