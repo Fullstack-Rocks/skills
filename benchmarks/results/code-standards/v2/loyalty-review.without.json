@@ -1,0 +1,29 @@
+{
+  "suite": "code-standards",
+  "task": "loyalty-review",
+  "condition": "without",
+  "model": "claude-opus-5-5[1m]",
+  "skills_loaded": [],
+  "cost_usd": 0.25,
+  "turns": 8,
+  "minutes": 0.8,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-6zs_7l40",
+  "answers": [
+    "I found 15 problems in the three new files. I checked them against the project's `.code-standards` rules and ran ruff, ast-grep and lizard. oxlint couldn't run because it isn't installed locally, so I checked the TSX by hand against its correctness rules.\n\n### `app/api/loyalty_routes.py`\n1. **loyalty_routes.py:1, :10**: Reads `os.environ.get(\"LOYALTY_RATE\", ...)` directly. This breaks the `cs-env-outside-config` rule (ast-grep reports it as an error). Add `loyalty_rate` to `Settings` in `app/config.py` and read it from `settings`.\n2. **loyalty_routes.py:11**: Calls `get_db().fetch_one(...)` directly in the handler. This breaks `std-routes-delegate`, which says to pass `get_db()` to a service. `loyalty_service.find_customer` exists for this but isn't used.\n3. **loyalty_routes.py:14\u201315**: Doubles the rate for gold customers in the handler. That's a business rule in a route, which also breaks `std-routes-delegate`. It belongs in `loyalty_service`.\n4. **loyalty_routes.py:12\u201313**: An unknown customer gets `{\"points\": 0}` with a 200 response instead of a 404. A typo in the ID looks like a real customer with no points. The service should raise `LookupError`, which the app already maps to 404.\n5. **loyalty_routes.py (route registration)**: Nothing imports this module. `app/main.py:1-4` imports each routes module to register its routes, and `loyalty_routes` isn't in that list. So `GET /customers/{id}/loyalty` doesn't exist, and `LoyaltyBadge` will fail at runtime.\n\n### `app/services/loyalty_service.py`\n6. **loyalty_service.py:1**: `import json` is unused (ruff F401).\n7. **loyalty_service.py:6\u201310**: `find_customer` returns `None` for a missing customer. This breaks `std-service-errors`, which says to raise `LookupError(f\"customer {customer_id} not found\")`. The `if row is None: return None; return row` is also just `return row`. The function is never called, and it repeats `customer_service.get_customer`, which already exists, raises correctly and returns a typed `Customer`.\n8. **loyalty_service.py:13**: `points_for` has a cyclomatic complexity of 11, above the project limit of 10 (lizard). A table of tier bonuses, e.g. `{\"gold\": 50, \"silver\": 20, \"bronze\": 5}`, plus a few small helpers would bring it down.\n9. **loyalty_service.py:13**: It takes an untyped `dict` instead of the `Customer` model. The fields it reads (`spent_cents`, `birthday_month`, `referrals`, `newsletter`, `blocked`) aren't in `app/models/customer.py`. With `.get()` defaults, every one of them silently falls back to 0 or False, so the bonuses may never apply.\n10. **loyalty_service.py:16, :32 and loyalty_routes.py:14**: The gold rules are split across two files. The route doubles the rate, and the service adds +50 and lifts the 1000 cap. Gold customers get three separate benefits, and nobody reading one file can see all of them.\n11. **loyalty_service.py:17\u201333**: The bonus values and the cap (50/20/5/10/25/5/3/1000) are hard-coded with no names.\n12. **loyalty_service.py:22**: The +10 birthday bonus applies whenever `birthday_month` is set, for every customer all year, rather than only in their birthday month. This is probably a logic bug.\n\n### `web/src/components/LoyaltyBadge.tsx`\n13. **LoyaltyBadge.tsx:10**: A leftover `debugger;` statement in the render body (oxlint `no-debugger`, a correctness error).\n14. **LoyaltyBadge.tsx:6**: Calls `fetch` directly from a component. This breaks `std-components-use-api-modules`, which says to add a typed `getLoyalty(customerId)` to `web/src/api/customer.ts` using `apiClient`. That would also fix these related issues:\n    - **:6\u20138**: There's no `response.ok` check and no `.catch`. A 404 or 500, which you'll currently get because of #5, becomes an unhandled rejection or `setPoints(undefined)`, and the badge shows \"undefined pts\".\n    - **:4, :8**: `0` is both the initial state and the error state, so \"loading\" and \"failed\" both show \"0 pts\". There's also no cleanup when `customerId` changes, so an older response can overwrite a newer one.\n15. **LoyaltyBadge.tsx:14\u201325**: `summarize` is copy-pasted. The same function already exists in `OrderList.tsx:24` and `InvoiceList.tsx:24`. It has nothing to do with loyalty, is unused here, and has a complexity of 12 (over the limit). Delete it, or move a single copy into `web/src/lib/format.ts` (which already has `formatCents`).\n\nThe biggest problems are #5 (the endpoint is never registered), #1\u2013#3 (standards violations) and #13 (the leftover `debugger`)."
+  ],
+  "metrics": {
+    "planted": 8,
+    "auto_found": 8,
+    "auto_found_ids": [
+      "env-read",
+      "route-db",
+      "service-none",
+      "complexity",
+      "unused-import",
+      "direct-fetch",
+      "debugger",
+      "duplicate"
+    ],
+    "auto_missed_ids": []
+  }
+}

@@ -270,15 +270,39 @@ def run_lizard(files: list[str], root: Path, config: dict) -> list[dict]:
 
 # ---------- jscpd ----------
 
-def run_jscpd(files: list[str], root: Path, config: dict) -> list[dict]:
-    repo_scope = config.get("duplication", {}).get("scope") == "repo"
-    if repo_scope:  # the whole repo, limited to the reviewed extensions
-        names = [e.lstrip(".") for e in config["extensions"]]
-        pattern = f"**/*.{names[0]}" if len(names) == 1 else "**/*.{" + ",".join(names) + "}"
-        ignore = ",".join(["**/.git/**", *config.get("exclude", [])])
-        targets = ["--pattern", pattern, "--ignore", ignore, "."]
-    else:
-        targets = files
+def repo_source_mb(root: Path, config: dict) -> float:
+    """Size of the files a repo-wide jscpd scan reads: the reviewed extensions, minus `exclude`."""
+    files = git_lines(root, "ls-files", "--cached", "--others", "--exclude-standard", "--",
+                      *[f"*{e}" for e in config["extensions"]]) or []
+    total = 0
+    for f in files:
+        if not glob_match(f, config.get("exclude", [])):
+            try:
+                total += (root / f).stat().st_size
+            except OSError:  # deleted but still in the index
+                pass
+    return total / 1e6
+
+
+def jscpd_targets(files: list[str], root: Path, config: dict, warnings: list[dict]) -> list[str]:
+    """The whole repo (reviewed extensions only) unless it's over repo_max_mb; then just the changed files."""
+    settings = config.get("duplication", {})
+    if settings.get("scope", "repo") != "repo":
+        return files
+    limit = settings.get("repo_max_mb", 30)
+    size = repo_source_mb(root, config)
+    if size > limit:
+        warnings.append({"tool": "jscpd", "message": f"{size:.0f} MB of reviewed source is over [duplication] "
+                         f"repo_max_mb = {limit}, so changed files were compared only with each other"})
+        return files
+    names = [e.lstrip(".") for e in config["extensions"]]
+    pattern = f"**/*.{names[0]}" if len(names) == 1 else "**/*.{" + ",".join(names) + "}"
+    ignore = ",".join(["**/.git/**", *config.get("exclude", [])])
+    return ["--pattern", pattern, "--ignore", ignore, "."]
+
+
+def run_jscpd(files: list[str], root: Path, config: dict, warnings: list[dict]) -> list[dict]:
+    targets = jscpd_targets(files, root, config, warnings)
     with tempfile.TemporaryDirectory() as out_dir:
         run([tool(root, "jscpd"), "--reporters", "json", "--output", out_dir, "--silent", "--no-tips", "--absolute",
              "--min-tokens", str(config["thresholds"]["duplicate_tokens"]), *targets],
@@ -346,10 +370,10 @@ def timed(name: str, job) -> tuple[str, list[dict], float, Exception | None]:
         return name, [], time.perf_counter() - started, exc
 
 
-def build_jobs(root: Path, files: list[str], config: dict) -> list[tuple]:
+def build_jobs(root: Path, files: list[str], config: dict, warnings: list[dict]) -> list[tuple]:
     jobs = [("ast-grep", lambda: run_ast_grep(files, root)),
             ("lizard", lambda: run_lizard(files, root, config)),
-            ("jscpd", lambda: run_jscpd(files, root, config))]
+            ("jscpd", lambda: run_jscpd(files, root, config, warnings))]
     for spec in config.get("linters", []):
         own = [f for f in files if has_extension(f, spec.get("extensions", config["extensions"]))]
         if own:
@@ -365,7 +389,7 @@ def review(root: Path, candidates: list[str], scope: dict, config: dict) -> dict
               "summary": {}, "findings": [], "standards": standards_in_scope(root, files),
               "timing": {}, "errors": {}, "warnings": []}
     if files:
-        jobs = build_jobs(root, files, config)
+        jobs = build_jobs(root, files, config, report["warnings"])
         with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
             for name, findings, seconds, exc in pool.map(lambda job: timed(*job), jobs):
                 report["timing"][name] = round(seconds, 3)

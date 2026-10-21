@@ -76,12 +76,12 @@ The same agent on the same task in a fresh copy of the demo, with the skill bloc
 | Code files touched / new modules | 8 / 1 | **5 / 0** |
 | New smells introduced (memory hops, complexity, lint, duplication) | 0 | 0 |
 | Cost for the 3 tasks | $1.96 | $3.38 |
-| **code-standards**: planted smells found (out of 8) | 8 | 7 |
+| **code-standards**: planted smells found (out of 8) | 8 | 8 |
 | **call-depth**: correct weighted depth and both memory hops | ✅ | ✅ |
 
 What this shows, honestly:
 - **Code size.** `under-engineering` roughly halved the code for the same features, introduced no new smells, and costs more per task because of the checkpoint and the hallway check.
-- **Reviews.** On a one-off review a strong model that reads `standards.md` does as well as `code-standards`. The skill's edge is that every finding is backed by a rule that runs in seconds, and that it learns. Its one miss was a copy of unchanged code, which the default `changed` duplication scope doesn't check.
+- **Reviews.** On a one-off review a strong model that reads `standards.md` does as well as `code-standards`. The skill's edge is that every finding is backed by a rule that runs in seconds, and that it learns. Its one miss in the previous run was a copy of unchanged code. Duplication now compares changed files with the whole repo by default (up to 30 MB of source, about 1s), and it catches the copy.
 - **Tracing.** When the prompt spells out the counting rules, the plain agent traces correctly too. `call-depth` brings those rules, and a scanner, to every trace.
 
 ## Install
