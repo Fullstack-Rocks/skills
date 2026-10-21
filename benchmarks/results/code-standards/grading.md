@@ -39,4 +39,4 @@ From `../code-standards-speed/*.without.json`. Claude Code had a normal shell, t
 | debugger | ✅ | #20 "A `debugger;` statement is left in" |
 | duplicate | ✅ | #21 "It's also the third copy of the same function" |
 
-**The whole repo: 15 of the scripts' 17 findings.** It covered all 4 env reads, the unused import, the long line, both unused `summarize` copies, `debugger`, `==`, `order_total_cents` (through ruff C901), the `summarize` copy, and the table block shared by the `*List.tsx` components. It missed the complexity of the two `summarize` copies (12 each).
+**The whole repo: 15 of the 17 issues code-standards' tools report.** It covered all 4 env reads, the unused import, the long line, both unused `summarize` copies, `debugger`, `==`, `order_total_cents` (through ruff C901), the `summarize` copy, and the table block shared by the `*List.tsx` components. It missed the complexity of the two `summarize` copies (12 each).

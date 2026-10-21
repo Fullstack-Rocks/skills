@@ -43,12 +43,10 @@
   "code-standards-speed": {
     "kind": "speed",
     "dev_tools": [
-      "scripts",
       "with",
       "without"
     ],
     "conditions": [
-      "scripts",
       "without",
       "with"
     ],
@@ -56,16 +54,12 @@
     "tasks": [
       {
         "id": "full-repo",
-        "review_args": [
-          "--all"
-        ],
         "prompt": "Review the whole repository for code-quality problems: lint errors, functions that are too complex or too long, duplicated code, and anything that breaks the project's own conventions. List every problem with file:line."
       },
       {
         "id": "change",
         "fixture": "code-standards",
         "fixture_committed": false,
-        "review_args": [],
         "prompt": "Review my uncommitted changes for code quality. List every problem you find, each with file:line."
       }
     ],

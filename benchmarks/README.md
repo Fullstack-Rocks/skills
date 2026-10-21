@@ -4,18 +4,17 @@ Each skill answers one question, compared with Claude Code doing the same job wi
 
 | Skill | Question | Answer |
 |---|---|---|
-| [code-standards](#code-standards-how-long-does-a-review-take-and-what-does-it-cost) | How long does a review take, and what does it cost? | Scripts: **0.17 s, $0**. An agent review costs about the same with or without the skill (30–57 s, $0.21–0.43). With it, the review is complete: 17 of 17 issues against 15 |
+| [code-standards](#code-standards-what-does-a-review-cost) | What does a review cost? | About the same with or without the skill (30–57 s, $0.21–0.43). With it, the review is complete: 17 of 17 issues against 15 |
 | [code-standards](#code-standards-what-does-a-review-find) | What does a review find? | With `standards.md` readable by both: 8 of 8 each (see below). In the speed suite, without code-standards: 7 of 8 |
 | [under-engineering](#under-engineering-how-much-code-does-a-feature-take) | How much code does a feature take? | **130 → 60 lines (−54%)**, no new smells, at higher cost |
 | [call-depth](#call-depth-does-the-trace-come-out-right) | Does the trace come out right? | Yes, the same as Claude alone given the rules; `scan.py` finds the hidden calls in 0.11 s |
 
 ## How the runs work
 
-Every run starts from a fresh git copy of the [demo shop](../demo/), a Python API plus a React/TS client with 55 files. There are up to three conditions:
+Every run starts from a fresh git copy of the [demo shop](../demo/), a Python API plus a React/TS client with 55 files. There are two conditions:
 
 - **without** (Claude Code alone): the `Skill` tool is blocked (`--disallowedTools Skill`).
 - **with** (Claude Code + skill): the agent is told to load the skill, which is how a project's `CLAUDE.md` or `AGENTS.md` line works.
-- **scripts** (code-standards only): `review.py` runs with no model at all. The median of 3 runs is reported.
 
 Both agent conditions get the same fixed reply ("go with your recommendation") if they stop to ask a question. Results are measured with this repo's own scanners: `call-depth`'s `scan.py` and `code-standards`' `review.py`. For implementation tasks, each finding is compared with the same file before the change, so only what the run introduced counts.
 
@@ -29,29 +28,26 @@ python3 benchmarks/run.py --rescore                        # recompute metrics f
 
 Each result is in `results/<suite>/<task>.<condition>.json`: metrics, cost, tokens, turns, the skills the agent actually loaded, and its final answers. Implementation tasks also save the `.diff`.
 
-## code-standards: how long does a review take, and what does it cost?
+## code-standards: what does a review cost?
 
 Two reviews of the demo: the whole repository, and the 3-file loyalty change from the [planted-smell fixture](fixtures/code-standards/).
 
 - **Claude Code alone** works like a developer's checkout without the skill. It has a normal shell and the project's declared dev tools installed (ruff, oxlint, tsc). It doesn't have the skill's tools: ast-grep, jscpd and lizard are hidden from `PATH`, and nothing in the project mentions them. `.code-standards/` is removed from its copy.
-- **Claude Code + code-standards** and the **scripts** get the same installed linters. The skill's tools come from their user-level installs.
+- **Claude Code + code-standards** gets the same installed linters. The skill's tools come from their user-level installs.
 
 | Review | Condition | Time to result | Cost | Tokens | Shell commands |
 |---|---|---|---|---|---|
-| Whole repo (55 files) | code-standards scripts | **0.17 s** | **$0** | 0 | — |
-| | Claude Code + code-standards | 57 s | $0.43 | 338k | 5 |
+| Whole repo (55 files) | Claude Code + code-standards | 57 s | $0.43 | 338k | 5 |
 | | Claude Code alone | 57 s | $0.36 | 303k | 6: ruff, oxlint, tsc, ruff's C901 complexity rule, reading |
-| 3-file change | code-standards scripts | **0.17 s** | **$0** | 0 | — |
-| | Claude Code + code-standards | 30 s | $0.28 | 258k | 4 |
+| 3-file change | Claude Code + code-standards | 30 s | $0.28 | 258k | 4 |
 | | Claude Code alone | 52 s | $0.21 | 233k | 4: `grep` and `cat`, no linters |
 
 **What each review found** ([grading](results/code-standards/grading.md#speed-suite-claude-code-alone))
-- **Whole repo:** the scripts report 17 issues. Claude + code-standards covered all 17 and added two from `standards.md`. Claude alone covered 15. It didn't flag the two copies of `summarize` as too complex (complexity 12), though it recommended deleting them as dead code. It also reported wider duplication the scripts don't flag, such as near-identical service and route modules.
+- **Whole repo:** code-standards' tools report 17 issues. Claude + code-standards covered all 17 and added two from `standards.md`. Claude alone covered 15. It didn't flag the two copies of `summarize` as too complex (complexity 12), though it recommended deleting them as dead code. It also reported wider duplication the scripts don't flag, such as near-identical service and route modules.
 - **The change:** Claude + code-standards found 8 of 8 planted smells. Claude alone found 7 of 8: it noted that `points_for` "has many branches" but didn't flag it as too complex. It also caught the unregistered route and a `None` value that would cause a `TypeError`.
 
 **Reading it**
-- **Scripts:** the deterministic layers return in under a fifth of a second, at no cost, with the same findings every run. That makes them cheap enough to gate every commit.
-- **Agents:** an agent review costs about the same either way, 30–57 s and $0.21–0.43 here. With the skill, the agent starts from the scripts' results, so its review is complete and every finding traces to a rule. Without it, the agent judges complexity and duplication by eye, and misses some.
+- **Agents:** an agent review costs about the same either way, 30–57 s and $0.21–0.43 here. With the skill, the agent starts from code-standards' tool results, so its review is complete and every finding traces to a rule. Without it, the agent judges complexity and duplication by eye, and misses some.
 - **A pitfall this benchmark hit.** At first the demo's own manifests listed the skill's tools (`jscpd`, `lizard`, `@ast-grep/cli`) as dev dependencies, so "Claude alone" read `package.json` and `pyproject.toml` and ran them, even installing them with `npm ci` and `uv sync`. The demo now declares only its real linters, and the baseline reflects a project without the skill.
 
 ## under-engineering: how much code does a feature take?

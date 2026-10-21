@@ -70,16 +70,14 @@ Every recording below is a real, interactive Claude Code session on the [demo sh
 
 Each skill answers one question, measured against Claude Code doing the same job without it. Same model (`claude-opus-5-5`), same task, a fresh copy of the [demo shop](demo/), one run per cell. Raw data, method and caveats are in [`benchmarks/`](benchmarks/).
 
-### code-standards: how long does a review take, and what does it cost?
+### code-standards: what does a review cost, and what does it find?
 
-| Review of the demo shop | code-standards scripts<br>(no model) | Claude Code<br>+ code-standards | Claude Code alone<br>(shell + the project's linters) |
-|---|---|---|---|
-| Whole repo, 55 files | **0.17 s · $0** | 57 s · $0.43 | 57 s · $0.36 |
-| A 3-file change | **0.17 s · $0** | 30 s · $0.28 | 52 s · $0.21 |
-| Found (whole repo · change) | 17 · 6 issues, the same every run | 17 of 17 · 8 of 8 planted | 15 of 17 · 7 of 8 planted |
+| Review of the demo shop | Claude Code + code-standards | Claude Code alone<br>(shell + the project's linters) |
+|---|---|---|
+| Whole repo, 55 files | 57 s · $0.43 · **17 of 17** issues | 57 s · $0.36 · 15 of 17 issues |
+| A 3-file change with 8 planted smells | 30 s · $0.28 · **8 of 8** found | 52 s · $0.21 · 7 of 8 found |
 
-- **The speed and cost win is the scripts.** Your linters, your `cs-*` rules, complexity and duplication return in under a fifth of a second, at no cost, with the same results every run, so they can gate every commit or PR.
-- **An agent review costs about the same with or without the skill:** 30–60 s and $0.20–0.45 here. What the skill changes is completeness. The agent starts from the scripts' results, so it reported everything they find and checked `standards.md` on top. Claude alone missed two complexity findings, and on the change didn't flag the planted overly complex function.
+- **A review costs about the same with or without the skill:** 30–60 s and $0.20–0.45 here. What the skill changes is completeness. The agent starts from code-standards' linters, rules, complexity and duplication checks, so it reported every issue they find and checked `standards.md` on top. Claude alone missed two complexity findings, and on the change didn't flag the planted overly complex function.
 - **"Claude Code alone"** worked like a developer's checkout without the skill: a normal shell, the project's own linters installed (ruff, oxlint, tsc), and no ast-grep, jscpd or lizard. It ran the linters, used ruff's complexity rule, and read the rest. Answers were [graded by hand](benchmarks/results/code-standards/grading.md).
 
 ### under-engineering: how much code does a feature take?

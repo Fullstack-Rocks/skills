@@ -202,20 +202,6 @@ def depth_metrics(text: str, suite: dict) -> dict:
             "hops_expected": len(truth["memory_hops"]), "hops_found": len(hops), "hops_found_in": hops}
 
 
-def scripts_only(root: Path, task: dict) -> dict:
-    """code-standards' deterministic layers alone: no model. Median of 3 runs."""
-    runs = []
-    for _ in range(3):
-        started = time.perf_counter()
-        out = sh([sys.executable, str(REVIEW), *task.get("review_args", [])], root).stdout
-        runs.append((time.perf_counter() - started, json.loads(out or "{}")))
-    seconds, report = sorted(runs, key=lambda r: r[0])[1]
-    issues = [f"{f['file']}:{f['line']} {f['source']} {f['rule_id']}" for f in report.get("findings", [])]
-    return {"seconds": round(seconds, 2), "cost_usd": 0, "tokens": 0, "turns": 0, "model": None,
-            "skills_loaded": [], "answers": issues, "files_scanned": report.get("files_scanned"),
-            "tool_timing": report.get("timing")}
-
-
 def combined(turns: list[dict], seconds: float) -> dict:
     """One record for a run that took one or more turns."""
     return {"model": turns[-1]["model"], "skills_loaded": sorted({s for t in turns for s in t["skills_loaded"]}),
@@ -237,7 +223,7 @@ def agent_run(root: Path, base: str, suite: dict, task: dict, condition: str) ->
 def run_one(suite_name: str, task: dict, condition: str) -> dict:
     suite = SUITES[suite_name]
     root, base = sandbox(suite, task, condition)
-    run = scripts_only(root, task) if condition == "scripts" else agent_run(root, base, suite, task, condition)
+    run = agent_run(root, base, suite, task, condition)
     record = {"suite": suite_name, "task": task["id"], "condition": condition, **run,
               "minutes": round(run["seconds"] / 60, 1), "sandbox": str(root)}
     record["metrics"] = score(record, suite)
@@ -273,7 +259,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--suite", choices=list(SUITES))
     parser.add_argument("--task")
-    parser.add_argument("--condition", choices=["scripts", "without", "with"])
+    parser.add_argument("--condition", choices=["without", "with"])
     parser.add_argument("--jobs", type=int, default=4)
     parser.add_argument("--rescore", action="store_true", help="recompute metrics for saved runs; runs no agent")
     args = parser.parse_args()
