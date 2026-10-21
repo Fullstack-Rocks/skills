@@ -1,0 +1,25 @@
+{
+  "repo": "excalidraw",
+  "commit": "1d4dc2c",
+  "files_reviewed": 703,
+  "lines": 225368,
+  "seconds_median": 2.31,
+  "seconds_runs": [
+    2.47,
+    2.3,
+    2.31
+  ],
+  "tool_timing": {
+    "ast-grep": 0.144,
+    "lizard": 1.116,
+    "jscpd": 2.162,
+    "eslint": 0.003,
+    "total": 2.209
+  },
+  "findings": 3526,
+  "tools_missing": [
+    "eslint"
+  ],
+  "errors": {},
+  "llm_read_tokens_estimate": 2150858
+}

@@ -1,0 +1,35 @@
+{
+  "suite": "code-standards-speed",
+  "task": "change",
+  "condition": "scripts",
+  "seconds": 0.16,
+  "cost_usd": 0,
+  "tokens": 0,
+  "turns": 0,
+  "model": null,
+  "skills_loaded": [],
+  "answers": [
+    "app/api/loyalty_routes.py:10 ast-grep cs-env-outside-config",
+    "app/services/loyalty_service.py:1 ruff F401",
+    "web/src/components/LoyaltyBadge.tsx:10 oxlint eslint(no-debugger)",
+    "app/services/loyalty_service.py:13 lizard complexity",
+    "web/src/components/LoyaltyBadge.tsx:14 lizard complexity"
+  ],
+  "files_scanned": 3,
+  "tool_timing": {
+    "ast-grep": 0.049,
+    "lizard": 0.077,
+    "jscpd": 0.055,
+    "ruff": 0.017,
+    "oxlint": 0.053,
+    "total": 0.079
+  },
+  "minutes": 0.0,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-1e4tgzjp",
+  "metrics": {
+    "seconds": 0.16,
+    "cost_usd": 0,
+    "tokens": 0,
+    "issues_reported": 5
+  }
+}

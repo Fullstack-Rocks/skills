@@ -3,9 +3,18 @@
     "kind": "implementation",
     "skill_instruction": "Before writing or changing code, load the `under-engineering` skill and follow it.",
     "tasks": [
-      {"id": "coupon", "prompt": "Add an endpoint POST /orders/{id}/apply-coupon. The JSON body has a coupon code. The coupon must exist and be active; recompute the order total with order_total_cents and save the order."},
-      {"id": "rate-limit", "prompt": "Add rate limiting to the orders API: at most 100 requests per minute per customer."},
-      {"id": "csv-export", "prompt": "Add a button to the InvoiceList web component that downloads the listed invoices as a CSV file."}
+      {
+        "id": "coupon",
+        "prompt": "Add an endpoint POST /orders/{id}/apply-coupon. The JSON body has a coupon code. The coupon must exist and be active; recompute the order total with order_total_cents and save the order."
+      },
+      {
+        "id": "rate-limit",
+        "prompt": "Add rate limiting to the orders API: at most 100 requests per minute per customer."
+      },
+      {
+        "id": "csv-export",
+        "prompt": "Add a button to the InvoiceList web component that downloads the listed invoices as a CSV file."
+      }
     ]
   },
   "code-standards": {
@@ -14,7 +23,10 @@
     "fixture_committed": false,
     "skill_instruction": "Use the `code-standards` skill.",
     "tasks": [
-      {"id": "loyalty-review", "prompt": "Review my uncommitted changes for code quality. List every problem you find, each with file:line."}
+      {
+        "id": "loyalty-review",
+        "prompt": "Review my uncommitted changes for code quality. List every problem you find, each with file:line."
+      }
     ]
   },
   "call-depth": {
@@ -22,7 +34,39 @@
     "fixture": "call-depth",
     "skill_instruction": "Use the `call-depth` skill.",
     "tasks": [
-      {"id": "refund-trace", "prompt": "How deep is the call chain from POST /orders/{id}/refund? Count each project-owned call as 1 and each call that go-to-definition can't follow as 2. Give the weighted depth as a number and list those calls with file:line."}
+      {
+        "id": "refund-trace",
+        "prompt": "How deep is the call chain from POST /orders/{id}/refund? Count each project-owned call as 1 and each call that go-to-definition can't follow as 2. Give the weighted depth as a number and list those calls with file:line."
+      }
+    ]
+  },
+  "code-standards-speed": {
+    "kind": "speed",
+    "dev_tools": true,
+    "conditions": [
+      "scripts",
+      "without",
+      "with"
+    ],
+    "skill_instruction": "Use the `code-standards` skill.",
+    "tasks": [
+      {
+        "id": "full-repo",
+        "review_args": [
+          "--all"
+        ],
+        "prompt": "Review the whole repository for code-quality problems: lint errors, functions that are too complex or too long, duplicated code, and anything that breaks the standards in .code-standards/standards.md. List every problem with file:line."
+      },
+      {
+        "id": "change",
+        "fixture": "code-standards",
+        "fixture_committed": false,
+        "review_args": [],
+        "prompt": "Review my uncommitted changes for code quality. List every problem you find, each with file:line."
+      }
+    ],
+    "without_removes": [
+      ".code-standards"
     ]
   }
 }

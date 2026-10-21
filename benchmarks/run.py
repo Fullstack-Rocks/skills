@@ -38,19 +38,32 @@ def sh(cmd: list[str], cwd: Path, **kw) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, **kw)
 
 
-def sandbox(suite: dict) -> tuple[Path, str]:
+def install_dev_tools(root: Path) -> None:
+    """The project's own linters, installed in the sandbox: copies, never links into demo/."""
+    sh(["cp", "-cR", str(DEMO / "node_modules"), str(root / "node_modules")], root)  # APFS clone: instant
+    sh(["uv", "venv", "-q", str(root / ".venv")], root)
+    python = str(root / ".venv/bin/python")
+    sh(["uv", "pip", "install", "-q", "--python", python, "ruff==0.17.1", "lizard==1.24.1"], root)
+
+
+def sandbox(suite: dict, task: dict, condition: str) -> tuple[Path, str]:
     root = Path(tempfile.mkdtemp(prefix="fsr-bench-"))
     shutil.copytree(DEMO, root, dirs_exist_ok=True,
                     ignore=shutil.ignore_patterns("node_modules", ".venv", "WALKTHROUGH.md", "__pycache__"))
-    fixture = suite.get("fixture")
-    if fixture and suite.get("fixture_committed", True):
+    fixture = task.get("fixture", suite.get("fixture"))
+    committed = task.get("fixture_committed", suite.get("fixture_committed", True))
+    if fixture and committed:
         shutil.copytree(HERE / "fixtures" / fixture, root, dirs_exist_ok=True, ignore=shutil.ignore_patterns("*.json"))
+    for removed in suite.get(f"{condition}_removes", []):  # e.g. no trace of the skill's config for "without"
+        shutil.rmtree(root / removed, ignore_errors=True)
     sh(["git", "init", "-q", "-b", "main"], root)
     (root / ".git/info/exclude").write_text("node_modules\n.venv\n")
     sh(["git", "add", "-A"], root)
     sh(["git", "-c", "user.name=bench", "-c", "user.email=bench@example.com", "commit", "-qm", "baseline"], root)
-    if fixture and not suite.get("fixture_committed", True):  # the change under review stays uncommitted
+    if fixture and not committed:  # the change under review stays uncommitted
         shutil.copytree(HERE / "fixtures" / fixture, root, dirs_exist_ok=True, ignore=shutil.ignore_patterns("*.json"))
+    if suite.get("dev_tools"):
+        install_dev_tools(root)
     return root, sh(["git", "rev-parse", "HEAD"], root).stdout.strip()
 
 
@@ -75,8 +88,11 @@ def claude(root: Path, prompt: str, condition: str, suite: dict, session: str | 
     events = [json.loads(line) for line in out.splitlines() if line.startswith("{")]
     result = next((e for e in reversed(events) if e.get("type") == "result"), {})
     init = next((e for e in events if e.get("type") == "system" and e.get("subtype") == "init"), {})
+    usage = result.get("usage", {})
+    tokens = sum(usage.get(k, 0) for k in ("input_tokens", "cache_creation_input_tokens",
+                                             "cache_read_input_tokens", "output_tokens"))
     return {"session": result.get("session_id") or init.get("session_id"), "text": result.get("result", ""),
-            "cost_usd": result.get("total_cost_usd", 0), "turns": result.get("num_turns", 0),
+            "cost_usd": result.get("total_cost_usd", 0), "turns": result.get("num_turns", 0), "tokens": tokens,
             "model": init.get("model"), "skills_loaded": skills_loaded(events)}
 
 
@@ -148,6 +164,11 @@ def recall_metrics(text: str, suite: dict) -> dict:
             "auto_missed_ids": [item["id"] for item in truth if item["id"] not in found]}
 
 
+def speed_metrics(record: dict, text: str) -> dict:
+    """Time, money and tokens until the review is in. What it found is graded separately (the recall suite)."""
+    return {"seconds": record["seconds"], "cost_usd": record["cost_usd"], "tokens": record["tokens"]}
+
+
 def depth_metrics(text: str, suite: dict) -> dict:
     truth = json.loads((HERE / "fixtures" / suite["fixture"] / "ground_truth.json").read_text())
     depths = [int(d) for d in re.findall(r"(?i)(?:weighted )?depth[^0-9\n]{0,40}(\d+)", text)]
@@ -157,22 +178,42 @@ def depth_metrics(text: str, suite: dict) -> dict:
             "hops_expected": len(truth["memory_hops"]), "hops_found": len(hops), "hops_found_in": hops}
 
 
-def run_one(suite_name: str, task: dict, condition: str) -> dict:
-    suite = SUITES[suite_name]
-    root, base = sandbox(suite)
+def scripts_only(root: Path, task: dict) -> dict:
+    """code-standards' deterministic layers alone: no model. Median of 3 runs."""
+    runs = []
+    for _ in range(3):
+        started = time.perf_counter()
+        out = sh([sys.executable, str(REVIEW), *task.get("review_args", [])], root).stdout
+        runs.append((time.perf_counter() - started, json.loads(out or "{}")))
+    seconds, report = sorted(runs, key=lambda r: r[0])[1]
+    issues = [f"{f['file']}:{f['line']} {f['source']} {f['rule_id']}" for f in report.get("findings", [])]
+    return {"seconds": round(seconds, 2), "cost_usd": 0, "tokens": 0, "turns": 0, "model": None,
+            "skills_loaded": [], "answers": issues, "files_scanned": report.get("files_scanned"),
+            "tool_timing": report.get("timing")}
+
+
+def agent_run(root: Path, base: str, suite: dict, task: dict, condition: str) -> dict:
     started = time.time()
     turn = claude(root, task["prompt"], condition, suite, None)
-    transcript = [turn["text"]]
-    cost, turns, skills = turn["cost_usd"], turn["turns"], set(turn["skills_loaded"])
+    transcript, turns_seen = [turn["text"]], [turn]
     for _ in range(2):  # a checkpoint asks first; answer the same way in both conditions
         if suite["kind"] != "implementation" or changed_code(root, base):
             break
         turn = claude(root, REPLY, condition, suite, turn["session"])
         transcript.append(turn["text"])
-        cost, turns, skills = cost + turn["cost_usd"], turns + turn["turns"], skills | set(turn["skills_loaded"])
-    record = {"suite": suite_name, "task": task["id"], "condition": condition, "model": turn["model"],
-              "skills_loaded": sorted(skills), "cost_usd": round(cost, 2), "turns": turns,
-              "minutes": round((time.time() - started) / 60, 1), "sandbox": str(root), "answers": transcript}
+        turns_seen.append(turn)
+    return {"model": turn["model"], "skills_loaded": sorted({s for t in turns_seen for s in t["skills_loaded"]}),
+            "cost_usd": round(sum(t["cost_usd"] for t in turns_seen), 2),
+            "tokens": sum(t["tokens"] for t in turns_seen), "turns": sum(t["turns"] for t in turns_seen),
+            "seconds": round(time.time() - started, 1), "answers": transcript}
+
+
+def run_one(suite_name: str, task: dict, condition: str) -> dict:
+    suite = SUITES[suite_name]
+    root, base = sandbox(suite, task, condition)
+    run = scripts_only(root, task) if condition == "scripts" else agent_run(root, base, suite, task, condition)
+    record = {"suite": suite_name, "task": task["id"], "condition": condition, **run,
+              "minutes": round(run["seconds"] / 60, 1), "sandbox": str(root)}
     record["metrics"] = score(record, suite)
     out = HERE / "results" / suite_name
     out.mkdir(parents=True, exist_ok=True)
@@ -189,6 +230,8 @@ def score(record: dict, suite: dict) -> dict:
         base = sh(["git", "rev-list", "--max-parents=0", "HEAD"], root).stdout.split()[0]
         return implementation_metrics(root, base)
     text = "\n".join(record["answers"])
+    if suite["kind"] == "speed":
+        return speed_metrics(record, text)
     return recall_metrics(text, suite) if suite["kind"] == "recall" else depth_metrics(text, suite)
 
 
@@ -204,7 +247,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--suite", choices=list(SUITES))
     parser.add_argument("--task")
-    parser.add_argument("--condition", choices=["with", "without"])
+    parser.add_argument("--condition", choices=["scripts", "without", "with"])
     parser.add_argument("--jobs", type=int, default=4)
     parser.add_argument("--rescore", action="store_true", help="recompute metrics for saved runs; runs no agent")
     args = parser.parse_args()
@@ -212,7 +255,7 @@ def main() -> None:
         return rescore()
     runs = [(name, task, condition) for name, suite in SUITES.items() if args.suite in (None, name)
             for task in suite["tasks"] if args.task in (None, task["id"])
-            for condition in ("without", "with") if args.condition in (None, condition)]
+            for condition in suite.get("conditions", ["without", "with"]) if args.condition in (None, condition)]
     print(f"{len(runs)} runs", flush=True)
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         list(pool.map(lambda run: run_one(*run), runs))

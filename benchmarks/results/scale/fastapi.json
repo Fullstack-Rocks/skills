@@ -1,0 +1,23 @@
+{
+  "repo": "fastapi",
+  "commit": "386a28a",
+  "files_reviewed": 1195,
+  "lines": 127776,
+  "seconds_median": 3.67,
+  "seconds_runs": [
+    3.53,
+    3.77,
+    3.67
+  ],
+  "tool_timing": {
+    "ast-grep": 0.122,
+    "lizard": 0.486,
+    "jscpd": 3.49,
+    "ruff": 0.121,
+    "total": 3.562
+  },
+  "findings": 5611,
+  "tools_missing": [],
+  "errors": {},
+  "llm_read_tokens_estimate": 1124500
+}
