@@ -50,21 +50,21 @@ Graded by hand from the saved answers; see [`results/code-standards/grading.md`]
 | Route calls `get_db().fetch_one` | `std-routes-delegate` | ✅ | ✅ |
 | Service returns `None` for a missing record | `std-service-errors` | ✅ | ✅ |
 | `points_for`, complexity 11 | lizard | ✅ | ✅ |
-| Unused `import json` | ruff F401 | ✅ | ✅ (predicted; ruff wasn't installed) |
+| Unused `import json` | ruff F401 | ✅ | ✅ |
 | Component calls `fetch` directly | `std-components-use-api-modules` | ✅ | ✅ |
 | Leftover `debugger;` | oxlint | ✅ | ✅ |
-| `summarize` copied from `OrderList.tsx` | duplication | ✅ | ❌ |
-| **Found** | | **8 / 8** | **7 / 8** |
-| Cost / time | | $0.25 / 0.8 min | $0.32 / 0.8 min |
+| `summarize` copied from `OrderList.tsx` | jscpd duplication | ✅ | ✅ |
+| **Found** | | **8 / 8** | **8 / 8** |
+| Cost / time | | $0.23 / 0.8 min | $0.34 / 1.1 min |
 
-**Honest reading.** A strong model that reads the project's `standards.md` does as well or better on a one-off review. The baseline also found two real problems outside the planted set: the route is never registered, and a birthday-bonus logic bug.
+**Honest reading.** A strong model that reads the project's `standards.md` does as well on a one-off review. The baseline also found two real problems outside the planted set: the route is never registered, and a birthday-bonus logic bug.
 
 What `code-standards` adds:
 - every finding cites a rule
 - the deterministic layers run in seconds, so the same check runs in CI or on every change
 - `negate` turns "we never do X" into a tested rule, so the next review doesn't depend on the model noticing
 
-The copy was missed because duplication compares changed files with each other by default (`[duplication] scope = "changed"`). Setting `scope = "repo"` catches copies of existing code, at the cost of speed.
+The previous run (kept in `results/code-standards/v2/`) missed the copy, 7 of 8. Back then, duplication compared changed files only with each other (`[duplication] scope = "changed"`). The default is now `scope = "repo"`: jscpd compares the changed files with the whole repo. Above `repo_max_mb` (30 MB of reviewed source), it falls back to comparing changed files only with each other. On the demo jscpd takes 0.05s; on django (18 MB) a review takes 0.6s, on TypeScript (23 MB) 1.4s, and on vscode (209 MB, over the limit) 0.3–0.6s. The full timings are in [`skills/code-standards/README.md`](../skills/code-standards/README.md) under "Duplication across the repo".
 
 An earlier run on a version of the fixture where `points_for` sat exactly at complexity 10 is kept in `results/code-standards/v1/`. There, both found 7 of 8: the baseline caught the copy, and the skill caught the complexity.
 
