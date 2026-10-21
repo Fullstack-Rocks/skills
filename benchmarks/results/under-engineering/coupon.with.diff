@@ -1,0 +1,51 @@
+diff --git a/app/api/order_routes.py b/app/api/order_routes.py
+index 3fefd1c..75874cd 100644
+--- a/app/api/order_routes.py
++++ b/app/api/order_routes.py
+@@ -15,6 +15,12 @@ def create_order(request: Request) -> Response:
+     return Response.json(order.__dict__, status=201)
+ 
+ 
++@route("POST", "/orders/{id}/apply-coupon")
++def apply_coupon(request: Request) -> Response:
++    order = order_service.apply_coupon(get_db(), int(request.params["id"]), request.json()["code"])
++    return Response.json(order.__dict__)
++
++
+ @route("POST", "/orders/{id}/pay")
+ def pay_order(request: Request) -> Response:
+     import os
+diff --git a/app/services/order_service.py b/app/services/order_service.py
+index de0333d..8e0e873 100644
+--- a/app/services/order_service.py
++++ b/app/services/order_service.py
+@@ -1,5 +1,6 @@
+ from app.db import Database
+ from app.models.order import Order
++from app.services import customer_service
+ 
+ 
+ def get_order(db: Database, order_id: int) -> Order:
+@@ -24,6 +25,22 @@ def list_orders(db: Database, limit: int = 50) -> list[Order]:
+     return [Order(**row) for row in db.fetch_many("orders", limit=limit)]
+ 
+ 
++def apply_coupon(db: Database, order_id: int, code: str) -> Order:
++    order = get_order(db, order_id)
++    row = db.conn.execute("SELECT * FROM coupons WHERE code = ?", (code,)).fetchone()
++    if row is None:
++        raise LookupError(f"coupon {code} not found")
++    coupon = dict(row)
++    if not coupon["active"]:
++        raise ValueError(f"coupon {code} is not active")
++    customer = customer_service.get_customer(db, order.customer_id)
++    # Orders store no line items, so the current total stands in as a single item.
++    items = [{"price_cents": order.total_cents, "qty": 1}]
++    order.total_cents = order_total_cents(order, items, coupon, customer.tier)
++    db.conn.execute("UPDATE orders SET total_cents = ? WHERE id = ?", (order.total_cents, order.id))
++    return order
++
++
+ def order_total_cents(order: Order, items: list[dict], coupon: dict | None, customer_tier: str) -> int:
+     total = 0
+     for item in items:

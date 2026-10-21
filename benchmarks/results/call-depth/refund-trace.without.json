@@ -1,0 +1,30 @@
+{
+  "suite": "call-depth",
+  "task": "refund-trace",
+  "condition": "without",
+  "model": "claude-opus-5-5[1m]",
+  "skills_loaded": [],
+  "cost_usd": 0.11,
+  "turns": 4,
+  "minutes": 0.4,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-er56omxj",
+  "answers": [
+    "The weighted depth is **7**. The longest path runs from the handler into the ledger write:\n\n| # | Call | Site | Resolves to | Weight |\n|---|------|------|-------------|--------|\n| 1 | `refund_service.refund(...)` | `app/api/refund_routes.py:9` | `app/services/refund_service.py:16` | 1 |\n| 2 | `REFUND_HANDLERS[reason](db, order)` | `app/services/refund_service.py:20` | `_refund_damaged` / `_refund_late` (`refund_service.py:5`, `:9`), picked by a dict lookup | **2** (can't be followed) |\n| 3 | `Ledger(db).record(...)` | `app/services/refund_service.py:6` (or `:10`) | `app/services/ledger.py:8` | 1 |\n| 4 | `getattr(self, f\"_write_{kind}\")(entry)` | `app/services/ledger.py:10` | `_write_refund` / `_write_credit` (`ledger.py:12`, `:16`), method name built from a string | **2** (can't be followed) |\n| 5 | `self.db.insert(...)` | `app/services/ledger.py:13` (or `:17`) | `app/db.py:19` | 1 |\n\n1 + 2 + 1 + 2 + 1 = **7**\n\nThe two calls go-to-definition can't follow:\n- `app/services/refund_service.py:20`: a dict lookup keyed on the request's `reason`. Go-to-definition stops at the `REFUND_HANDLERS` dict.\n- `app/services/ledger.py:10`: `getattr` with an f-string method name. Go-to-definition lands on the builtin `getattr`, not on `_write_*`.\n\nHow I counted:\n- Both reasons (`damaged`, `late`) give the same depth, because each handler goes through `Ledger.record`.\n- I didn't count library and standard-library calls (`sqlite3`'s `conn.execute`, `json.loads`/`dumps`, `dict()`), since they aren't owned by the project.\n- The other branches are shorter:\n  - `get_db()` \u2192 `Database.__init__` is depth 2.\n  - `db.fetch_one` (`refund_service.py:17`) is depth 2.\n  - `request.json()`, `Response.json()` and `Ledger.__init__` each end immediately at depth 1.\n- `@route` registers the handler when the module is imported, not during the request, so it isn't in the chain."
+  ],
+  "metrics": {
+    "expected_depth": 7,
+    "reported_depths": [
+      7,
+      2,
+      2,
+      1
+    ],
+    "depth_correct": true,
+    "hops_expected": 2,
+    "hops_found": 2,
+    "hops_found_in": [
+      "refund_service.py",
+      "ledger.py"
+    ]
+  }
+}

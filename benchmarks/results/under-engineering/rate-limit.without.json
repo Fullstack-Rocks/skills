@@ -1,0 +1,26 @@
+{
+  "suite": "under-engineering",
+  "task": "rate-limit",
+  "condition": "without",
+  "model": "claude-opus-5-5[1m]",
+  "skills_loaded": [],
+  "cost_usd": 0.58,
+  "turns": 13,
+  "minutes": 1.0,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-qymjq4t9",
+  "answers": [
+    "The orders API now allows at most 100 requests per rolling 60-second window per customer. All three order endpoints are covered: `GET /orders/{id}`, `POST /orders` and `POST /orders/{id}/pay`. A scripted test with a fake clock passed and ruff is clean on the changed files. I haven't committed anything.\n\n**One assumption to check:** the request object had no headers and there's no auth, so nothing told me who the customer is. I added a `headers` field to `Request` (`app/http.py`) and the limiter reads the customer from an `X-Customer-Id` header. If your real setup identifies customers another way, such as an auth token or session, only `rate_limited` in `app/rate_limit.py` needs to change.\n\n**What I changed:**\n- **`app/rate_limit.py` (new):** the limiter and a `@rate_limited(limiter)` decorator. Over-limit requests get a **429** with `retry_after_seconds` in the body. Requests with no customer header get a **400**.\n- **`app/api/order_routes.py`:** one limiter shared by the three order endpoints, so the 100-per-minute budget is per customer across all of them. The handlers themselves are unchanged, which keeps to your rule that route handlers only translate HTTP.\n\n**Tested:** customers 1 to 100 are allowed and the 101st gets 429. A second customer isn't affected, a missing header gets 400, and a slot frees up exactly when the oldest request turns 60 seconds old.\n\n**Things to know:**\n- **Counts reset and aren't shared:** counts are kept in memory, so they reset on restart and aren't shared between processes or servers. If you run more than one, you'd need a shared store such as Redis.\n- **Header must be lower-case:** headers are expected to arrive with lower-case names. I couldn't confirm that because nothing in the repo builds `Request` objects.\n- **Limit is hardcoded:** the 100 is hardcoded in `order_routes.py`. It could become a `settings` field in `app/config.py` if you want it configurable.\n- **Problems that were already there:** `pay_order` still calls `os.getenv` directly, which breaks your `cs-env-outside-config` rule. Ruff also reports two errors, in `invoice_service.py` and `order_service.py`. I left all three alone."
+  ],
+  "metrics": {
+    "code_files_changed": 3,
+    "code_files_added": 1,
+    "other_files_added": [],
+    "lines_added": 59,
+    "lines_removed": 0,
+    "new_memory_hops": 0,
+    "new_complexity_over_10": 0,
+    "new_functions_over_80_lines": 0,
+    "new_review_findings": 0,
+    "introduced": []
+  }
+}

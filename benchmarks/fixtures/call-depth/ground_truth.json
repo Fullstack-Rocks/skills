@@ -1,0 +1,15 @@
+{
+  "root": "POST /orders/{id}/refund -> refund_order (app/api/refund_routes.py:7)",
+  "chain": [
+    "1 refund_service.refund (app/services/refund_service.py:16)",
+    "3 REFUND_HANDLERS[reason](db, order) -> _refund_damaged / _refund_late (memory hop: dict registry, refund_service.py:20)",
+    "4 Ledger.record (app/services/ledger.py:8)",
+    "6 getattr(self, f\"_write_{kind}\")(entry) -> _write_refund / _write_credit (memory hop: getattr dispatch, ledger.py:10)",
+    "7 Database.insert (app/db.py:19)"
+  ],
+  "weighted_depth": 7,
+  "memory_hops": [
+    {"file": "refund_service.py", "line": 20, "pattern": "REFUND_HANDLERS|refund_service\\.py:20"},
+    {"file": "ledger.py", "line": 10, "pattern": "getattr|ledger\\.py:10|_write_"}
+  ]
+}

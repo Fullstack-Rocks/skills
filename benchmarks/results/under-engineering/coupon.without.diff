@@ -1,0 +1,95 @@
+diff --git a/app/api/order_routes.py b/app/api/order_routes.py
+index 3fefd1c..bcbb068 100644
+--- a/app/api/order_routes.py
++++ b/app/api/order_routes.py
+@@ -15,6 +15,12 @@ def create_order(request: Request) -> Response:
+     return Response.json(order.__dict__, status=201)
+ 
+ 
++@route("POST", "/orders/{id}/apply-coupon")
++def apply_coupon(request: Request) -> Response:
++    order = order_service.apply_coupon(get_db(), int(request.params["id"]), request.json())
++    return Response.json(order.__dict__)
++
++
+ @route("POST", "/orders/{id}/pay")
+ def pay_order(request: Request) -> Response:
+     import os
+diff --git a/app/db.py b/app/db.py
+index 8adcb01..f7406fe 100644
+--- a/app/db.py
++++ b/app/db.py
+@@ -13,6 +13,10 @@ class Database:
+         row = self.conn.execute(f"SELECT * FROM {table} WHERE id = ?", (row_id,)).fetchone()
+         return dict(row) if row else None
+ 
++    def fetch_one_by(self, table: str, column: str, value: object) -> dict | None:
++        row = self.conn.execute(f"SELECT * FROM {table} WHERE {column} = ?", (value,)).fetchone()
++        return dict(row) if row else None
++
+     def fetch_many(self, table: str, limit: int) -> list[dict]:
+         return [dict(r) for r in self.conn.execute(f"SELECT * FROM {table} LIMIT ?", (limit,))]
+ 
+@@ -22,6 +26,10 @@ class Database:
+         cursor = self.conn.execute(f"INSERT INTO {table} ({columns}) VALUES ({marks})", tuple(data.values()))
+         return cursor.lastrowid
+ 
++    def update(self, table: str, row_id: int, data: dict) -> None:
++        assignments = ", ".join(f"{column} = ?" for column in data)
++        self.conn.execute(f"UPDATE {table} SET {assignments} WHERE id = ?", (*data.values(), row_id))
++
+ 
+ @cache
+ def get_db() -> Database:
+diff --git a/app/services/coupon_service.py b/app/services/coupon_service.py
+index 99c678a..28c8b1f 100644
+--- a/app/services/coupon_service.py
++++ b/app/services/coupon_service.py
+@@ -9,6 +9,16 @@ def get_coupon(db: Database, coupon_id: int) -> Coupon:
+     return Coupon(**row)
+ 
+ 
++def get_active_coupon_by_code(db: Database, code: str) -> Coupon:
++    row = db.fetch_one_by("coupons", "code", code)
++    if row is None:
++        raise LookupError(f"coupon {code!r} not found")
++    coupon = Coupon(**row)
++    if not coupon.active:
++        raise ValueError(f"coupon {code!r} is not active")
++    return coupon
++
++
+ def create_coupon(db: Database, data: dict) -> Coupon:
+     if "code" not in data:
+         raise ValueError("coupon.code is required")
+diff --git a/app/services/order_service.py b/app/services/order_service.py
+index de0333d..44ca4af 100644
+--- a/app/services/order_service.py
++++ b/app/services/order_service.py
+@@ -1,5 +1,6 @@
+ from app.db import Database
+ from app.models.order import Order
++from app.services import coupon_service
+ 
+ 
+ def get_order(db: Database, order_id: int) -> Order:
+@@ -24,6 +25,19 @@ def list_orders(db: Database, limit: int = 50) -> list[Order]:
+     return [Order(**row) for row in db.fetch_many("orders", limit=limit)]
+ 
+ 
++def apply_coupon(db: Database, order_id: int, data: dict) -> Order:
++    code = data.get("code")
++    if not isinstance(code, str) or not code:
++        raise ValueError("coupon.code is required")
++    order = get_order(db, order_id)
++    coupon = coupon_service.get_active_coupon_by_code(db, code)
++    if coupon.percent_off > 50:
++        raise ValueError("coupon too generous")
++    order.total_cents -= order.total_cents * coupon.percent_off // 100
++    db.update("orders", order.id, {"total_cents": order.total_cents})
++    return order
++
++
+ def order_total_cents(order: Order, items: list[dict], coupon: dict | None, customer_tier: str) -> int:
+     total = 0
+     for item in items:

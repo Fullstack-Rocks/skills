@@ -1,0 +1,10 @@
+[
+  {"id": "env-read", "kind": "cs-env-outside-config rule", "file": "loyalty_routes.py", "pattern": "os\\.environ|LOYALTY_RATE|env(ironment)? (var|read)"},
+  {"id": "route-db", "kind": "std-routes-delegate", "file": "loyalty_routes.py", "pattern": "fetch_one|get_db\\(\\)|(route|handler)[^.\\n]{0,80}(database|db|business|service layer|delegate)"},
+  {"id": "service-none", "kind": "std-service-errors", "file": "loyalty_service.py", "pattern": "return(s)? None|LookupError|find_customer"},
+  {"id": "complexity", "kind": "lizard complexity", "file": "loyalty_service.py", "pattern": "complex|CCN|points_for[^\\n]{0,80}(branch|long|nested)"},
+  {"id": "unused-import", "kind": "ruff F401", "file": "loyalty_service.py", "pattern": "F401|unused import|`?json`? (is )?(imported but )?unused|import json"},
+  {"id": "direct-fetch", "kind": "std-components-use-api-modules", "file": "LoyaltyBadge.tsx", "pattern": "fetch\\(|calls fetch|direct(ly)? fetch|web/src/api|apiClient"},
+  {"id": "debugger", "kind": "oxlint no-debugger", "file": "LoyaltyBadge.tsx", "pattern": "debugger"},
+  {"id": "duplicate", "kind": "jscpd duplicate", "file": "LoyaltyBadge.tsx", "pattern": "duplicat|copy|copied|same as[^\\n]{0,40}OrderList|summarize"}
+]

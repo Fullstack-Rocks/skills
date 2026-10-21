@@ -1,0 +1,31 @@
+{
+  "suite": "code-standards",
+  "task": "loyalty-review",
+  "condition": "with",
+  "model": "claude-opus-5-5[1m]",
+  "skills_loaded": [
+    "code-standards"
+  ],
+  "cost_usd": 0.29,
+  "turns": 10,
+  "minutes": 0.8,
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-1wrgnaw6",
+  "answers": [
+    "I found 8 problems across your 3 uncommitted files: 4 from the linters and code-standards rules, and 4 from checking the project's `standards.md` entries.\n\n**Code standards: uncommitted changes, 3 files, 0.16s** (ruff 0.02s, oxlint 0.11s, ast-grep 0.06s, lizard 0.16s, jscpd 0.11s)\n\n### Errors\n**app/api/loyalty_routes.py**\n- `:10` **cs-env-outside-config**: `os.environ.get(\"LOYALTY_RATE\", \"0.05\")` reads the environment directly. Read the rate from `app.config.settings` instead. Only `app/config.py` should read env vars, so required config stays validated.\n\n**app/services/loyalty_service.py**\n- `:1` **ruff F401**: `import json` isn't used. `[fix]`\n\n**web/src/components/LoyaltyBadge.tsx**\n- `:10` **oxlint no-debugger**: a `debugger;` statement was left in the render path. `[fix]`\n\n### Warnings\n**app/api/loyalty_routes.py**\n- `:11` **std-routes-delegate**: the handler calls `get_db().fetch_one(\"customers\", \u2026)` itself. Pass `get_db()` to a service call instead.\n- `:12\u201313` **std-routes-delegate**: the handler handles a missing customer by returning `{\"points\": 0}`. That's business logic in the route, and it hides a 404. The service should raise `LookupError`.\n- `:14\u201315` **std-routes-delegate**: the gold tier doubling `rate` is a business rule inside the handler. It belongs in `loyalty_service`. It's also spread out: `points_for` adds another gold bonus at `loyalty_service.py:16`.\n\n**app/services/loyalty_service.py**\n- `:8\u20139` **std-service-errors**: `find_customer` returns `None` when the record is missing, and its return type is `dict | None`. It should `raise LookupError(f\"customer {customer_id} not found\")` and return `dict`. Lines 8\u201310 then become a single check plus `return row`.\n\n**web/src/components/LoyaltyBadge.tsx**\n- `:6` **std-components-use-api-modules**: the component calls `fetch` on `/api/customers/${id}/loyalty` directly. Add a typed `getCustomerLoyalty` to `web/src/api/customer.ts` and call that.\n- `:14` **lizard/complexity**: `summarize` has a complexity of 12, over the limit of 10. Most of that comes from the repeated `??` defaults; normalising `row.totalCents ?? 0` once per row would bring it down.\n\n### Notes\n- No duplication was found, and no tool failed.\n- `origin/main` doesn't exist locally, so the comparison ran against `HEAD`. That doesn't change anything here because all three files are untracked.\n\nThe two `[fix]` items can be fixed automatically, and the rest need hand edits. Want me to apply them? The biggest change is the route: it should end up as one service call, something like `loyalty_service.points_for_customer(get_db(), id, settings.LOYALTY_RATE)`."
+  ],
+  "metrics": {
+    "planted": 8,
+    "found": 8,
+    "found_ids": [
+      "env-read",
+      "route-db",
+      "service-none",
+      "complexity",
+      "unused-import",
+      "direct-fetch",
+      "debugger",
+      "duplicate"
+    ],
+    "missed_ids": []
+  }
+}
