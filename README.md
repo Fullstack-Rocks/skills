@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="#install"><img alt="npx skills add theclocker/under-engineering-skills" src="https://img.shields.io/badge/npx%20skills%20add-theclocker%2Funder--engineering--skills-0b3d36?style=flat-square"></a>
+  <a href="#install"><img alt="npx skills add Fullstack-Rocks/skills" src="https://img.shields.io/badge/npx%20skills%20add-Fullstack--Rocks%2Fskills-0b3d36?style=flat-square"></a>
   <a href="#the-skills"><img alt="5 skills" src="https://img.shields.io/badge/skills-5-0b3d36?style=flat-square"></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-0b3d36?style=flat-square"></a>
 </p>
@@ -57,9 +57,9 @@ These skills add a **checkpoint before implementation** and **hard limits during
 With the [`skills`](https://github.com/vercel-labs/skills) CLI, for Claude Code, Codex, Cursor and other agents:
 
 ```bash
-npx skills add theclocker/under-engineering-skills                          # all five skills
-npx skills add theclocker/under-engineering-skills --skill code-standards   # just one
-npx skills add theclocker/under-engineering-skills -g                       # for every project
+npx skills add Fullstack-Rocks/skills                          # all five skills
+npx skills add Fullstack-Rocks/skills --skill code-standards   # just one
+npx skills add Fullstack-Rocks/skills -g                       # for every project
 ```
 
 Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards` stands alone.
