@@ -2,7 +2,7 @@
   "suite": "code-standards-speed",
   "task": "full-repo",
   "condition": "scripts",
-  "seconds": 0.31,
+  "seconds": 0.14,
   "cost_usd": 0,
   "tokens": 0,
   "turns": 0,
@@ -29,19 +29,18 @@
   ],
   "files_scanned": 55,
   "tool_timing": {
-    "ast-grep": 0.057,
-    "lizard": 0.207,
-    "jscpd": 0.239,
-    "ruff": 0.133,
-    "oxlint": 0.104,
-    "total": 0.242
+    "ast-grep": 0.01,
+    "lizard": 0.074,
+    "jscpd": 0.056,
+    "ruff": 0.015,
+    "oxlint": 0.044,
+    "total": 0.076
   },
   "minutes": 0.0,
-  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-l8jp5z26",
+  "sandbox": "/var/folders/xp/p0y8xk0560zcm5whk9018lp80000gn/T/fsr-bench-a828g_rf",
   "metrics": {
-    "seconds": 0.31,
+    "seconds": 0.14,
     "cost_usd": 0,
-    "tokens": 0,
-    "issues_reported": 15
+    "tokens": 0
   }
 }

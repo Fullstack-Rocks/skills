@@ -55,7 +55,7 @@
         "review_args": [
           "--all"
         ],
-        "prompt": "Review the whole repository for code-quality problems: lint errors, functions that are too complex or too long, duplicated code, and anything that breaks the standards in .code-standards/standards.md. List every problem with file:line."
+        "prompt": "Review the whole repository for code-quality problems: lint errors, functions that are too complex or too long, duplicated code, and anything that breaks the project's own conventions. List every problem with file:line."
       },
       {
         "id": "change",
