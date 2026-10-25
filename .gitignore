@@ -1,2 +1,4 @@
 __pycache__/
 .preview/
+.ruff_cache/
+.delegate/

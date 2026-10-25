@@ -1,0 +1,7 @@
+{
+  "name": "delegate",
+  "version": "0.1.0",
+  "description": "A pane that streams delegations to Codex, Cursor, Gemini or Claude, both directions, with a box to message the agent yourself",
+  "author": { "name": "Fullstack Rocks" },
+  "types":"./types/index.d.ts"
+}
