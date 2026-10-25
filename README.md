@@ -63,7 +63,7 @@ Anything the agent can't justify comes back to you as a decision.
 | [**under-engineering-review**](#under-engineering-review) | Audits existing code against the same limits and reports findings with IDs | *"Review the refund flow for depth and complexity"* |
 | [**call-depth**](#call-depth) | Measures call-chain depth, memory hops, complexity and layout with parsers, in any language | *"How deep is the call chain from POST /orders/{id}/refund?"* |
 | [**code-standards**](#code-standards) | Reviews with your linters, taught ast-grep rules and a learned `standards.md`, and learns from rejected code | *"Is my change clean?"* · *"We never read env vars outside config"* |
-| [**delegate**](#delegate) | Hands tasks to Codex, Cursor, Antigravity, Gemini or Claude and keeps a back-and-forth with each, live in a pane | *"Have Codex build the API and Cursor the client, in parallel"* |
+| [**delegate**](#delegate) | Hands tasks to Codex, Cursor, Antigravity, Gemini, the Gemini API or Claude and keeps a back-and-forth with each, live in a pane beside the chat | *"Have Codex build the API and Cursor the client, in parallel"* |
 
 Every recording below is a real, interactive Claude Code session on the [demo shop](demo/), a 55-file Python API with a React/TS client. Long thinking stretches are sped up; everything else plays at its real pace.
 
@@ -112,6 +112,12 @@ Neither version introduced new smells (memory hops, complexity, lint or duplicat
 
 On a refund route with a weighted depth of 7 and two hidden indirect calls (a dict registry and a `getattr` dispatch), **both versions got the depth and both calls right** when the prompt spelled out the counting rules. With the skill, nobody has to write those rules into the prompt, and `scan.py` finds both indirect calls across 58 files in **0.11 s**, before the agent reads any code.
 
+### delegate: what does a team of other agents cost?
+
+<p align="center"><img src="assets/charts/delegate.svg" alt="Chart: agent time per phase (research 31 min, client profiles 16, homepage designs 26, identity and assets 125, websites 16, reviews 42, fixes 18) and tokens per agent: Antigravity 1,034k fresh input and 228k output over 10 runs; Codex 1,045k and 116k over 12; Claude Opus 5.5 574k and 138k over 6 for $9.48; Grok 4.7 in Cursor 399k and 239k over 3" width="100%"></p>
+
+Claude Code led an invented luxury agency's whole job and handed every piece to another agent: research to Antigravity, client profiles, homepage designs and photographs to Codex, identity and photographs to Antigravity with Nano Banana, three websites to Claude Opus 5.5, an independent review to Grok 4.7 in Cursor, and the fixes back to Codex and Opus. **31 runs, three at a time, about 4½ agent-hours, 3M fresh input tokens; $9.48 on the one harness that reports a price.** The write-up, the three websites and everything the agents made are on the [demo site](https://fullstack-rocks.github.io/skills/maison-lumen/); the usage behind the chart is in [`benchmarks/results/delegate/`](benchmarks/results/delegate/).
+
 ## Install
 
 With the [`skills`](https://github.com/vercel-labs/skills) CLI, for Claude Code, Codex, Cursor and other agents:
@@ -122,7 +128,7 @@ npx skills add Fullstack-Rocks/skills --skill code-standards   # just one
 npx skills add Fullstack-Rocks/skills -g                       # for every project
 ```
 
-Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards` and `delegate` stand alone. Installed globally (`-g`), `delegate` brings its Delegate pane to every Claude Code session.
+Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards` and `delegate` stand alone. Installed globally (`-g`), `delegate` brings its Delegations panes to every Claude Code session.
 
 > [!TIP]
 > To make the checkpoint run every time, add one line to your `AGENTS.md` or `CLAUDE.md`:
@@ -413,7 +419,7 @@ Pinned tool versions, the config format and the scripts are in [`skills/code-sta
 
 ## delegate
 
-**Other coding agents as teammates.** The agent hands a task to Codex, Cursor, Antigravity, Gemini or Claude Code, keeps working while it runs, and talks to it turn by turn. Each delegate keeps its own session, so a follow-up lands with everything it has already read.
+**Other coding agents as teammates.** The agent hands a task to Codex, Cursor, Antigravity, Gemini, the Gemini API or Claude Code, keeps working while it runs, and talks to it turn by turn. Each delegate keeps its own session, so a follow-up lands with everything it has already read.
 
 | Harness | Runs | Read-only mode |
 |---|---|---|
@@ -421,12 +427,13 @@ Pinned tool versions, the config format and the scripts are in [`skills/code-sta
 | `cursor` | `cursor-agent -p --output-format stream-json` | `--mode ask` |
 | `antigravity` | `agy --output-format stream-json` | `--mode plan` |
 | `gemini` | `gemini -o stream-json` | `--approval-mode plan` |
+| `gemini-api` | `gemini-api generate --output-format json`, continued by interaction | always: a model with no tools |
 | `claude` | `claude -p --output-format stream-json` | edit tools disallowed |
 
 - **Never blocking.** Every turn runs in the background; the lead hears back when it ends, with the reply and a `STATUS: done | question | blocked` line.
 - **Safe by default.** Read-only unless `--write`, which gives the delegate its own git worktree; the lead reviews `diff` before applying anything.
 - **Queues, attachments, models.** A message sent mid-turn waits its turn. Files, folders and images go along with `--attach` or `@path`. Model, effort and speed are picked per delegate, split out of how each harness names them.
-- **The Delegate pane** (Claude Code). The skill folder is also a plugin: a pane with every delegation grouped by project, each stream with its provider's logo, replies as markdown, and a composer to write to a delegate yourself. Right-click a chat to rename, archive or delete it. `/delegations` opens it.
+- **The Delegations panes** (Claude Code). The skill folder is also a plugin with two panes. Delegations lists every chat grouped by project; right-click one to rename, archive or delete it. Clicking a chat opens it in a tab of its own, marked with its agent and a spinner while it works: its stream with each provider's logo, replies as markdown, thinking and tool output that fold, and a composer at the end to write to the delegate yourself. `/delegations` opens them.
 - **Other hosts.** `scripts/mcp_server.py` serves the same tools and the panel as an MCP App, for hosts that draw MCP Apps. See [`references/mcp-app.md`](skills/delegate/references/mcp-app.md).
 
 Everything is plain files in `.delegate/<id>/` in your repo (kept out of git): the stream in both directions, the last reply, the queue.
@@ -452,7 +459,7 @@ under-engineering-review ── call-depth (trace + scan) ── report with IDs
 code-standards:  "we never do X"  ──>  bypasses proposed  ──>  rule + fixtures
                  ──>  ast-grep test + repo-wide scan  ──>  caught on every later review
 
-delegate:  brief ──> codex / cursor / antigravity / gemini / claude (background, own session)
+delegate:  brief ──> codex / cursor / antigravity / gemini / gemini-api / claude (background, own session)
            ──> STATUS: done | question | blocked ──> follow-up, or diff ──> apply
 ```
 
@@ -462,7 +469,7 @@ delegate:  brief ──> codex / cursor / antigravity / gemini / claude (backgro
 - **Python 3.10+** for `call-depth`, **3.11+** for `code-standards`. The scripts use only the standard library.
 - **ast-grep, lizard and jscpd.** The agent installs them itself with whichever of npm, uv, pipx, cargo or pip the machine has. Only jscpd needs Node.js.
 - **Nothing from the project being measured.** Your own linters are used when your project configures them.
-- **For `delegate`:** the CLIs of the agents you delegate to, signed in (`codex`, `cursor-agent`, `agy`, `gemini`, `claude`), and git for `--write` worktrees. The pane needs a recent Claude Code.
+- **For `delegate`:** the CLIs of the agents you delegate to, signed in (`codex`, `cursor-agent`, `agy`, `gemini`, `gemini-api`, `claude`), and git for `--write` worktrees. The pane needs a recent Claude Code.
 
 ## Customizing
 

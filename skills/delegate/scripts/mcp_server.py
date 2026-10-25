@@ -29,13 +29,13 @@ DELEGATE = HERE / "delegate.py"
 PANEL_URI = "ui://delegate/panel"
 APP_MIME = "text/html;profile=mcp-app"
 PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
-HARNESSES = ["codex", "cursor", "antigravity", "gemini", "claude"]
+HARNESSES = ["codex", "cursor", "antigravity", "gemini", "gemini-api", "claude"]
 UI = {"ui": {"resourceUri": PANEL_URI}}
 
 TOOLS = [
     {
         "name": "delegate_start",
-        "description": "Hand a task to another coding agent (Codex, Cursor, Antigravity, Gemini or Claude). Returns its "
+        "description": "Hand a task to another coding agent (Codex, Cursor, Antigravity, Gemini, the Gemini API or Claude). Returns its "
                        "id at once; the agent works in the background, streaming into the Delegate panel. Write the "
                        "message as a brief for a colleague with no access to this conversation. Read-only unless "
                        "write is true, which gives it a git worktree of its own. Check delegate_status for the reply.",

@@ -6,12 +6,12 @@
     delegate.py list | show <id> [--follow] | stop <id> | diff <id> | close <id>
     delegate.py models <harness> | set <id> [--model M] [--effort E] [--speed S]   (default clears one)
     delegate.py meta <id> [--archive | --unarchive] [--name NAME] [--project NAME | --no-project] [--seen]
-    delegate.py rename-project OLD NEW | delete <id> | pick [--folders]
+    delegate.py rename-project OLD NEW | delete <id> | pick [--folders] | usage [--json]
 
 How a delegation is filed (archived, its project tag, the turn the person last saw) lives in
 .delegate/<id>/meta.json, which only the UIs and `meta` write, never a running turn.
 
-Harnesses: codex, cursor, antigravity (agy), gemini, claude. Every delegation lives in
+Harnesses: codex, cursor, antigravity (agy), gemini, gemini-api, claude. Every delegation lives in
 <repo>/.delegate/<id>/: state.json, events.jsonl (the stream in both directions, one JSON event
 per line) and final.md (the agent's last reply). `start` and `send` each run one turn and exit when
 the agent ends it, printing a branded line per stream event and then the reply. With --detach they
@@ -44,8 +44,9 @@ from pathlib import Path
 SCRIPT = Path(__file__).resolve()
 # Name, colour, terminal glyph and SVG logo of every sender, shared with the pane and the MCP App.
 BRANDS = json.loads((SCRIPT.parent.parent / "assets" / "brands.json").read_text())
-ALIASES = {"agy": "antigravity", "google": "gemini", "openai": "codex", "cursor-agent": "cursor"}
-BINARIES = {"codex": "codex", "cursor": "cursor-agent", "antigravity": "agy", "gemini": "gemini", "claude": "claude"}
+ALIASES = {"agy": "antigravity", "google": "gemini", "openai": "codex", "cursor-agent": "cursor", "gemapi": "gemini-api"}
+BINARIES = {"codex": "codex", "cursor": "cursor-agent", "antigravity": "agy", "gemini": "gemini", "gemini-api": "gemini-api",
+            "claude": "claude"}
 GRACE = 10  # seconds between SIGTERM and SIGKILL when a turn times out or is stopped
 
 STATUS_RE = re.compile(r"^\s*\**STATUS:?\**\s*(done|question|blocked)\b[:\s]*(.*)$", re.I | re.M)
@@ -168,8 +169,10 @@ class CursorParser(Parser):
             ok = result.get("success")
             detail = (ok or {}).get("stdout") or (ok or {}).get("content") or "" if ok else "failed"
             return [{"kind": "tool_result", "text": f"{name}  {detail}"}]
-        if t == "result" and o.get("is_error"):
-            return self.fail(o.get("result"))
+        if t == "result":
+            self.usage = o.get("usage")
+            if o.get("is_error"):
+                return self.fail(o.get("result"))
         return []
 
 
@@ -248,6 +251,43 @@ class GeminiParser(Parser):
         return out
 
 
+class GeminiApiParser(Parser):
+    """gemini-api generate --output-format json: one interaction per turn, its steps (thought, model output)
+    streamed as deltas. The interaction's id is what the next turn continues from."""
+
+    def __init__(self):
+        super().__init__()
+        self.step, self.buffer = None, ""
+
+    def flush(self):
+        text, self.buffer = self.buffer, ""
+        if self.step == "thought":
+            return [{"kind": "thinking", "text": text}] if text.strip() else []
+        return self.message(text)
+
+    def feed(self, o):
+        o = o.get("data", o)
+        t = o.get("event_type")
+        if t in ("interaction.created", "interaction.completed"):
+            interaction = o.get("interaction") or {}
+            self.session_id = interaction.get("id") or self.session_id
+            if t == "interaction.completed":
+                self.usage = interaction.get("usage")
+                if interaction.get("status") not in (None, "completed"):
+                    return self.fail(f"interaction {interaction.get('status')}")
+        elif t == "step.start":
+            self.step, self.buffer = (o.get("step") or {}).get("type"), ""
+        elif t == "step.delta":
+            delta = o.get("delta") or {}
+            self.buffer += delta.get("text") or delta.get("thought") or ""
+        elif t == "step.stop":
+            return self.flush()
+        elif t == "error" or o.get("error"):
+            error = o.get("error") or {}
+            return self.fail(error.get("message") if isinstance(error, dict) else str(error))
+        return []
+
+
 class ClaudeParser(Parser):
     def feed(self, o):
         t = o.get("type")
@@ -266,14 +306,15 @@ class ClaudeParser(Parser):
                 if isinstance(block, dict) and block.get("type") == "tool_result":
                     out.append({"kind": "tool_result", "text": "error" if block.get("is_error") else "ok"})
         elif t == "result":
-            self.final, self.usage = o.get("result"), o.get("usage")
+            self.final = o.get("result")
+            self.usage = {**(o.get("usage") or {}), "cost_usd": o.get("total_cost_usd")}
             if o.get("is_error"):
                 out += self.fail(o.get("result") or o.get("subtype"))
         return out
 
 
 PARSERS = {"codex": CodexParser, "cursor": CursorParser, "antigravity": AntigravityParser,
-           "gemini": GeminiParser, "claude": ClaudeParser}
+           "gemini": GeminiParser, "gemini-api": GeminiApiParser, "claude": ClaudeParser}
 
 
 IMAGES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
@@ -284,6 +325,8 @@ def attachment_flags(harness, attachments, workdir):
     images = [a for a in attachments if Path(a).suffix.lower() in IMAGES]
     if harness == "codex":
         return [x for a in images for x in ("-i", a)]
+    if harness == "gemini-api":  # files go in as input, folders it can't take
+        return [x for a in attachments if Path(a).is_file() for x in ("-i", a)]
     folders = sorted({a if Path(a).is_dir() else str(Path(a).parent) for a in attachments})
     outside = [d for d in folders if not Path(d).resolve().is_relative_to(Path(workdir).resolve())]
     flag = "--include-directories" if harness == "gemini" else "--add-dir"
@@ -299,7 +342,9 @@ def command(state, prompt, attachments=()):
     extra = attachment_flags(h, attachments, state["workdir"])
     if h == "codex":
         sandbox = f'sandbox_mode="{"workspace-write" if write else "read-only"}"'
+        # Live web search as the other harnesses have it; `--search` is missing from `exec resume`, the config key is not.
         argv = ["codex", "exec"] + (["resume", sid] if sid else []) + ["--json", "--skip-git-repo-check", "-c", sandbox]
+        argv += ["-c", 'web_search="live"']
         argv += (["-m", model] if model else []) + (["-c", f'model_reasoning_effort="{effort}"'] if effort else [])
         argv += (["-c", 'service_tier="priority"'] if speed == "fast" else []) + extra + ["--"]
     elif h == "cursor":
@@ -308,9 +353,15 @@ def command(state, prompt, attachments=()):
         argv += (["--resume", sid] if sid else []) + (["--model", model] if model else []) + extra
     elif h == "antigravity":
         argv = ["agy", "--output-format", "stream-json"]
-        argv += ["--dangerously-skip-permissions"] if write else ["--mode", "plan"]
+        # Headless agy can't answer a permission prompt, so it is denied and the turn ends empty; plan
+        # mode is what keeps a read-only run from editing, so its tools are approved too.
+        argv += ["--dangerously-skip-permissions"] + ([] if write else ["--mode", "plan"])
         argv += (["--conversation", sid] if sid else []) + (["--model", model] if model else [])
         argv += (["--effort", effort] if effort and not effort_in_id else []) + extra + ["-p"]
+    elif h == "gemini-api":
+        # A plain API: no tools, so read and write are the same; a turn continues the last interaction.
+        argv = ["gemini-api", "generate", "--output-format", "json", "--no-interactive"]
+        argv += (["--previous-interaction-id", sid] if sid else []) + (["-m", model] if model else []) + extra + ["--"]
     elif h == "gemini":
         argv = ["gemini", "-o", "stream-json", "--skip-trust", "--approval-mode", "yolo" if write else "plan"]
         argv += ["--resume", sid] if sid else ["--session-id", state["new_session_id"]]
@@ -412,6 +463,10 @@ def raw_models(harness):
             rows = [{"id": m["slug"], "label": m.get("display_name", m["slug"])} for m in cache.get("models", [])]
         elif harness == "claude":
             rows = [{"id": a, "label": a.capitalize()} for a in CLAUDE_ALIASES]
+        elif harness == "gemini-api":  # "  id   Description", under Gemma:/Gemini:/Image: headings
+            out = subprocess.run(["gemini-api", "models", "--no-interactive"], capture_output=True, text=True, timeout=60).stdout
+            rows = [{"id": x.split()[0], "label": x.split()[0]} for x in out.splitlines()
+                    if x.startswith("  ") and x.split() and "image" not in x.split()[0]]
     except (OSError, ValueError, subprocess.SubprocessError, KeyError):
         rows = []
     return [{"id": r["id"].strip(), "label": r.get("label", r["id"]).strip().removesuffix(" (current, default)")}
@@ -422,6 +477,8 @@ def auth_hint(harness, text):
     text = text.lower()
     if harness == "gemini" and ("gemini_api_key" in text or "auth" in text):
         return "Gemini isn't signed in for headless use: run `gemini`, pick Login with Google (/auth), or set GEMINI_API_KEY."
+    if harness == "gemini-api" and ("api key" in text or "unauthenticated" in text or "permission_denied" in text):
+        return "gemini-api has no API key: create one in Google AI Studio and run `gemini-api configure` yourself."
     if harness == "cursor" and ("sign in" in text or "login" in text or "authenticat" in text):
         return "Cursor isn't signed in: run `cursor-agent login`."
     if harness == "antigravity" and ("sign in" in text or "login" in text or "auth" in text):
@@ -661,6 +718,11 @@ def run_turn(base, state, text, sender, timeout, color, attachments=()):
         (folder / "final.md").write_text(reply + "\n")
     found = STATUS_RE.findall(reply)
     agent_status = found[-1][0].lower() if found else "unknown"
+    # A reply ending in its STATUS line is the agent's finished answer: a failure the harness reports
+    # after it (a dropped connection) is shown, not taken for the turn's outcome.
+    if found and problem and not (timed_out.is_set() or stopped):
+        log.emit(state["harness"], "error", f"{state['harness']} {problem} after its reply")
+        problem = None
     state.update(pid=None, stop_requested=False, status="idle" if not problem or stopped else "error",
                  agent_status="stopped" if stopped else agent_status if not problem else "error")
     if current.get("status") == "closed":
@@ -752,10 +814,15 @@ def cmd_start(args):
         sys.exit(f"{BINARIES[harness]} is not on PATH")
     text = read_message(args)
     root, base = home()
+    # The next free number; mkdir claims it, so starts running at the same moment each get their own.
     n = 1 + sum(1 for p in base.glob(f"{harness}-*") if p.is_dir())
-    ident = f"{harness}-{n}"
-    folder = base / ident
-    folder.mkdir()
+    while True:
+        ident, folder = f"{harness}-{n}", base / f"{harness}-{n}"
+        try:
+            folder.mkdir()
+            break
+        except FileExistsError:
+            n += 1
     mode = "write" if args.write else "read"
     state = {"id": ident, "harness": harness, "mode": mode, "lead": lead_name(args),
              "title": args.title or clip(text.strip().splitlines()[0], 40), "root": str(root), "workdir": str(root),
@@ -879,6 +946,65 @@ def cmd_pick(args):
     return 0
 
 
+# Each harness reports a turn's tokens in its own shape; these read them into one.
+USAGE_KEYS = {
+    # Claude writes new prompt text to its cache as it reads it: that is fresh input too.
+    "input": ("input_tokens", "inputTokens", "prompt_tokens", "total_input_tokens", "cache_creation_input_tokens"),
+    "cached": ("cached_input_tokens", "cacheReadTokens", "cache_read_tokens", "cache_read_input_tokens", "total_cached_tokens"),
+    "output": ("output_tokens", "outputTokens", "candidates_tokens", "total_output_tokens"),
+    "reasoning": ("reasoning_output_tokens", "thinking_tokens", "thoughts_tokens", "total_thought_tokens"),
+}
+
+
+def tokens(usage, harness=""):
+    """input is fresh input: Codex and the Gemini API count cached tokens inside input, the others apart."""
+    usage = usage or {}
+    out = {name: sum(int(usage.get(k) or 0) for k in keys) for name, keys in USAGE_KEYS.items()}
+    if harness in ("codex", "gemini-api"):
+        out["input"] = max(0, out["input"] - out["cached"])
+    out["cost_usd"] = float(usage.get("cost_usd") or 0)
+    return out
+
+
+def cmd_usage(args):
+    """Tokens, time and turns per delegation and per harness, from each turn's final event."""
+    _, base = home()
+    rows = []
+    for path in sorted(base.glob("*/events.jsonl")):
+        state = json.loads((path.parent / "state.json").read_text())
+        meta = read_meta(base, path.parent.name)
+        finals = [json.loads(x) for x in path.read_text().splitlines() if '"kind": "final"' in x]
+        row = {"id": state["id"], "harness": state["harness"], "model": state.get("model_id") or state.get("model") or "default",
+               "effort": state.get("effort") or "", "name": meta.get("name") or state.get("title", ""),
+               "project": meta.get("project") or "", "turns": len(finals),
+               "seconds": sum(f.get("seconds") or 0 for f in finals)}
+        for f in finals:
+            for name, value in tokens(f.get("usage"), state["harness"]).items():
+                row[name] = row.get(name, 0) + value
+        rows.append(row)
+    rows = [r for r in rows if not args.project or r["project"] == args.project]
+    if args.json:
+        print(json.dumps(rows, indent=1))
+        return 0
+    head = f"{'delegation':<16}{'harness':<12}{'model':<26}{'turns':>6}{'time':>8}{'input':>10}{'cached':>10}{'output':>9}{'reason':>9}{'cost':>8}"
+    print(head)
+    totals = {}
+    for r in rows:
+        print(f"{r['id']:<16}{r['harness']:<12}{clip(r['model'], 25):<26}{r['turns']:>6}{r['seconds']:>7}s{r.get('input', 0):>10}"
+              f"{r.get('cached', 0):>10}{r.get('output', 0):>9}{r.get('reasoning', 0):>9}"
+              f"{('$%.2f' % r['cost_usd']) if r.get('cost_usd') else '-':>8}")
+        t = totals.setdefault(r["harness"], {"delegations": 0})
+        t["delegations"] += 1
+        for k in ("turns", "seconds", "input", "cached", "output", "reasoning", "cost_usd"):
+            t[k] = t.get(k, 0) + r.get(k, 0)
+    print("\nper harness")
+    for h, t in totals.items():
+        print(f"{h:<12}{t['delegations']:>3} delegations{t['turns']:>5} turns{t['seconds']:>7}s"
+              f"  in {t['input']:,}  cached {t['cached']:,}  out {t['output']:,}  reasoning {t['reasoning']:,}"
+              + (f"  ${t['cost_usd']:.2f}" if t["cost_usd"] else ""))
+    return 0
+
+
 def cmd_list(args):
     _, base = home()
     rows = [(json.loads(p.read_text()), read_meta(base, p.parent.name)) for p in sorted(base.glob("*/state.json"))]
@@ -996,6 +1122,9 @@ def main():
     s.add_argument("--timeout", type=int, required=True)
     s.add_argument("--lock-fd", type=int, required=True)
     sub.add_parser("list").add_argument("--all", action="store_true", help="include archived delegations")
+    s = sub.add_parser("usage", help="tokens, time and turns per delegation and per harness")
+    s.add_argument("--json", action="store_true")
+    s.add_argument("--project", help="only this project's delegations")
     s = sub.add_parser("meta", help="archive, tag or mark a delegation seen")
     s.add_argument("id")
     s.add_argument("--archive", action="store_true")
@@ -1030,6 +1159,7 @@ def main():
     if extra:
         args.message += head + tail
     handler = {"start": cmd_start, "send": cmd_send, "_turn": cmd_turn, "list": cmd_list, "show": cmd_show,
+               "usage": cmd_usage,
                "stop": cmd_stop, "diff": cmd_diff, "close": cmd_close, "models": cmd_models,
                "set": cmd_set, "meta": cmd_meta,
                "rename-project": cmd_rename_project, "delete": cmd_delete, "pick": cmd_pick}[args.cmd]
