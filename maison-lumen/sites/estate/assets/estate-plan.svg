@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" width="1600" height="800" fill="currentColor" role="img" aria-label="Schematic plan of the estate; a complete text description follows.">
+  <!-- Warm stone background canvas -->
+  <rect x="0" y="0" width="1600" height="800" fill="#DDD5C8"/>
+
+  <!-- 28-hectare estate boundary (dashed household ink line) -->
+  <path d="M 250 110 L 980 76 L 1490 120 L 1524 410 L 1460 704 L 890 732 L 268 696 L 228 456 L 228 364 Z"
+        fill="none" stroke="#252C2A" stroke-width="3.5" stroke-dasharray="16 10" stroke-linejoin="round"/>
+
+  <!-- Subtle interior courtyard gravel and garden parterre paths (household ink fine lines) -->
+  <g fill="none" stroke="#252C2A" stroke-width="1.75">
+    <!-- Walled gardens parterre geometry (north of courtyard) -->
+    <rect x="470" y="168" width="410" height="104"/>
+    <line x1="675" y1="168" x2="675" y2="272"/>
+    <line x1="470" y1="220" x2="880" y2="220"/>
+    <!-- Path connecting courtyard and library to the 16 m pool -->
+    <path d="M 900 410 H 1020"/>
+    <path d="M 900 426 H 1020"/>
+  </g>
+
+  <!-- Decorative foliage: olive orchard canopies and garden planting in olive grey (#60665E) -->
+  <g fill="none" stroke="#60665E" stroke-width="2.2">
+    <!-- Garden low planting beds -->
+    <circle cx="515" cy="194" r="14"/>
+    <circle cx="555" cy="194" r="12"/>
+    <circle cx="795" cy="194" r="13"/>
+    <circle cx="835" cy="194" r="14"/>
+    <circle cx="515" cy="246" r="13"/>
+    <circle cx="835" cy="246" r="13"/>
+
+    <!-- Mature olive orchard groves (north-east, east, south-east) -->
+    <g>
+      <circle cx="980" cy="150" r="26"/><path d="M980 124 v10 M980 166 v10 M954 150 h10 M996 150 h10"/>
+      <circle cx="1055" cy="136" r="22"/><path d="M1055 114 v8 M1055 150 v8 M1033 136 h8 M1069 136 h8"/>
+      <circle cx="1310" cy="158" r="28"/><path d="M1310 130 v10 M1310 176 v10 M1282 158 h10 M1328 158 h10"/>
+      <circle cx="1385" cy="190" r="24"/><path d="M1385 166 v8 M1385 206 v8 M1361 190 h8 M1401 190 h8"/>
+      <circle cx="1435" cy="260" r="26"/><path d="M1435 234 v9 M1435 277 v9 M1409 260 h9 M1452 260 h9"/>
+      <circle cx="1340" cy="275" r="22"/>
+      <circle cx="1255" cy="250" r="25"/>
+      <circle cx="965" cy="255" r="23"/>
+      <circle cx="1445" cy="360" r="28"/><path d="M1445 332 v10 M1445 378 v10 M1417 360 h10 M1463 360 h10"/>
+      <circle cx="1380" cy="380" r="22"/>
+      <circle cx="1430" cy="480" r="26"/><path d="M1430 454 v9 M1430 497 v9 M1404 480 h9 M1447 480 h9"/>
+      <circle cx="1370" cy="525" r="24"/>
+      <circle cx="1415" cy="590" r="27"/><path d="M1415 563 v9 M1415 608 v9 M1388 590 h9 M1433 590 h9"/>
+      <circle cx="1310" cy="625" r="24"/>
+      <circle cx="1215" cy="645" r="28"/><path d="M1215 617 v10 M1215 663 v10 M1187 645 h10 M1233 645 h10"/>
+      <circle cx="1110" cy="655" r="23"/>
+      <circle cx="990" cy="635" r="26"/>
+      <circle cx="885" cy="655" r="22"/>
+      <!-- Western orchard trees flanking arrival court -->
+      <circle cx="345" cy="215" r="25"/><path d="M345 190 v9 M345 231 v9 M320 215 h9 M361 215 h9"/>
+      <circle cx="405" cy="175" r="21"/>
+      <circle cx="335" cy="605" r="26"/><path d="M335 579 v9 M335 622 v9 M309 605 h9 M352 605 h9"/>
+      <circle cx="415" cy="635" r="22"/>
+    </g>
+  </g>
+
+  <!-- Inland arrival road (from left edge to arrival forecourt) -->
+  <g fill="none" stroke="#252C2A" stroke-width="3">
+    <path d="M 40 392 H 370 C 395 392, 410 375, 410 350 V 330 H 446 V 506 H 410 V 486 C 410 461, 395 444, 370 444 H 40"/>
+    <!-- Direction arrow on arrival road -->
+    <line x1="280" y1="418" x2="365" y2="418" stroke-width="2.5"/>
+    <polyline points="351,408 366,418 351,428" stroke-width="2.5"/>
+  </g>
+
+  <!-- Courtyard and house architectural footprint (household ink #252C2A, >3:1 contrast) -->
+  <g fill="#252C2A" stroke="#252C2A">
+    <!-- West entrance wall with shaded passage opening -->
+    <rect x="446" y="300" width="22" height="96"/>
+    <rect x="446" y="440" width="22" height="96"/>
+
+    <!-- North wing: Atelier & household rooms framing courtyard -->
+    <rect x="468" y="300" width="322" height="36"/>
+
+    <!-- South & West suite wings: Three suites opening onto courtyard -->
+    <rect x="468" y="500" width="96" height="58"/>
+    <rect x="580" y="500" width="96" height="58"/>
+    <rect x="692" y="500" width="98" height="58"/>
+
+    <!-- East wing beside the courtyard: Library looking toward orchard -->
+    <rect x="790" y="300" width="110" height="98"/>
+    <rect x="790" y="438" width="110" height="98"/>
+    <!-- Library interior wall outline -->
+    <rect x="804" y="314" width="82" height="208" fill="#DDD5C8" stroke="#252C2A" stroke-width="3"/>
+  </g>
+
+  <!-- Courtyard inner paving border and three suite doorways -->
+  <rect x="484" y="350" width="292" height="136" fill="none" stroke="#252C2A" stroke-width="2"/>
+  <!-- Three suite threshold ticks opening onto the courtyard -->
+  <line x1="516" y1="486" x2="516" y2="500" stroke="#252C2A" stroke-width="3"/>
+  <line x1="628" y1="486" x2="628" y2="500" stroke="#252C2A" stroke-width="3"/>
+  <line x1="740" y1="486" x2="740" y2="500" stroke="#252C2A" stroke-width="3"/>
+
+  <!-- 16 m rectangular swimming pool (estuary #243F3A fill with household ink coping) -->
+  <g>
+    <!-- Stone coping surround -->
+    <rect x="1020" y="316" width="136" height="244" fill="#DDD5C8" stroke="#252C2A" stroke-width="3"/>
+    <!-- Estuary water surface -->
+    <rect x="1034" y="330" width="108" height="216" fill="#243F3A" stroke="#252C2A" stroke-width="2"/>
+    <!-- Subtle pool steps at north end in warm stone -->
+    <line x1="1036" y1="344" x2="1140" y2="344" stroke="#DDD5C8" stroke-width="2"/>
+    <line x1="1036" y1="356" x2="1140" y2="356" stroke="#DDD5C8" stroke-width="2"/>
+  </g>
+
+  <!-- Solid warm stone label backing plates so no text sits over lines, trees, or paths -->
+  <g fill="#DDD5C8">
+    <!-- Estate boundary label plate -->
+    <rect x="485" y="74" width="270" height="48"/>
+    <!-- Gardens label plate -->
+    <rect x="595" y="194" width="160" height="46"/>
+    <!-- Arrival road label plate -->
+    <rect x="44" y="328" width="204" height="48"/>
+    <!-- Courtyard label plate -->
+    <rect x="542" y="394" width="176" height="48"/>
+    <!-- Library label plate -->
+    <rect x="785" y="572" width="136" height="48"/>
+    <!-- Three suites label plate -->
+    <rect x="524" y="572" width="212" height="48"/>
+    <!-- Orchard label plate -->
+    <rect x="1088" y="176" width="154" height="48"/>
+    <!-- 16 m pool label plate -->
+    <rect x="1168" y="414" width="168" height="48"/>
+  </g>
+
+  <!-- Leader lines where helpful (ink #252C2A) -->
+  <g stroke="#252C2A" stroke-width="2" fill="none">
+    <!-- Library leader tick -->
+    <line x1="850" y1="536" x2="850" y2="572"/>
+    <!-- 16 m pool leader tick -->
+    <line x1="1156" y1="438" x2="1174" y2="438"/>
+  </g>
+
+  <!-- Required visible plan labels (>= 32 px in source, Household ink #252C2A on Warm stone #DDD5C8, 9.80:1 contrast) -->
+  <g fill="#252C2A" font-family="'Source Sans 3', 'Segoe UI', -apple-system, sans-serif" font-size="32" font-weight="500">
+    <text x="500" y="108">Estate boundary</text>
+    <text x="675" y="228" text-anchor="middle">Gardens</text>
+    <text x="56" y="362">Arrival road</text>
+    <text x="630" y="428" text-anchor="middle">Courtyard</text>
+    <text x="850" y="606" text-anchor="middle">Library</text>
+    <text x="630" y="606" text-anchor="middle">Three suites</text>
+    <text x="1165" y="210" text-anchor="middle">Orchard</text>
+    <text x="1182" y="448">16 m pool</text>
+  </g>
+
+  <!-- Public coastline lies wholly outside the dashed estate boundary. -->
+  <path d="M 1572 0 C 1556 80, 1588 130, 1568 210 S 1588 340, 1564 420 S 1590 560, 1568 640 S 1582 740, 1566 800"
+        fill="none" stroke="#252C2A" stroke-width="3.5"/>
+  <rect x="1300" y="744" width="240" height="48" fill="#DDD5C8"/>
+  <text x="1312" y="778" fill="#252C2A" font-family="'Source Sans 3', 'Segoe UI', sans-serif" font-size="32" font-weight="500">Public coast</text>
+</svg>

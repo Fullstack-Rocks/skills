@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maison Lumen · delegate demo</title>
+  <meta name="description" content="Claude Code hands an invented luxury agency's work to Antigravity, Codex, Claude Opus 5.5 and Grok through the delegate skill: 31 runs, from research to three websites.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a href="../">fullstack.rocks / skills · demos</a>
+      <nav><a href="https://github.com/Fullstack-Rocks/skills/tree/main/skills/delegate">The delegate skill</a></nav>
+    </div>
+  </header>
+  <main class="wrap">
+    <p class="kicker">delegate · demo and benchmark</p>
+    <h1>Maison Lumen: one brief, four other agents</h1>
+    <p class="lede">Claude Code wrote <a href="BRIEF.html">the brief</a> for an invented luxury agency with three invented clients, then handed every piece of work to another coding agent through the <code>delegate</code> skill. It read each reply, applied each change, and finished each phase before starting the next. Thirty-one runs on four harnesses produced the research, the clients, their designs, identity, photography, three websites, an independent review, and the fixes.</p>
+
+    <img class="chart" src="chart.svg" alt="Chart: agent time per phase (research 31 min, client profiles 16, homepage designs 26, identity and assets 125, websites 16, reviews 42, fixes 18) and tokens per agent: Antigravity 1,034k fresh input and 228k output over 10 runs; Codex 1,045k and 116k over 12; Claude Opus 5.5 574k and 138k over 6 for $9.48; Grok 4.7 in Cursor 399k and 239k over 3">
+
+    <h2>The three websites</h2>
+    <div class="sites">
+      <a class="site" href="sites/car/"><img src="screens/car.jpg" alt="The Veyravel homepage: a graphite two-seat grand tourer beside a limestone parapet"><span><strong>Veyravel</strong><small>An electric grand tourer, built in small numbers</small></span></a>
+      <a class="site" href="sites/watch/"><img src="screens/watch.jpg" alt="The Maison Talvrenne homepage: a steel watch on paper beside the headline"><span><strong>Maison Talvrenne</strong><small>Independent, hand-finished watchmaking</small></span></a>
+      <a class="site" href="sites/estate/"><img src="screens/estate.jpg" alt="The Orrisvane House homepage: a whitewashed courtyard set for breakfast"><span><strong>Orrisvane House</strong><small>A private estate, by invitation</small></span></a>
+    </div>
+
+    <h2>The phases</h2>
+    <div class="table"><table>
+      <thead><tr><th>Phase</th><th>Agents</th><th>Agent time</th><th>Fresh input</th><th>Output</th><th>What it made</th></tr></thead>
+      <tbody>
+        <tr><td>1. Research</td><td>Antigravity ×4 (Gemini 4 Argon)</td><td class="n">31 min</td><td class="n">312k</td><td class="n">71k</td><td><a href="research/agencies.html">agencies</a>, <a href="research/case-studies.html">case studies</a>, <a href="research/design-guidelines.html">design guidelines</a>, <a href="research/accessibility.html">accessibility</a></td></tr>
+        <tr><td>2. Client profiles</td><td>Codex ×3, live web search</td><td class="n">16 min</td><td class="n">357k</td><td class="n">20k</td><td>the house, its niche, real competitors, voice and look: <a href="clients/car/profile.html">Veyravel</a>, <a href="clients/watch/profile.html">Talvrenne</a>, <a href="clients/estate/profile.html">Orrisvane</a></td></tr>
+        <tr><td>3. Homepage designs</td><td>Codex ×3, image generation</td><td class="n">26 min</td><td class="n">296k</td><td class="n">49k</td><td>the homepage as one image, and its build spec: <a href="clients/car/design.jpg">image</a> · <a href="clients/car/design.html">spec</a>, <a href="clients/watch/design.jpg">image</a> · <a href="clients/watch/design.html">spec</a>, <a href="clients/estate/design.jpg">image</a> · <a href="clients/estate/design.html">spec</a></td></tr>
+        <tr><td>4. Identity and assets</td><td>Antigravity ×6, Codex ×3</td><td class="n">125 min</td><td class="n">899k</td><td class="n">180k</td><td>hand-drawn SVG identity, and photographs from Nano Banana 2.1: <a href="clients/car/assets/">Veyravel</a>, <a href="clients/watch/assets/">Talvrenne</a>, <a href="clients/estate/assets/">Orrisvane</a></td></tr>
+        <tr><td>5. Websites</td><td>Claude Opus 5.5 ×3 (medium)</td><td class="n">16 min</td><td class="n">331k</td><td class="n">100k</td><td>static HTML and CSS; Google Fonts the only outside request</td></tr>
+        <tr><td>6. Reviews</td><td>Grok 4.7 in Cursor ×3, read-only</td><td class="n">42 min</td><td class="n">399k</td><td class="n">239k</td><td>47 findings, each tagged a11y, usability, copy or UX: <a href="reviews/car.html">Veyravel</a>, <a href="reviews/watch.html">Talvrenne</a>, <a href="reviews/estate.html">Orrisvane</a></td></tr>
+        <tr><td>7. Fixes</td><td>Codex ×3 (copy, UX), then Claude Opus 5.5 ×3 (a11y, usability)</td><td class="n">18 min</td><td class="n">458k</td><td class="n">63k</td><td>the sites as they are now</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">Agent time adds up each phase's runs; the three runs of a phase ran at once. Fresh input leaves out cached input (31M tokens in all). Only Claude reports a price; the other agents bill a subscription. The lead's own tokens are not counted.</p>
+
+    <div class="table" style="margin-top:24px"><table>
+      <thead><tr><th>Agent</th><th>Runs</th><th>Agent time</th><th>Fresh input</th><th>Cached</th><th>Output</th><th>Reasoning</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td>Antigravity</td><td class="n">10</td><td class="n">136 min</td><td class="n">1,034k</td><td class="n">8.5M</td><td class="n">228k</td><td class="n">55k</td><td></td></tr>
+        <tr><td>Codex</td><td class="n">12</td><td class="n">74 min</td><td class="n">1,045k</td><td class="n">11.3M</td><td class="n">116k</td><td class="n">28k</td><td></td></tr>
+        <tr><td>Claude Opus 5.5</td><td class="n">6</td><td class="n">23 min</td><td class="n">574k</td><td class="n">10.6M</td><td class="n">138k</td><td></td><td class="n">$9.48</td></tr>
+        <tr><td>Grok 4.7 in Cursor</td><td class="n">3</td><td class="n">42 min</td><td class="n">399k</td><td class="n">1.0M</td><td class="n">239k</td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+
+    <h2>How the agents worked with Claude Code</h2>
+    <div class="split">
+      <ul class="points">
+        <li><strong>One command per run.</strong> The lead wrote each brief to a file and ran <code>delegate.py start &lt;agent&gt; --file brief.md --project maison-lumen --title "…"</code> in the background, three at a time, and kept working. Each agent ran headless in its own session; its stream (messages, thinking, tool calls) was logged under the agent's mark.</li>
+        <li><strong>Replies end in a status.</strong> Every reply ends with <code>STATUS: done | question | blocked</code>, so the lead knows whether to apply, answer or unblock.</li>
+        <li><strong>Writes go to a worktree.</strong> Runs that make files work in their own git worktree. The lead read the diff, applied it, checked the result (the sites in a browser: 320 px reflow, alt text, every local link), and committed the phase.</li>
+        <li><strong>The panes.</strong> In Claude Code the skill shows the Delegations list, pinned, with a spinner beside a working agent and a dot on an unread reply. Each chat opens in a tab with its agent's mark: the whole conversation, a model and effort picker, and a box to write to the agent. When the person writes there, the lead hears both sides once the agent replies.</li>
+      </ul>
+      <img src="screens/delegations.jpg" alt="The Delegations pane: the project's 31 chats in order, each marked with its agent's glyph">
+    </div>
+
+    <h2>What went wrong, and what changed because of it</h2>
+    <ul class="points">
+      <li><strong>Antigravity's read-only runs failed headless:</strong> plan mode asks permission to read a file, and nobody can answer. Read-only runs now approve its tools and keep plan mode.</li>
+      <li><strong>Nano Banana ran out inside Antigravity</strong> (a 429 on its own quota) part-way through the assets. Codex generated the twenty missing photographs instead; they read as renders, so the <a href="https://github.com/google-gemini/gemini-api-cli">Gemini API CLI</a> became the skill's sixth agent, and Antigravity re-made all twenty with <code>gemini-api image</code> on Nano Banana 2.1.</li>
+      <li><strong>A Codex run finished its work, then lost its connection</strong> and exited with an error. A reply that already ends in its STATUS line now stands, and the failure after it is logged.</li>
+      <li><strong>An Antigravity run hit the 30-minute turn limit</strong> while checking its last drawing, with every file already written.</li>
+      <li><strong>The pane broke twice:</strong> on events that shared a timestamp, and on drawings past the engine's 100,000 characters. Rows are keyed by position now, long thinking and output start folded, and a conversation draws at most 60,000 characters.</li>
+      <li><strong>What the reviewers caught, and missed.</strong> Grok found Orrisvane's three dead links, and that its logo was an image tinted by CSS filters, which vanishes in high-contrast mode. It did not see that the filter also turned the logo grey on paper, which the lead saw in the browser. Its fix, the logo inlined as SVG in the text colour, cured both.</li>
+    </ul>
+  </main>
+  <footer><div class="wrap">Every brand, person and product here is invented. Built with the <a href="https://github.com/Fullstack-Rocks/skills/tree/main/skills/delegate">delegate</a> skill.</div></footer>
+</body>
+</html>

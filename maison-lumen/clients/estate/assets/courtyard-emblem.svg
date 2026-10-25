@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" width="160" height="120" fill="currentColor" aria-hidden="true">
+  <!-- Outer pitched roof and eaves -->
+  <path fill="currentColor" d="M80 15.9 L148.4 46.1 L147.6 47.9 L80 18.1 L12.4 47.9 L11.6 46.1 Z"/>
+  <path fill="currentColor" d="M80 21.9 L142.4 49.5 L141.6 51.3 L80 24.1 L18.4 51.3 L17.6 49.5 Z"/>
+  <!-- Outer courtyard walls and ground baseline -->
+  <path fill="currentColor" d="M19 49.5 H21 V103 H139 V49.5 H141 V103 H150 V105 H10 V103 H19 Z"/>
+  <!-- Left shaded opening with architectural depth reveal -->
+  <path fill="currentColor" d="M31 55 H55 V104 H53 V57 H39 V104 H37.5 V57 H33 V104 H31 Z"/>
+  <path fill="currentColor" d="M38.2 56 H54 V57.5 H38.2 Z"/>
+  <!-- Central arched courtyard opening with inner pilaster reveal -->
+  <path fill="currentColor" d="M64 104 V60 A16 16 0 0 1 96 60 V104 H94 V60 A14 14 0 0 0 66 60 V104 Z"/>
+  <path fill="currentColor" d="M69.5 104 V61 A12.5 12.5 0 0 1 94.5 60.5 L93 60.8 A11 11 0 0 0 71 61 V104 Z"/>
+  <!-- Right shaded opening with architectural depth reveal -->
+  <path fill="currentColor" d="M105 55 H129 V104 H127 V57 H122.5 V104 H121 V57 H107 V104 H105 Z"/>
+  <path fill="currentColor" d="M106 56 H121.8 V57.5 H106 Z"/>
+</svg>
