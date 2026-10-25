@@ -755,10 +755,15 @@ def cmd_start(args):
         sys.exit(f"{BINARIES[harness]} is not on PATH")
     text = read_message(args)
     root, base = home()
+    # The next free number; mkdir claims it, so starts running at the same moment each get their own.
     n = 1 + sum(1 for p in base.glob(f"{harness}-*") if p.is_dir())
-    ident = f"{harness}-{n}"
-    folder = base / ident
-    folder.mkdir()
+    while True:
+        ident, folder = f"{harness}-{n}", base / f"{harness}-{n}"
+        try:
+            folder.mkdir()
+            break
+        except FileExistsError:
+            n += 1
     mode = "write" if args.write else "read"
     state = {"id": ident, "harness": harness, "mode": mode, "lead": lead_name(args),
              "title": args.title or clip(text.strip().splitlines()[0], 40), "root": str(root), "workdir": str(root),
