@@ -674,8 +674,9 @@ export const register: Register = on => {
       const isRunning = current.status === 'running' || busy === current.id
       const files = filesOf[current.id] ?? []
 
+      // The gap is a whole row, not a named size: the desktop drops a tree whose gap is "sm" without a word.
       const header = (
-        <Box key="chat-header" flexDirection="column" gap="sm" flexShrink={0}>
+        <Box key="chat-header" flexDirection="column" gap={1} flexShrink={0}>
           <Box flexDirection="row" gap={1} alignItems="center">
             {logo(current.harness)}
             <Text bold>{current.name}</Text>
