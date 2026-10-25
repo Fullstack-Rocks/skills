@@ -33,7 +33,7 @@ Each turn is a full agent run in that product, billed to the user's account ther
 
 Exit code `1` means the delegate failed. The last line names the cause, and for a sign-in problem, the command the user runs. Relay that command to the user; the sign-in is theirs. A `send` to a delegate that is mid-turn is queued and returns at once: the reply arrives in the output of the command that is running the turn.
 
-`python3 scripts/delegate.py list` shows every delegation with its status. `stop <id>` ends a running turn.
+`python3 scripts/delegate.py list` shows every delegation with its status, and `usage` the tokens, time and cost of each, totalled per harness. `stop <id>` ends a running turn.
 
 ## Where the user watches
 

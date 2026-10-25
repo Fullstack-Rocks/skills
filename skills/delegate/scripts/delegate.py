@@ -6,7 +6,7 @@
     delegate.py list | show <id> [--follow] | stop <id> | diff <id> | close <id>
     delegate.py models <harness> | set <id> [--model M] [--effort E] [--speed S]   (default clears one)
     delegate.py meta <id> [--archive | --unarchive] [--name NAME] [--project NAME | --no-project] [--seen]
-    delegate.py rename-project OLD NEW | delete <id> | pick [--folders]
+    delegate.py rename-project OLD NEW | delete <id> | pick [--folders] | usage [--json]
 
 How a delegation is filed (archived, its project tag, the turn the person last saw) lives in
 .delegate/<id>/meta.json, which only the UIs and `meta` write, never a running turn.
@@ -168,8 +168,10 @@ class CursorParser(Parser):
             ok = result.get("success")
             detail = (ok or {}).get("stdout") or (ok or {}).get("content") or "" if ok else "failed"
             return [{"kind": "tool_result", "text": f"{name}  {detail}"}]
-        if t == "result" and o.get("is_error"):
-            return self.fail(o.get("result"))
+        if t == "result":
+            self.usage = o.get("usage")
+            if o.get("is_error"):
+                return self.fail(o.get("result"))
         return []
 
 
@@ -266,7 +268,8 @@ class ClaudeParser(Parser):
                 if isinstance(block, dict) and block.get("type") == "tool_result":
                     out.append({"kind": "tool_result", "text": "error" if block.get("is_error") else "ok"})
         elif t == "result":
-            self.final, self.usage = o.get("result"), o.get("usage")
+            self.final = o.get("result")
+            self.usage = {**(o.get("usage") or {}), "cost_usd": o.get("total_cost_usd")}
             if o.get("is_error"):
                 out += self.fail(o.get("result") or o.get("subtype"))
         return out
@@ -879,6 +882,64 @@ def cmd_pick(args):
     return 0
 
 
+# Each harness reports a turn's tokens in its own shape; these read them into one.
+USAGE_KEYS = {
+    "input": ("input_tokens", "inputTokens", "prompt_tokens"),
+    "cached": ("cached_input_tokens", "cacheReadTokens", "cache_read_tokens", "cache_read_input_tokens"),
+    "output": ("output_tokens", "outputTokens", "candidates_tokens"),
+    "reasoning": ("reasoning_output_tokens", "thinking_tokens", "thoughts_tokens"),
+}
+
+
+def tokens(usage, harness=""):
+    """input is fresh input: Codex counts its cached tokens inside input_tokens, the others apart."""
+    usage = usage or {}
+    out = {name: sum(int(usage.get(k) or 0) for k in keys) for name, keys in USAGE_KEYS.items()}
+    if harness == "codex":
+        out["input"] = max(0, out["input"] - out["cached"])
+    out["cost_usd"] = float(usage.get("cost_usd") or 0)
+    return out
+
+
+def cmd_usage(args):
+    """Tokens, time and turns per delegation and per harness, from each turn's final event."""
+    _, base = home()
+    rows = []
+    for path in sorted(base.glob("*/events.jsonl")):
+        state = json.loads((path.parent / "state.json").read_text())
+        meta = read_meta(base, path.parent.name)
+        finals = [json.loads(x) for x in path.read_text().splitlines() if '"kind": "final"' in x]
+        row = {"id": state["id"], "harness": state["harness"], "model": state.get("model_id") or state.get("model") or "default",
+               "effort": state.get("effort") or "", "name": meta.get("name") or state.get("title", ""),
+               "project": meta.get("project") or "", "turns": len(finals),
+               "seconds": sum(f.get("seconds") or 0 for f in finals)}
+        for f in finals:
+            for name, value in tokens(f.get("usage"), state["harness"]).items():
+                row[name] = row.get(name, 0) + value
+        rows.append(row)
+    rows = [r for r in rows if not args.project or r["project"] == args.project]
+    if args.json:
+        print(json.dumps(rows, indent=1))
+        return 0
+    head = f"{'delegation':<16}{'harness':<12}{'model':<26}{'turns':>6}{'time':>8}{'input':>10}{'cached':>10}{'output':>9}{'reason':>9}{'cost':>8}"
+    print(head)
+    totals = {}
+    for r in rows:
+        print(f"{r['id']:<16}{r['harness']:<12}{clip(r['model'], 25):<26}{r['turns']:>6}{r['seconds']:>7}s{r.get('input', 0):>10}"
+              f"{r.get('cached', 0):>10}{r.get('output', 0):>9}{r.get('reasoning', 0):>9}"
+              f"{('$%.2f' % r['cost_usd']) if r.get('cost_usd') else '-':>8}")
+        t = totals.setdefault(r["harness"], {"delegations": 0})
+        t["delegations"] += 1
+        for k in ("turns", "seconds", "input", "cached", "output", "reasoning", "cost_usd"):
+            t[k] = t.get(k, 0) + r.get(k, 0)
+    print("\nper harness")
+    for h, t in totals.items():
+        print(f"{h:<12}{t['delegations']:>3} delegations{t['turns']:>5} turns{t['seconds']:>7}s"
+              f"  in {t['input']:,}  cached {t['cached']:,}  out {t['output']:,}  reasoning {t['reasoning']:,}"
+              + (f"  ${t['cost_usd']:.2f}" if t["cost_usd"] else ""))
+    return 0
+
+
 def cmd_list(args):
     _, base = home()
     rows = [(json.loads(p.read_text()), read_meta(base, p.parent.name)) for p in sorted(base.glob("*/state.json"))]
@@ -996,6 +1057,9 @@ def main():
     s.add_argument("--timeout", type=int, required=True)
     s.add_argument("--lock-fd", type=int, required=True)
     sub.add_parser("list").add_argument("--all", action="store_true", help="include archived delegations")
+    s = sub.add_parser("usage", help="tokens, time and turns per delegation and per harness")
+    s.add_argument("--json", action="store_true")
+    s.add_argument("--project", help="only this project's delegations")
     s = sub.add_parser("meta", help="archive, tag or mark a delegation seen")
     s.add_argument("id")
     s.add_argument("--archive", action="store_true")
@@ -1030,6 +1094,7 @@ def main():
     if extra:
         args.message += head + tail
     handler = {"start": cmd_start, "send": cmd_send, "_turn": cmd_turn, "list": cmd_list, "show": cmd_show,
+               "usage": cmd_usage,
                "stop": cmd_stop, "diff": cmd_diff, "close": cmd_close, "models": cmd_models,
                "set": cmd_set, "meta": cmd_meta,
                "rename-project": cmd_rename_project, "delete": cmd_delete, "pick": cmd_pick}[args.cmd]
