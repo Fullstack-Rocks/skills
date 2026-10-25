@@ -948,7 +948,8 @@ def cmd_pick(args):
 
 # Each harness reports a turn's tokens in its own shape; these read them into one.
 USAGE_KEYS = {
-    "input": ("input_tokens", "inputTokens", "prompt_tokens", "total_input_tokens"),
+    # Claude writes new prompt text to its cache as it reads it: that is fresh input too.
+    "input": ("input_tokens", "inputTokens", "prompt_tokens", "total_input_tokens", "cache_creation_input_tokens"),
     "cached": ("cached_input_tokens", "cacheReadTokens", "cache_read_tokens", "cache_read_input_tokens", "total_cached_tokens"),
     "output": ("output_tokens", "outputTokens", "candidates_tokens", "total_output_tokens"),
     "reasoning": ("reasoning_output_tokens", "thinking_tokens", "thoughts_tokens", "total_thought_tokens"),
