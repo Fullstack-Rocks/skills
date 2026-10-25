@@ -1,0 +1,6 @@
+{
+  "name": "fullstack-rocks",
+  "owner": { "name": "Fullstack Rocks" },
+  "description": "Fullstack Rocks plugins: delegate, other coding agents as background teammates, with live panes in Claude Code",
+  "plugins": [{ "name": "delegate", "source": "./skills/delegate" }]
+}
