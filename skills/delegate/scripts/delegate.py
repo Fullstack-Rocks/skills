@@ -668,6 +668,11 @@ def run_turn(base, state, text, sender, timeout, color, attachments=()):
         (folder / "final.md").write_text(reply + "\n")
     found = STATUS_RE.findall(reply)
     agent_status = found[-1][0].lower() if found else "unknown"
+    # A reply ending in its STATUS line is the agent's finished answer: a failure the harness reports
+    # after it (a dropped connection) is shown, not taken for the turn's outcome.
+    if found and problem and not (timed_out.is_set() or stopped):
+        log.emit(state["harness"], "error", f"{state['harness']} {problem} after its reply")
+        problem = None
     state.update(pid=None, stop_requested=False, status="idle" if not problem or stopped else "error",
                  agent_status="stopped" if stopped else agent_status if not problem else "error")
     if current.get("status") == "closed":
