@@ -11,13 +11,14 @@ import type {
   QueuedMessage,
 } from '../types'
 
-// The pane reads what scripts/delegate.py writes under <project>/.delegate/ and draws it, one screen
-// tall: the chat sidebar (hooks/nav.tsx) on the left; on the right the chat's header at the top, its
-// conversation in the middle, and the composer at the bottom. The conversation scrolls natively;
-// the sidebar, header and composer float over it, placed at the window's edges on every scroll.
+// Two panes, drawn from what scripts/delegate.py writes under <project>/.delegate/. Delegations (LIST)
+// is the chat list by project (hooks/nav.tsx); clicking a chat opens it in the chat pane (CHAT), one
+// document the surface scrolls itself: the chat's header, its whole conversation, then the composer.
+// Nothing floats over the conversation, so nothing has to follow the scroll.
 
-const PANE = 'delegate'
-const TITLE = 'Delegate'
+const LIST = 'delegate'
+const LIST_TITLE = 'Delegations'
+const CHAT = 'delegate-chat'
 const ARCHIVE = '__archived' // the view of archived chats, selected like a chat
 const NO_PROJECT = '__none'
 const NEW_PROJECT = '__new'
@@ -29,38 +30,23 @@ const SELECT_MAX = 64
 // bottom brings them back.
 const DRAWN_CHARS = 40_000
 const DRAWN_MAX = 80_000
-// While the person scrolls, the floating panels fade out, and fade back in once the wheel has been
-// still for SETTLE_MS. There is no opacity to animate, so a fade is FADE_STEPS frames of alpha colours:
-// a cover in the panel's colour rises over its contents, then the panel's background thins away.
-const SETTLE_MS = 450
-const STEP_MS = 35
-const FADE_STEPS = 8
 const EARLIER = 20_000
-// The floating panels' colour, from the person's theme (read at session start).
-let panelHex = '#101010'
-const withAlpha = (hex: string, alpha: number) =>
-  alpha >= 1 ? hex : `${hex}${Math.round(Math.max(0, Math.min(1, alpha)) * 255).toString(16).padStart(2, '0').toUpperCase()}`
 
 // Helpers write state through $.state with these refs; the render hook reads the atoms over them.
 const DELEGATIONS = { plugin: 'delegate', key: 'delegations' } as const
 const SELECTED = { plugin: 'delegate', key: 'selected' } as const
 const PAGE = { plugin: 'delegate', key: 'page' } as const
-const SCROLL = { plugin: 'delegate', key: 'scroll' } as const
 const SENDING = { plugin: 'delegate', key: 'sending' } as const
 const MODELS = { plugin: 'delegate', key: 'models' } as const
 const NAMING = { plugin: 'delegate', key: 'naming' } as const
 const DRAFTS = { plugin: 'delegate', key: 'drafts' } as const
 const ATTACHMENTS = { plugin: 'delegate', key: 'attachments' } as const
 const QUEUE = { plugin: 'delegate', key: 'queue' } as const
-const SIDEBAR = { plugin: 'delegate', key: 'sidebar' } as const
 const EXTRA = { plugin: 'delegate', key: 'extra' } as const
-const LAYERS = { plugin: 'delegate', key: 'layers' } as const
 const delegations = atom(DELEGATIONS, [])
 const selected = atom(SELECTED, '')
 // A revision of the selected chat's events (they live in allEvents): a change redraws.
 const page = atom(PAGE, { start: 0, end: 0, total: 0 })
-// The window's first row, as the last scroll left it: the floating layers sit at it.
-const scroll = atom(SCROLL, 0)
 const sending = atom(SENDING, '')
 const models = atom(MODELS, {})
 // The chat whose project is being named in a new-project field, '' for none.
@@ -70,12 +56,8 @@ const drafts = atom(DRAFTS, {})
 const attachments = atom(ATTACHMENTS, {})
 // Messages queued behind the selected chat's running turn.
 const queue = atom(QUEUE, [])
-// The sidebar's width in columns, dragged by its edge and kept across sessions.
-const sidebar = atom(SIDEBAR, 30)
 // Characters of older conversation drawn beyond DRAWN_CHARS, grown by scrolling to the top.
 const earlier = atom(EXTRA, 0)
-// How far the floating panels have faded: 0 shown, FADE_STEPS gone.
-const layers = atom(LAYERS, 0)
 
 // Names, colours, glyphs and SVG logos, from assets/brands.json (shared with the script and the MCP App).
 let brands: Record<string, Brand> = {}
@@ -84,7 +66,8 @@ const brandOf = (who: string): Brand =>
 
 // File path -> mtime at the last read. Module state, so a reload re-reads everything once.
 const stamps = new Map<string, number>()
-let isPolling = false
+// The read of .delegate/ in flight, which a second caller waits for.
+let polling: Promise<void> | undefined
 const fetchingModels = new Set<string>()
 const markingSeen = new Set<string>()
 // Per chat, the last finished turn the lead agent has been told about (for the person's own messages).
@@ -96,12 +79,8 @@ let isFollowing = true
 // Whether older, or newer, rows exist than the ones drawn.
 let hasEarlier = false
 let hasLater = false
-// When the person last moved the wheel, and where the fade is heading.
-let lastWheel = 0
-let fadeTarget = 0
-let isFading = false
-// The pane's size at the last draw, so a resize is noticed.
-let lastSize = ''
+// The chat pane's title as last given, so a rename retitles it.
+let chatTitle = ''
 
 const clip = (text: string, n: number) => {
   const flat = text.replace(/\s+/g, ' ').trim()
@@ -253,94 +232,67 @@ async function reportUserTurns($: EngineInterface, folder: string, d: Delegation
   }
 }
 
-async function poll($: EngineInterface) {
-  if (isPolling) return
-  isPolling = true
-  try {
-    const base = `${await $.session.root()}/.delegate`
-    if (!(await $.fs.exists(base))) return
-    const before = (await $.state.get(DELEGATIONS)).value ?? []
-    const dirs = (await $.fs.list(base)).filter(entry => entry.kind === 'dir')
-    let isDirty = dirs.length !== before.length
-    const now: Delegation[] = []
-    for (const dir of dirs) {
-      const folder = `${base}/${dir.name}`
-      const old = before.find(one => one.id === dir.name)
-      // Both checks run, so both stamps stay current.
-      const isStale = [await changed($, `${folder}/state.json`), await changed($, `${folder}/meta.json`)].some(Boolean)
-      if (old && !isStale) {
-        now.push(old)
-        continue
-      }
-      const fresh = await readDelegation($, folder).catch(() => undefined)
-      if (!fresh) continue
-      now.push(fresh)
-      isDirty = true
-      await reportUserTurns($, folder, fresh)
-      if (fresh.status === 'running' && old?.status !== 'running') {
-        await $.state.set(SELECTED, fresh.id)
-        void $.ui.open({ id: PANE, title: TITLE }).then(() => toEnd($))
-      }
-      if (old?.status === 'running' && fresh.status !== 'running') {
-        $.ui.toast(`${brandOf(fresh.harness).glyph} ${fresh.name} replied (STATUS: ${fresh.agentStatus || '?'})`)
-      }
-    }
-    if (isDirty) await $.state.set(DELEGATIONS, now.sort((a, b) => a.created - b.created))
-
-    const running = now.filter(one => one.status === 'running')
-    $.ui.status(running.length ? running.map(one => `${brandOf(one.harness).glyph} ${one.name} working`).join('  ') : undefined)
-
-    let id = (await $.state.get(SELECTED)).value ?? ''
-    if (id !== ARCHIVE && !now.some(one => one.id === id)) {
-      id = now.filter(one => !one.archived).at(-1)?.id ?? ''
-      await $.state.set(SELECTED, id)
-    }
-    const current = now.find(one => one.id === id)
-    if (!current) return
-    void loadModels($, current.harness)
-    if (isUnread(current) && (await $.ui.panes()).some(pane => pane.id === PANE && pane.isPlaced)) {
-      void markSeen($, current.id)
-    }
-    const log = `${base}/${id}/events.jsonl`
-    if (await changed($, log)) {
-      allEvents = parseLines<DelegateEvent>(await $.fs.read(log))
-      await showPage($)
-      if (isFollowing) $.clock.after(50, () => toEnd($))
-    }
-    const queued = `${base}/${id}/queue.jsonl`
-    if (await changed($, queued)) {
-      await $.state.set(QUEUE, parseLines<QueuedMessage>(await $.fs.read(queued)))
-    }
-  } finally {
-    isPolling = false
-  }
-}
-
-// Fades the floating panels out on the first wheel move, and back in once the wheel is still.
-function fadeOut($: EngineInterface) {
-  lastWheel = Date.now()
-  fadeTo($, FADE_STEPS)
-  $.clock.after(SETTLE_MS, () => {
-    if (Date.now() - lastWheel >= SETTLE_MS - 20) fadeTo($, 0)
+// Reads .delegate/ into state. The clock polls too, so a caller that finds a read in flight waits
+// for it, and then reads what it read.
+function poll($: EngineInterface) {
+  polling ??= readAll($).finally(() => {
+    polling = undefined
   })
+  return polling
 }
 
-// Steps the fade one frame at a time toward `target`; a new target turns it around mid-way.
-function fadeTo($: EngineInterface, target: number) {
-  fadeTarget = target
-  if (isFading) return
-  isFading = true
-  const step = async () => {
-    const held = (await $.state.get(LAYERS)).value
-    const now = typeof held === 'number' && Number.isFinite(held) ? held : 0
-    if (now === fadeTarget) {
-      isFading = false
-      return
+async function readAll($: EngineInterface) {
+  const base = `${await $.session.root()}/.delegate`
+  if (!(await $.fs.exists(base))) return
+  const before = (await $.state.get(DELEGATIONS)).value ?? []
+  const dirs = (await $.fs.list(base)).filter(entry => entry.kind === 'dir')
+  let isDirty = dirs.length !== before.length
+  const now: Delegation[] = []
+  for (const dir of dirs) {
+    const folder = `${base}/${dir.name}`
+    const old = before.find(one => one.id === dir.name)
+    // Both checks run, so both stamps stay current.
+    const isStale = [await changed($, `${folder}/state.json`), await changed($, `${folder}/meta.json`)].some(Boolean)
+    if (old && !isStale) {
+      now.push(old)
+      continue
     }
-    await $.state.set(LAYERS, now + Math.sign(fadeTarget - now))
-    $.clock.after(STEP_MS, () => void step())
+    const fresh = await readDelegation($, folder).catch(() => undefined)
+    if (!fresh) continue
+    now.push(fresh)
+    isDirty = true
+    await reportUserTurns($, folder, fresh)
+    if (fresh.status === 'running' && old?.status !== 'running') void select($, fresh.id)
+    if (old?.status === 'running' && fresh.status !== 'running') {
+      $.ui.toast(`${brandOf(fresh.harness).glyph} ${fresh.name} replied (STATUS: ${fresh.agentStatus || '?'})`)
+    }
   }
-  void step()
+  if (isDirty) await $.state.set(DELEGATIONS, now.sort((a, b) => a.created - b.created))
+
+  const running = now.filter(one => one.status === 'running')
+  $.ui.status(running.length ? running.map(one => `${brandOf(one.harness).glyph} ${one.name} working`).join('  ') : undefined)
+
+  let id = (await $.state.get(SELECTED)).value ?? ''
+  if (id !== ARCHIVE && !now.some(one => one.id === id)) {
+    id = now.filter(one => !one.archived).at(-1)?.id ?? ''
+    await $.state.set(SELECTED, id)
+  }
+  const current = now.find(one => one.id === id)
+  if (!current) return
+  void loadModels($, current.harness)
+  const panes = await $.ui.panes()
+  if (current.name !== chatTitle && panes.some(pane => pane.id === CHAT)) await openChat($, current.name)
+  if (isUnread(current) && panes.some(pane => pane.id === CHAT && pane.isPlaced)) void markSeen($, current.id)
+  const log = `${base}/${id}/events.jsonl`
+  if (await changed($, log)) {
+    allEvents = parseLines<DelegateEvent>(await $.fs.read(log))
+    await showPage($)
+    if (isFollowing) $.clock.after(50, () => toEnd($))
+  }
+  const queued = `${base}/${id}/queue.jsonl`
+  if (await changed($, queued)) {
+    await $.state.set(QUEUE, parseLines<QueuedMessage>(await $.fs.read(queued)))
+  }
 }
 
 // Shows the newest line: the window goes to the end, and keeps following new output from there.
@@ -348,7 +300,7 @@ function toEnd($: EngineInterface) {
   isFollowing = true
   if (hasLater) void $.state.set(EXTRA, 0)
   const place = async () => {
-    await $.ui.scroll({ to: 'end', in: PANE })
+    await $.ui.scroll({ to: 'end', in: CHAT })
   }
   void place().catch(() => undefined)
   $.clock.after(300, () => void place().catch(() => undefined))
@@ -361,11 +313,18 @@ async function select($: EngineInterface, id: string) {
   allEvents = []
   await $.state.set(SELECTED, id)
   await $.state.set(QUEUE, [])
-  await $.state.set(SCROLL, 0)
   await $.state.set(EXTRA, 0)
   await showPage($)
   await poll($)
+  const chat = ((await $.state.get(DELEGATIONS)).value ?? []).find(one => one.id === id)
+  await openChat($, chat?.name ?? 'Archived chats')
   toEnd($)
+}
+
+// Opens the chat pane, or retitles it: one pane per id.
+async function openChat($: EngineInterface, title: string) {
+  chatTitle = title
+  await $.ui.open({ id: CHAT, title })
 }
 
 async function markSeen($: EngineInterface, id: string) {
@@ -384,15 +343,11 @@ async function setMeta($: EngineInterface, id: string, flags: string[]) {
   await poll($)
 }
 
-// What the sidebar posts: a click, a menu choice, a rename, a new width.
+// What the chat list posts: a click, a menu choice, a rename.
 async function onNav($: EngineInterface, action: NavAction) {
   switch (action.type) {
     case 'select':
       return select($, action.target)
-    case 'resize':
-      // The list draws inside the panel's border and padding: four columns narrower than the panel.
-      await $.state.set(SIDEBAR, action.width + 4)
-      return $.store.set('sidebar', action.width + 4)
     case 'archive':
       return setMeta($, action.target, ['--archive'])
     case 'rename':
@@ -471,7 +426,6 @@ async function send($: EngineInterface, id: string, typed: string) {
   await setDraft($, id, '')
   await $.state.set(ATTACHMENTS, { ...((await $.state.get(ATTACHMENTS)).value ?? {}), [id]: [] })
   await $.state.set(SENDING, id)
-  await $.state.set(SCROLL, 0)
   try {
     const flags = files.flatMap(path => ['--attach', path])
     await run($, ['send', id, '--as-user', '--detach', ...flags, '--', text || 'See the attached files.'])
@@ -479,6 +433,16 @@ async function send($: EngineInterface, id: string, typed: string) {
     await $.state.set(SENDING, '')
   }
   await poll($)
+}
+
+// Both panes: the list, and the selected chat beside it.
+async function openBoth($: EngineInterface, isAsked: boolean) {
+  await poll($)
+  await $.ui.open({ id: LIST, title: LIST_TITLE, columns: 36, ...(isAsked ? { focus: true as const } : {}) })
+  const id = (await $.state.get(SELECTED)).value ?? ''
+  const chat = ((await $.state.get(DELEGATIONS)).value ?? []).find(one => one.id === id)
+  if (chat) await openChat($, chat.name)
+  toEnd($)
 }
 
 // Chats by project tag: named projects alphabetically, then the untagged.
@@ -495,59 +459,41 @@ export const register: Register = on => {
     await $.state.set(DELEGATIONS, [])
     await $.state.set(QUEUE, [])
     await $.state.set(MODELS, {})
-    await $.state.set(SCROLL, 0)
-    await $.state.set(LAYERS, 0)
-    const width = await $.store.get('sidebar')
-    if (typeof width === 'number') await $.state.set(SIDEBAR, width)
     brands = JSON.parse(await $.fs.read(`${$.plugin.root}/assets/brands.json`))
     await $.command.register({ name: 'delegations', description: 'Show delegations to other agents in a pane' })
     // A convenience, so a refusal (a host without plugin tools) doesn't stop the pane from starting.
     await $.tool
       .register({
         name: 'pane',
-        description: 'Open the Delegate pane, which shows delegations to other coding agents. Use when the user asks to see it.',
+        description: 'Open the Delegations panes, which show delegations to other coding agents. Use when the user asks to see them.',
         isDeferred: true,
       })
       .catch(() => undefined)
     $.clock.every(700, () => void poll($))
-    // The panels' colour follows the theme; looked up without holding the start.
-    void $.config
-      .list()
-      .then(rows => {
-        const theme = String(rows.find(row => row.key === 'theme')?.value ?? '')
-        panelHex = theme.includes('light') ? '#F3F3F1' : '#101010'
-      })
-      .catch(() => undefined)
     return next(e)
   })
 
   on('command.run', { command: 'delegations' }, async $ => {
-    await poll($)
-    await $.ui.open({ id: PANE, title: TITLE, focus: true })
-    toEnd($)
-    return { text: 'Delegate pane opened.' }
+    await openBoth($, true)
+    return { text: 'Delegations opened.' }
   })
 
   on('tool.call', { tool: 'mcp__delegate__pane' }, async $ => {
-    await poll($)
-    await $.ui.open({ id: PANE, title: TITLE })
-    toEnd($)
-    return { result: 'Delegate pane opened.' }
+    await openBoth($, false)
+    return { result: 'Delegations opened.' }
   })
 
-  on('ui.message', { component: 'Pane', requestId: PANE }, async ($, e) => {
+  on('ui.message', { component: 'Pane', requestId: LIST }, async ($, e) => {
     await onNav($, e.data as NavAction)
     return {}
   })
 
-  // The window scrolls natively; its new first row redraws the floating layers there, and whether it
-  // reached the end decides if new output follows. The person's scrolling fades the layers out.
-  on('ui.scroll', { component: 'Pane', requestId: PANE }, async ($, e, next) => {
-    if (e.origin.kind === 'person') fadeOut($)
+  // The chat scrolls natively. Reaching its end makes new output follow; reaching either edge of
+  // what is drawn draws the next batch past it.
+  on('ui.scroll', { component: 'Pane', requestId: CHAT }, async ($, e, next) => {
     if (Number.isFinite(e.offset)) {
       const atBottom = e.offset >= e.contentRows - e.bodyRows - 1
       isFollowing = atBottom && !hasLater
-      await $.state.set(SCROLL, e.offset)
       const extra = (await $.state.get(EXTRA)).value ?? 0
       if (e.offset <= 2 && hasEarlier && e.origin.kind === 'person') await $.state.set(EXTRA, extra + EARLIER)
       else if (atBottom && hasLater && e.origin.kind === 'person') await $.state.set(EXTRA, Math.max(0, extra - EARLIER))
@@ -555,54 +501,20 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
+  // Delegations: the chat list, grouped by project.
+  on('ui.render', { component: 'Pane', requestId: LIST }, async ($, e) => {
     const ui = $.ui.resolve(e)
-    const { Box, Text, Button, Markdown } = ui
-    const Svg = 'Svg' in ui ? ui.Svg : undefined
-    const Input = 'Input' in ui ? ui.Input : undefined
-    const Select = 'Select' in ui ? ui.Select : undefined
-    // Terminal and desktop draw Clients (the sidebar and the scrolling conversation); VS Code and
-    // mobile get buttons and a plain list that the surface scrolls.
+    const { Box, Button } = ui
+    // Terminal and desktop draw the list as a Client, which tells a right click from a left one;
+    // VS Code and mobile get a button per chat.
     const Client = (e.surface === 'terminal' || e.surface === 'desktop') && 'Client' in ui ? ui.Client : undefined
     const list = await read($, delegations)
     const id = await read($, selected)
-    const where = await read($, page)
-    const offset = await read($, scroll)
-    const busy = await read($, sending)
-    const modelLists = await read($, models)
-    const namingId = await read($, naming)
-    const draftOf = await read($, drafts)
-    const filesOf = await read($, attachments)
-    const pending = await read($, queue)
-    const navWidth = await read($, sidebar)
-    const extra = await read($, earlier)
-    // A value an older version stored (a word, not a step) reads as fully shown.
-    const stored = await read($, layers)
-    const fade = typeof stored === 'number' && Number.isFinite(stored) ? stored : 0
-    const current = list.find(one => one.id === id)
     const active = list.filter(one => !one.archived)
     const archived = list.filter(one => one.archived)
     const groups = byProject(active)
-    const projects = [...new Set(list.map(one => one.project).filter(Boolean))].sort()
-    const bodyRows = e.props.scroll.bodyRows
-    const hoverColor = e.surface === 'desktop' ? '#80808033' : '#3A3A3A'
-
-    const logo = (who: string, size = 16) => {
-      const brand = brandOf(who)
-      return Svg && brand.svg ? (
-        <Svg source={brand.svg} alt={brand.name} width={size} height={size} />
-      ) : (
-        <Text color={brand.color} bold>
-          {brand.glyph}
-        </Text>
-      )
-    }
-
-    // ---- the sidebar
-
     const navProps: NavProps = {
-      width: navWidth - 4,
-      hoverColor,
+      hoverColor: e.surface === 'desktop' ? '#80808033' : '#3A3A3A',
       selected: id,
       archived: archived.length,
       groups: groups.map(([project, chats]) => ({
@@ -617,10 +529,14 @@ export const register: Register = on => {
         })),
       })),
     }
-    const navigation = Client ? (
-      <Client key="nav" module="./nav.tsx" props={navProps} width={navWidth - 4} height={bodyRows} />
-    ) : (
-      <Box key="nav" flexDirection="column" width={navWidth - 4} flexShrink={0} gap={1}>
+    // nav.tsx draws a project line, a blank and a line per chat, a blank after each project, the
+    // archive's line, and room for its menu under the last.
+    const lines = groups.reduce((sum, [, chats]) => sum + 2 + chats.length * 2, 0) + 1 + 5
+    if (Client) {
+      return <Client key="nav" module="./nav.tsx" props={navProps} width={e.props.bodyColumns} height={Math.max(e.props.scroll.bodyRows, lines)} />
+    }
+    return (
+      <Box key="nav" flexDirection="column" gap={1}>
         {active.map(d => (
           <Button
             key={`tab-${d.id}`}
@@ -632,6 +548,39 @@ export const register: Register = on => {
         <Button key="archived" label={`Archived (${archived.length})`} plain onPress={() => void select($, ARCHIVE)} />
       </Box>
     )
+  })
+
+  // The chat: one document the surface scrolls, its header first and its composer last.
+  on('ui.render', { component: 'Pane', requestId: CHAT }, async ($, e) => {
+    const ui = $.ui.resolve(e)
+    const { Box, Text, Button, Markdown } = ui
+    const Svg = 'Svg' in ui ? ui.Svg : undefined
+    const Input = 'Input' in ui ? ui.Input : undefined
+    const Select = 'Select' in ui ? ui.Select : undefined
+    const list = await read($, delegations)
+    const id = await read($, selected)
+    const where = await read($, page)
+    const busy = await read($, sending)
+    const modelLists = await read($, models)
+    const namingId = await read($, naming)
+    const draftOf = await read($, drafts)
+    const filesOf = await read($, attachments)
+    const pending = await read($, queue)
+    const extra = await read($, earlier)
+    const current = list.find(one => one.id === id)
+    const archived = list.filter(one => one.archived)
+    const projects = [...new Set(list.map(one => one.project).filter(Boolean))].sort()
+
+    const logo = (who: string, size = 16) => {
+      const brand = brandOf(who)
+      return Svg && brand.svg ? (
+        <Svg source={brand.svg} alt={brand.name} width={size} height={size} />
+      ) : (
+        <Text color={brand.color} bold>
+          {brand.glyph}
+        </Text>
+      )
+    }
 
     // ---- the archive view
 
@@ -691,11 +640,6 @@ export const register: Register = on => {
             </Text>
             {current.archived ? (
               <Button key="unarchive" label="Unarchive" plain onPress={() => void setMeta($, current.id, ['--unarchive'])} />
-            ) : null}
-            {!isFollowing ? (
-              <Box flexGrow={1} justifyContent="flex-end">
-                <Button key="latest" label="↓ Jump to the latest" plain onPress={() => toEnd($)} />
-              </Box>
             ) : null}
           </Box>
           <Box flexDirection="row" flexWrap="wrap" gap={2} alignItems="center">
@@ -760,9 +704,9 @@ export const register: Register = on => {
         </Box>
       )
 
-      // The conversation: every event in full, the newest at the bottom, scrolled by the pane itself.
+      // The conversation: every event in full, the newest at the bottom, scrolled by the surface.
       void where // the events' revision: a change redraws
-      const all = toRows(allEvents, current.harness, Math.max(30, e.props.bodyColumns - navWidth - 8))
+      const all = toRows(allEvents, current.harness, Math.max(30, e.props.bodyColumns - 6))
       let first = all.length
       let used = 0
       for (; first > 0 && used < DRAWN_CHARS + extra; first--) used += all[first - 1]!.text.length + 40
@@ -811,7 +755,8 @@ export const register: Register = on => {
         </Box>
       )
 
-      // The composer, on the pane's bottom edge: while the delegate works, what is sent waits in its queue.
+      // The composer ends the document: at the newest line it is on the pane's bottom edge. While the
+      // delegate works, what is sent waits in its queue. The header's pickers are a click away.
       const composer =
         current.status === 'closed' ? (
           <Text dimColor>Closed.</Text>
@@ -840,6 +785,7 @@ export const register: Register = on => {
               ))}
               <Button key={`pick-files-${current.id}`} label="📎 Attach files" plain dimColor onPress={() => void pickFiles($, current.id, false)} />
               <Button key={`pick-folder-${current.id}`} label="📁 Attach folder" plain dimColor onPress={() => void pickFiles($, current.id, true)} />
+              <Button key={`to-header-${current.id}`} label="⚙ Model and project" plain dimColor onPress={() => void $.ui.scroll({ to: 'start', in: CHAT }).catch(() => undefined)} />
             </Box>
             {Input ? (
               <Box flexDirection="row" gap={1} alignItems="center">
@@ -868,52 +814,19 @@ export const register: Register = on => {
     }
 
     const view = id === ARCHIVE ? { header: null, conversation: archiveView, composer: null } : chatView()
-    // The conversation scrolls natively and the composer ends it, so at the newest line (where the
-    // pane opens and follows new output) the composer is on the bottom edge, as the desktop measures
-    // it: a plugin can't know how many rows the desktop shows, so nothing is anchored to that edge.
-    // The sidebar and header float at the window's top (e.props.scroll.offset), rounded and padded;
-    // while scrolled up, the header offers a jump back to the newest line.
-    void offset // the window's position as the scroll hook saw it: a change redraws
-    // A new pane size fades the panels out and places them again once it settles (as scrolling does).
-    const size = `${bodyRows}x${e.props.bodyColumns}`
-    if (lastSize && size !== lastSize) $.clock.after(0, () => fadeOut($))
-    lastSize = size
-    const top = e.props.scroll.offset
-    const left = navWidth + 1
-    // Fade frames: the first half raises a cover over the panels' contents, the second thins it all away.
-    const half = FADE_STEPS / 2
-    const cover = fade <= half ? fade / half : (FADE_STEPS - fade) / half
-    const ground = fade <= half ? 1 : (FADE_STEPS - fade) / half
-    const display = fade >= FADE_STEPS ? 'none' : 'flex'
-    const coverBox = cover > 0 ? (
-      <Box key="cover" position="absolute" top={0} left={0} right={0} bottom={0} backgroundColor={withAlpha(panelHex, cover)} />
-    ) : null
-    // Rows the header panel takes: its border, the title line and the pickers (and the new-project
-    // field while it is open). The panel sizes to its content; the conversation starts below this.
-    const headerRows = view.header ? 2 + 3 + (namingId === id ? 2 : 0) : 0
-    const panel = { borderStyle: 'round', borderColor: 'promptBorder', paddingX: 1, backgroundColor: withAlpha(panelHex, ground), display } as const
     return (
-      <Box position="relative" flexDirection="column" minHeight={bodyRows}>
-        <Box key="flow" flexDirection="column" paddingLeft={left + 2} paddingRight={1} paddingTop={headerRows + 1}>
-          <Box key="flow-start" flexDirection="column" marginTop="xs">
-            {view.conversation}
-          </Box>
-          {view.composer ? (
-            <Box key="composer-panel" flexDirection="column" marginTop={1} borderStyle="round" borderColor="promptBorder" paddingX={1}>
-              {view.composer}
-            </Box>
-          ) : null}
-        </Box>
+      <Box flexDirection="column" paddingX={1}>
         {view.header ? (
-          <Box key="float-header" position="absolute" top={top} left={left} right={1} flexDirection="column" {...panel}>
+          <Box key="header-panel" flexDirection="column" borderStyle="round" borderColor="promptBorder" paddingX={1} marginBottom={1}>
             {view.header}
-            {coverBox}
           </Box>
         ) : null}
-        <Box key="float-sidebar" position="absolute" top={top} left={0} width={navWidth} height={Math.max(10, bodyRows - 1)} flexDirection="column" {...panel}>
-          {navigation}
-          {coverBox}
-        </Box>
+        {view.conversation}
+        {view.composer ? (
+          <Box key="composer-panel" flexDirection="column" marginTop={1} borderStyle="round" borderColor="promptBorder" paddingX={1}>
+            {view.composer}
+          </Box>
+        ) : null}
       </Box>
     )
   })

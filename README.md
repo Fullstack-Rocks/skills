@@ -63,7 +63,7 @@ Anything the agent can't justify comes back to you as a decision.
 | [**under-engineering-review**](#under-engineering-review) | Audits existing code against the same limits and reports findings with IDs | *"Review the refund flow for depth and complexity"* |
 | [**call-depth**](#call-depth) | Measures call-chain depth, memory hops, complexity and layout with parsers, in any language | *"How deep is the call chain from POST /orders/{id}/refund?"* |
 | [**code-standards**](#code-standards) | Reviews with your linters, taught ast-grep rules and a learned `standards.md`, and learns from rejected code | *"Is my change clean?"* · *"We never read env vars outside config"* |
-| [**delegate**](#delegate) | Hands tasks to Codex, Cursor, Antigravity, Gemini or Claude and keeps a back-and-forth with each, live in a pane | *"Have Codex build the API and Cursor the client, in parallel"* |
+| [**delegate**](#delegate) | Hands tasks to Codex, Cursor, Antigravity, Gemini or Claude and keeps a back-and-forth with each, live in a pane beside the chat | *"Have Codex build the API and Cursor the client, in parallel"* |
 
 Every recording below is a real, interactive Claude Code session on the [demo shop](demo/), a 55-file Python API with a React/TS client. Long thinking stretches are sped up; everything else plays at its real pace.
 
@@ -122,7 +122,7 @@ npx skills add Fullstack-Rocks/skills --skill code-standards   # just one
 npx skills add Fullstack-Rocks/skills -g                       # for every project
 ```
 
-Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards` and `delegate` stand alone. Installed globally (`-g`), `delegate` brings its Delegate pane to every Claude Code session.
+Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards` and `delegate` stand alone. Installed globally (`-g`), `delegate` brings its Delegations panes to every Claude Code session.
 
 > [!TIP]
 > To make the checkpoint run every time, add one line to your `AGENTS.md` or `CLAUDE.md`:
@@ -426,7 +426,7 @@ Pinned tool versions, the config format and the scripts are in [`skills/code-sta
 - **Never blocking.** Every turn runs in the background; the lead hears back when it ends, with the reply and a `STATUS: done | question | blocked` line.
 - **Safe by default.** Read-only unless `--write`, which gives the delegate its own git worktree; the lead reviews `diff` before applying anything.
 - **Queues, attachments, models.** A message sent mid-turn waits its turn. Files, folders and images go along with `--attach` or `@path`. Model, effort and speed are picked per delegate, split out of how each harness names them.
-- **The Delegate pane** (Claude Code). The skill folder is also a plugin: a pane with every delegation grouped by project, each stream with its provider's logo, replies as markdown, and a composer to write to a delegate yourself. Right-click a chat to rename, archive or delete it. `/delegations` opens it.
+- **The Delegations panes** (Claude Code). The skill folder is also a plugin with two panes. Delegations lists every chat grouped by project; right-click one to rename, archive or delete it. Clicking a chat opens it beside the list: its stream with each provider's logo, replies as markdown, and a composer at the end to write to the delegate yourself. `/delegations` opens them.
 - **Other hosts.** `scripts/mcp_server.py` serves the same tools and the panel as an MCP App, for hosts that draw MCP Apps. See [`references/mcp-app.md`](skills/delegate/references/mcp-app.md).
 
 Everything is plain files in `.delegate/<id>/` in your repo (kept out of git): the stream in both directions, the last reply, the queue.

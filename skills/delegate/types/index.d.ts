@@ -39,10 +39,9 @@ export type Brand = { name: string; color: string; glyph: string; svg: string }
 // A message waiting in .delegate/<id>/queue.jsonl for the running turn to end.
 export type QueuedMessage = { from: string; text: string; attachments: string[]; ts: number }
 
-// What hooks/nav.tsx (the chat list's surface module) draws, and what it posts back.
+// What hooks/nav.tsx (the Delegations pane's chat list) draws, and what it posts back.
 export type NavChat = { id: string; name: string; glyph: string; color: string; running: boolean; unread: boolean }
 export type NavProps = {
-  width: number
   hoverColor: string
   selected: string
   archived: number
@@ -50,7 +49,6 @@ export type NavProps = {
 }
 export type NavAction =
   | { type: 'none' }
-  | { type: 'resize'; width: number }
   | { type: 'select' | 'archive' | 'delete'; target: string }
   | { type: 'rename' | 'rename-project'; target: string; value: string }
 
@@ -60,16 +58,13 @@ declare module 'claude-code' {
       delegations: Delegation[]
       selected: string
       page: { start: number; end: number; total: number }
-      scroll: number
       sending: string
       models: Record<string, ModelOption[]>
       naming: string
       drafts: Record<string, string>
       attachments: Record<string, string[]>
       queue: QueuedMessage[]
-      sidebar: number
       extra: number
-      layers: number
     }
   }
 }

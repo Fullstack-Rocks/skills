@@ -2,18 +2,16 @@ import type { ClientModule } from 'claude-code'
 
 import type { NavAction, NavChat, NavProps } from '../types'
 
-// The chat sidebar, drawn by a surface module so it can tell a left click from a right one: left
-// selects, right opens a menu floating over the list at the click (rename, archive, delete; rename
-// for a project). Every list line is one row, so the pointer's row says what was clicked. The last
-// column is a handle: dragging it posts the new width, which the pane keeps.
+// The chat list, the whole of the Delegations pane, drawn by a surface module so it can tell a left
+// click from a right one: left opens the chat, right opens a menu floating over the list at the click
+// (rename, archive, delete; rename for a project). Every list line is one row, so the pointer's row
+// says what was clicked.
 
 type Menu = { kind: 'chat' | 'project'; target: string; label: string; x: number; y: number }
 type Line = { key: string; text: string; action: NavAction; menu?: Omit<Menu, 'x' | 'y'>; chat?: NavChat }
-type NavState = { menu?: Menu; mode?: 'menu' | 'rename' | 'delete'; isDragging?: boolean; hover?: number }
+type NavState = { menu?: Menu; mode?: 'menu' | 'rename' | 'delete'; hover?: number }
 
 const MENU_ROWS = 5 // room kept under the last line so a menu opened there still fits the region
-const MIN_WIDTH = 18
-const MAX_WIDTH = 60
 
 const Nav: ClientModule<NavProps, NavState> = (props, surface) => {
   const { Box, Text, Button, Input } = surface.elements
@@ -147,25 +145,13 @@ const Nav: ClientModule<NavProps, NavState> = (props, surface) => {
     )
   }
 
-  // The handle is the region's last column: press, drag, release.
-  const handle = Math.max(1, (surface.columns || props.width) - 1)
   surface.onPointer(event => {
-    if (state.isDragging) {
-      if (event.type === 'move') surface.post({ type: 'resize', width: Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, event.x + 1)) })
-      if (event.type === 'up') surface.setState({})
-      return
-    }
-    if (event.type === 'down' && event.button === 'left' && event.x >= handle) {
-      surface.setState({ isDragging: true })
-      return
-    }
     if (event.type === 'leave') {
       if (state.hover !== undefined) surface.setState({ ...state, hover: undefined })
       return
     }
     if (event.type === 'move' && !event.button) {
-      const hover = event.x >= handle ? -1 : event.y
-      if (hover !== state.hover) surface.setState({ ...state, hover })
+      if (event.y !== state.hover) surface.setState({ ...state, hover: event.y })
       return
     }
     if (event.type !== 'down') return
@@ -186,16 +172,10 @@ const Nav: ClientModule<NavProps, NavState> = (props, surface) => {
     if (line.action.type !== 'none') surface.post(line.action)
   })
 
-  const height = lines.length + (state.menu ? MENU_ROWS : 0)
   return (
-    <Box position="relative" flexDirection="row">
-      <Box flexDirection="column" flexGrow={1} flexShrink={1}>
-        {lines.map((line, i) => row(line, i))}
-        {state.menu ? Array.from({ length: MENU_ROWS }, (_, i) => <Box key={`pad-${i}`}><Text> </Text></Box>) : null}
-      </Box>
-      <Box key="handle" flexDirection="column" width={1} backgroundColor={state.hover === -1 ? props.hoverColor : undefined}>
-        <Text dimColor={!state.isDragging}>{Array.from({ length: height }, () => '│').join('\n')}</Text>
-      </Box>
+    <Box position="relative" flexDirection="column">
+      {lines.map((line, i) => row(line, i))}
+      {state.menu ? Array.from({ length: MENU_ROWS }, (_, i) => <Box key={`pad-${i}`}><Text> </Text></Box>) : null}
       {floating()}
     </Box>
   )

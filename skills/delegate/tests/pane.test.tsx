@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-// The pane drawn from a fake .delegate/ folder on every surface, in both layouts, so a tree a
-// surface refuses (too many Select options, a key on a Text) fails here rather than in a session.
+// Both panes drawn from a fake .delegate/ folder on every surface, so a tree a surface refuses
+// (too many Select options, a key on a Text) fails here rather than in a session.
 // The test's hooks stand in for the engine: the filesystem, the store, the clock and processes.
 
 const ROOT = '/proj'
@@ -37,38 +37,39 @@ const MODELS = JSON.stringify(
   Array.from({ length: 70 }, (_, i) => ({ id: `model-${i}`, label: `Model ${i}`, efforts: ['low', 'high'], speeds: ['fast'] })),
 )
 
-const PANE = {
+const pane = (requestId: string, title: string) => ({
   plugin: 'delegate',
   component: 'Pane',
-  requestId: 'delegate',
+  requestId,
   props: {
-    title: 'Delegate',
+    title,
     isFocused: false,
     bodyColumns: 100,
     placement: 'dock',
     scroll: { offset: 0, bodyRows: 60 },
     view: {},
   },
-} as const
+}) as const
+const LIST = pane('delegate', 'Delegations')
+const CHAT = pane('delegate-chat', 'Build the wishlist API')
 
 const missing = (path: string) => new Error(`ENOENT: ${path}`)
 
 {
-  test('the pane draws on every surface', { timeoutMs: 20000 }, async ($, on) => {
+  test('both panes draw on every surface', { timeoutMs: 20000 }, async ($, on) => {
     on('session.start', (_, e) => ({ cwd: e.cwd }))
     on('session.root', () => ({ value: ROOT }))
     on('clock.every', () => ({ value: undefined }))
+    on('clock.after', () => ({ value: undefined }))
     on('command.register', () => ({ value: { command: 'delegations' } }))
     on('tool.register', () => ({ value: { tool: 'mcp__delegate__pane' } }))
-    on('ui.open', () => ({ value: { isPlaced: true } }))
+    const opened: string[] = []
+    on('ui.open', (_, e) => {
+      opened.push(`${e.id}: ${e.title}`)
+      return { value: { isPlaced: true } }
+    })
     on('ui.panes', () => ({ value: [] }))
     on('ui.status', () => ({ value: undefined }))
-    on('store.get', () => ({ value: undefined }))
-    let savedWidth: unknown
-    on('store.set', (_, e) => {
-      if (e.key === 'sidebar') savedWidth = e.value
-      return { value: undefined }
-    })
     on('fs.exists', (_, e) => ({ value: e.path === `${ROOT}/.delegate` || e.path in FILES }))
     on('fs.list', () => ({ value: DIRS.map(name => ({ name, kind: 'dir' as const, size: 0, mtimeMs: 1 })) }))
     on('fs.stat', (_, e) => {
@@ -87,10 +88,12 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
     await $.session.start({ cwd: ROOT, surface: 'desktop', isInteractive: true })
     await $.command.run({ command: 'delegations' })
     await $.command.run({ command: 'delegations' }) // the model list lands between the two polls
+    // The list, and the running chat beside it, titled by its name.
+    expect(opened).toContain('delegate: Delegations')
+    expect(opened).toContain('delegate-chat: Build the wishlist API')
 
     for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
-      const ui = await $.ui.mount({ ...PANE, surface })
-      const hasClient = surface === 'terminal' || surface === 'desktop'
+      const ui = await $.ui.mount({ ...CHAT, surface })
       expect(await ui.find({ type: 'Text', text: /queued: Also add a docstring/ })).toBeDefined()
       // The pane scrolls the conversation natively. 140,000 characters of output are more than a drawing
       // holds, so the newest rows are drawn and the first message waits for a scroll to the top.
@@ -98,8 +101,20 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
       expect(await ui.find({ type: 'Markdown', text: /Build the wishlist API\./ })).toBeUndefined()
       // Replies are drawn as markdown.
       expect(await ui.find({ type: 'Markdown', text: /line 19/ })).toBeDefined()
-      // At the newest end there is nothing below, so no "jump to the latest".
-      expect(await ui.find({ key: 'latest' })).toBeUndefined()
+      // The header's pickers are reachable from the composer.
+      expect(await ui.find({ key: 'to-header-codex-1' })).toBeDefined()
+      // Model, effort and speed are separate pickers where the surface draws a Select (not mobile).
+      if (surface !== 'mobile') {
+        expect(await ui.find({ key: 'model-codex-1' })).toBeDefined()
+        expect(await ui.find({ key: 'effort-codex-1' })).toBeDefined()
+        expect(await ui.find({ key: 'speed-codex-1' })).toBeDefined()
+      }
+      await ui.unmount()
+    }
+
+    for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
+      const ui = await $.ui.mount({ ...LIST, surface })
+      const hasClient = surface === 'terminal' || surface === 'desktop'
       // Chats are listed by name (their task); archived ones only in the archive. Where the surface
       // draws a Client the list is the nav.tsx module, searched with `in`; elsewhere it is buttons.
       if (hasClient) {
@@ -114,12 +129,6 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
         expect(await ui.find({ key: 'tab-antigravity-1' })).toBeUndefined()
         expect(await ui.find({ key: 'archived' })).toBeDefined()
       }
-      // Model, effort and speed are separate pickers where the surface draws a Select (not mobile).
-      if (surface !== 'mobile') {
-        expect(await ui.find({ key: 'model-codex-1' })).toBeDefined()
-        expect(await ui.find({ key: 'effort-codex-1' })).toBeDefined()
-        expect(await ui.find({ key: 'speed-codex-1' })).toBeDefined()
-      }
       if (hasClient) {
         // A right click on the chat opens its menu.
         await ui.pointer({ type: 'down', button: 'right', x: 4, y: 2, in: 'nav' })
@@ -132,11 +141,10 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
         expect(await ui.find({ in: 'nav', key: 'rename-chat-codex-1' })).toBeDefined()
         await ui.pointer({ type: 'down', button: 'left', x: 2, y: 0, in: 'nav' })
         expect(await ui.find({ in: 'nav', key: 'rename-chat-codex-1' })).toBeUndefined()
-        // Dragging the last column resizes the sidebar.
-        await ui.pointer({ type: 'down', button: 'left', x: 29, y: 1, in: 'nav' })
-        await ui.pointer({ type: 'move', button: 'left', x: 41, y: 1, in: 'nav' })
-        await ui.pointer({ type: 'up', button: 'left', x: 41, y: 1, in: 'nav' })
-        expect(savedWidth).toBe(46) // the list's 42 columns plus the panel's border and padding
+        // A click on a chat opens it in the chat pane.
+        await ui.pointer({ type: 'down', button: 'left', x: 4, y: 6, in: 'nav' })
+        expect(opened.at(-1)).toBe('delegate-chat: Map the client')
+        await ui.pointer({ type: 'down', button: 'left', x: 4, y: 2, in: 'nav' }) // back, for the next surface
       }
       await ui.unmount()
     }
