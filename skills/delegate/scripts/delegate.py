@@ -11,7 +11,7 @@
 How a delegation is filed (archived, its project tag, the turn the person last saw) lives in
 .delegate/<id>/meta.json, which only the UIs and `meta` write, never a running turn.
 
-Harnesses: codex, cursor, antigravity (agy), gemini, claude. Every delegation lives in
+Harnesses: codex, cursor, antigravity (agy), gemini, gemini-api, claude. Every delegation lives in
 <repo>/.delegate/<id>/: state.json, events.jsonl (the stream in both directions, one JSON event
 per line) and final.md (the agent's last reply). `start` and `send` each run one turn and exit when
 the agent ends it, printing a branded line per stream event and then the reply. With --detach they
@@ -44,8 +44,9 @@ from pathlib import Path
 SCRIPT = Path(__file__).resolve()
 # Name, colour, terminal glyph and SVG logo of every sender, shared with the pane and the MCP App.
 BRANDS = json.loads((SCRIPT.parent.parent / "assets" / "brands.json").read_text())
-ALIASES = {"agy": "antigravity", "google": "gemini", "openai": "codex", "cursor-agent": "cursor"}
-BINARIES = {"codex": "codex", "cursor": "cursor-agent", "antigravity": "agy", "gemini": "gemini", "claude": "claude"}
+ALIASES = {"agy": "antigravity", "google": "gemini", "openai": "codex", "cursor-agent": "cursor", "gemapi": "gemini-api"}
+BINARIES = {"codex": "codex", "cursor": "cursor-agent", "antigravity": "agy", "gemini": "gemini", "gemini-api": "gemini-api",
+            "claude": "claude"}
 GRACE = 10  # seconds between SIGTERM and SIGKILL when a turn times out or is stopped
 
 STATUS_RE = re.compile(r"^\s*\**STATUS:?\**\s*(done|question|blocked)\b[:\s]*(.*)$", re.I | re.M)
@@ -250,6 +251,43 @@ class GeminiParser(Parser):
         return out
 
 
+class GeminiApiParser(Parser):
+    """gemini-api generate --output-format json: one interaction per turn, its steps (thought, model output)
+    streamed as deltas. The interaction's id is what the next turn continues from."""
+
+    def __init__(self):
+        super().__init__()
+        self.step, self.buffer = None, ""
+
+    def flush(self):
+        text, self.buffer = self.buffer, ""
+        if self.step == "thought":
+            return [{"kind": "thinking", "text": text}] if text.strip() else []
+        return self.message(text)
+
+    def feed(self, o):
+        o = o.get("data", o)
+        t = o.get("event_type")
+        if t in ("interaction.created", "interaction.completed"):
+            interaction = o.get("interaction") or {}
+            self.session_id = interaction.get("id") or self.session_id
+            if t == "interaction.completed":
+                self.usage = interaction.get("usage")
+                if interaction.get("status") not in (None, "completed"):
+                    return self.fail(f"interaction {interaction.get('status')}")
+        elif t == "step.start":
+            self.step, self.buffer = (o.get("step") or {}).get("type"), ""
+        elif t == "step.delta":
+            delta = o.get("delta") or {}
+            self.buffer += delta.get("text") or delta.get("thought") or ""
+        elif t == "step.stop":
+            return self.flush()
+        elif t == "error" or o.get("error"):
+            error = o.get("error") or {}
+            return self.fail(error.get("message") if isinstance(error, dict) else str(error))
+        return []
+
+
 class ClaudeParser(Parser):
     def feed(self, o):
         t = o.get("type")
@@ -276,7 +314,7 @@ class ClaudeParser(Parser):
 
 
 PARSERS = {"codex": CodexParser, "cursor": CursorParser, "antigravity": AntigravityParser,
-           "gemini": GeminiParser, "claude": ClaudeParser}
+           "gemini": GeminiParser, "gemini-api": GeminiApiParser, "claude": ClaudeParser}
 
 
 IMAGES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
@@ -287,6 +325,8 @@ def attachment_flags(harness, attachments, workdir):
     images = [a for a in attachments if Path(a).suffix.lower() in IMAGES]
     if harness == "codex":
         return [x for a in images for x in ("-i", a)]
+    if harness == "gemini-api":  # files go in as input, folders it can't take
+        return [x for a in attachments if Path(a).is_file() for x in ("-i", a)]
     folders = sorted({a if Path(a).is_dir() else str(Path(a).parent) for a in attachments})
     outside = [d for d in folders if not Path(d).resolve().is_relative_to(Path(workdir).resolve())]
     flag = "--include-directories" if harness == "gemini" else "--add-dir"
@@ -318,6 +358,10 @@ def command(state, prompt, attachments=()):
         argv += ["--dangerously-skip-permissions"] + ([] if write else ["--mode", "plan"])
         argv += (["--conversation", sid] if sid else []) + (["--model", model] if model else [])
         argv += (["--effort", effort] if effort and not effort_in_id else []) + extra + ["-p"]
+    elif h == "gemini-api":
+        # A plain API: no tools, so read and write are the same; a turn continues the last interaction.
+        argv = ["gemini-api", "generate", "--output-format", "json", "--no-interactive"]
+        argv += (["--previous-interaction-id", sid] if sid else []) + (["-m", model] if model else []) + extra + ["--"]
     elif h == "gemini":
         argv = ["gemini", "-o", "stream-json", "--skip-trust", "--approval-mode", "yolo" if write else "plan"]
         argv += ["--resume", sid] if sid else ["--session-id", state["new_session_id"]]
@@ -419,6 +463,10 @@ def raw_models(harness):
             rows = [{"id": m["slug"], "label": m.get("display_name", m["slug"])} for m in cache.get("models", [])]
         elif harness == "claude":
             rows = [{"id": a, "label": a.capitalize()} for a in CLAUDE_ALIASES]
+        elif harness == "gemini-api":  # "  id   Description", under Gemma:/Gemini:/Image: headings
+            out = subprocess.run(["gemini-api", "models", "--no-interactive"], capture_output=True, text=True, timeout=60).stdout
+            rows = [{"id": x.split()[0], "label": x.split()[0]} for x in out.splitlines()
+                    if x.startswith("  ") and x.split() and "image" not in x.split()[0]]
     except (OSError, ValueError, subprocess.SubprocessError, KeyError):
         rows = []
     return [{"id": r["id"].strip(), "label": r.get("label", r["id"]).strip().removesuffix(" (current, default)")}
@@ -429,6 +477,8 @@ def auth_hint(harness, text):
     text = text.lower()
     if harness == "gemini" and ("gemini_api_key" in text or "auth" in text):
         return "Gemini isn't signed in for headless use: run `gemini`, pick Login with Google (/auth), or set GEMINI_API_KEY."
+    if harness == "gemini-api" and ("api key" in text or "unauthenticated" in text or "permission_denied" in text):
+        return "gemini-api has no API key: create one in Google AI Studio and run `gemini-api configure` yourself."
     if harness == "cursor" and ("sign in" in text or "login" in text or "authenticat" in text):
         return "Cursor isn't signed in: run `cursor-agent login`."
     if harness == "antigravity" and ("sign in" in text or "login" in text or "auth" in text):
@@ -898,18 +948,18 @@ def cmd_pick(args):
 
 # Each harness reports a turn's tokens in its own shape; these read them into one.
 USAGE_KEYS = {
-    "input": ("input_tokens", "inputTokens", "prompt_tokens"),
-    "cached": ("cached_input_tokens", "cacheReadTokens", "cache_read_tokens", "cache_read_input_tokens"),
-    "output": ("output_tokens", "outputTokens", "candidates_tokens"),
-    "reasoning": ("reasoning_output_tokens", "thinking_tokens", "thoughts_tokens"),
+    "input": ("input_tokens", "inputTokens", "prompt_tokens", "total_input_tokens"),
+    "cached": ("cached_input_tokens", "cacheReadTokens", "cache_read_tokens", "cache_read_input_tokens", "total_cached_tokens"),
+    "output": ("output_tokens", "outputTokens", "candidates_tokens", "total_output_tokens"),
+    "reasoning": ("reasoning_output_tokens", "thinking_tokens", "thoughts_tokens", "total_thought_tokens"),
 }
 
 
 def tokens(usage, harness=""):
-    """input is fresh input: Codex counts its cached tokens inside input_tokens, the others apart."""
+    """input is fresh input: Codex and the Gemini API count cached tokens inside input, the others apart."""
     usage = usage or {}
     out = {name: sum(int(usage.get(k) or 0) for k in keys) for name, keys in USAGE_KEYS.items()}
-    if harness == "codex":
+    if harness in ("codex", "gemini-api"):
         out["input"] = max(0, out["input"] - out["cached"])
     out["cost_usd"] = float(usage.get("cost_usd") or 0)
     return out

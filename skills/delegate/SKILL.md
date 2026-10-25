@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Delegates a task to another coding agent's CLI (Codex, Cursor, Antigravity, Gemini, Claude) and keeps a back-and-forth with it while you keep working. Use when asked to hand work to, consult, or get a second opinion from another agent or model, or to run a side task in parallel.
+description: Delegates a task to another coding agent's CLI (Codex, Cursor, Antigravity, Gemini, the Gemini API, Claude) and keeps a back-and-forth with it while you keep working. Use when asked to hand work to, consult, or get a second opinion from another agent or model, or to run a side task in parallel.
 ---
 
 # Delegate
@@ -13,6 +13,7 @@ description: Delegates a task to another coding agent's CLI (Codex, Cursor, Anti
 | `cursor` | Cursor's agent | `cursor-agent login` |
 | `antigravity` (`agy`) | Google Antigravity | `agy`, once |
 | `gemini` | Gemini CLI | `gemini`, then Login with Google |
+| `gemini-api` | The Gemini API's CLI: a model with no tools, for second opinions and files it reads (`--attach`) | an AI Studio key the user stores with `gemini-api configure` |
 | `claude` | Claude Code, when another agent leads | `claude auth login` |
 
 Each turn is a full agent run in that product, billed to the user's account there. Install for every project with `npx skills add Fullstack-Rocks/skills --skill delegate -g`.

@@ -63,7 +63,7 @@ Anything the agent can't justify comes back to you as a decision.
 | [**under-engineering-review**](#under-engineering-review) | Audits existing code against the same limits and reports findings with IDs | *"Review the refund flow for depth and complexity"* |
 | [**call-depth**](#call-depth) | Measures call-chain depth, memory hops, complexity and layout with parsers, in any language | *"How deep is the call chain from POST /orders/{id}/refund?"* |
 | [**code-standards**](#code-standards) | Reviews with your linters, taught ast-grep rules and a learned `standards.md`, and learns from rejected code | *"Is my change clean?"* · *"We never read env vars outside config"* |
-| [**delegate**](#delegate) | Hands tasks to Codex, Cursor, Antigravity, Gemini or Claude and keeps a back-and-forth with each, live in a pane beside the chat | *"Have Codex build the API and Cursor the client, in parallel"* |
+| [**delegate**](#delegate) | Hands tasks to Codex, Cursor, Antigravity, Gemini, the Gemini API or Claude and keeps a back-and-forth with each, live in a pane beside the chat | *"Have Codex build the API and Cursor the client, in parallel"* |
 
 Every recording below is a real, interactive Claude Code session on the [demo shop](demo/), a 55-file Python API with a React/TS client. Long thinking stretches are sped up; everything else plays at its real pace.
 
@@ -413,7 +413,7 @@ Pinned tool versions, the config format and the scripts are in [`skills/code-sta
 
 ## delegate
 
-**Other coding agents as teammates.** The agent hands a task to Codex, Cursor, Antigravity, Gemini or Claude Code, keeps working while it runs, and talks to it turn by turn. Each delegate keeps its own session, so a follow-up lands with everything it has already read.
+**Other coding agents as teammates.** The agent hands a task to Codex, Cursor, Antigravity, Gemini, the Gemini API or Claude Code, keeps working while it runs, and talks to it turn by turn. Each delegate keeps its own session, so a follow-up lands with everything it has already read.
 
 | Harness | Runs | Read-only mode |
 |---|---|---|
@@ -421,6 +421,7 @@ Pinned tool versions, the config format and the scripts are in [`skills/code-sta
 | `cursor` | `cursor-agent -p --output-format stream-json` | `--mode ask` |
 | `antigravity` | `agy --output-format stream-json` | `--mode plan` |
 | `gemini` | `gemini -o stream-json` | `--approval-mode plan` |
+| `gemini-api` | `gemini-api generate --output-format json`, continued by interaction | always: a model with no tools |
 | `claude` | `claude -p --output-format stream-json` | edit tools disallowed |
 
 - **Never blocking.** Every turn runs in the background; the lead hears back when it ends, with the reply and a `STATUS: done | question | blocked` line.
@@ -452,7 +453,7 @@ under-engineering-review ── call-depth (trace + scan) ── report with IDs
 code-standards:  "we never do X"  ──>  bypasses proposed  ──>  rule + fixtures
                  ──>  ast-grep test + repo-wide scan  ──>  caught on every later review
 
-delegate:  brief ──> codex / cursor / antigravity / gemini / claude (background, own session)
+delegate:  brief ──> codex / cursor / antigravity / gemini / gemini-api / claude (background, own session)
            ──> STATUS: done | question | blocked ──> follow-up, or diff ──> apply
 ```
 
@@ -462,7 +463,7 @@ delegate:  brief ──> codex / cursor / antigravity / gemini / claude (backgro
 - **Python 3.10+** for `call-depth`, **3.11+** for `code-standards`. The scripts use only the standard library.
 - **ast-grep, lizard and jscpd.** The agent installs them itself with whichever of npm, uv, pipx, cargo or pip the machine has. Only jscpd needs Node.js.
 - **Nothing from the project being measured.** Your own linters are used when your project configures them.
-- **For `delegate`:** the CLIs of the agents you delegate to, signed in (`codex`, `cursor-agent`, `agy`, `gemini`, `claude`), and git for `--write` worktrees. The pane needs a recent Claude Code.
+- **For `delegate`:** the CLIs of the agents you delegate to, signed in (`codex`, `cursor-agent`, `agy`, `gemini`, `gemini-api`, `claude`), and git for `--write` worktrees. The pane needs a recent Claude Code.
 
 ## Customizing
 
