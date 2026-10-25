@@ -20,6 +20,8 @@ const FILES: Record<string, string> = {
     { ts: 3, turn: 1, from: 'codex', kind: 'tool', text: '$ ls demo/app' },
     { ts: 3, turn: 1, from: 'codex', kind: 'tool_result', text: Array.from({ length: 200 }, (_, i) => `output line ${i} ${'·'.repeat(700)}`).join('\n') },
     { ts: 4, turn: 1, from: 'codex', kind: 'thinking', text: 'Now the handlers.' },
+    // Thinking as long as a Cursor review's: 400 lines.
+    { ts: 4.5, turn: 1, from: 'codex', kind: 'thinking', text: Array.from({ length: 400 }, (_, i) => `weighing ${i} ${'·'.repeat(110)}`).join('\n') },
     { ts: 5, turn: 1, from: 'codex', kind: 'final', status: 'done', seconds: 9,
       text: Array.from({ length: 20 }, (_, i) => `line ${i}`).join('\n') },
   ),
@@ -58,6 +60,16 @@ const LIST = pane('delegate', '☰ Delegations')
 const CHAT = pane('chat-codex-1', 'Build the wishlist API')
 
 const missing = (path: string) => new Error(`ENOENT: ${path}`)
+
+// The characters a drawing spends of the engine's 100,000: texts, labels, alts and logo sources.
+const spent = (node: unknown): number => {
+  if (typeof node === 'string') return node.length
+  if (Array.isArray(node)) return node.reduce((n: number, one) => n + spent(one), 0)
+  if (!node || typeof node !== 'object') return 0
+  const { props, children } = node as { props?: Record<string, unknown>; children?: unknown }
+  const own = ['label', 'text', 'source', 'alt', 'placeholder'].reduce((n, key) => n + spent(props?.[key]), 0)
+  return own + spent(children ?? props?.children)
+}
 
 {
   test('the panes draw on every surface', { timeoutMs: 20000 }, async ($, on) => {
@@ -132,14 +144,24 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
     expect(await chat.find({ type: 'Text', text: /thinking · 1 lines/ })).toBeDefined()
     await chat.press({ key: 'fold-e4-h' })
     expect(await chat.find({ type: 'Text', text: /Now the handlers\./ })).toBeDefined()
+    // Long thinking starts folded, as long output does.
+    expect(await chat.find({ type: 'Text', text: /thinking · 400 lines/ })).toBeDefined()
+    expect(await chat.find({ type: 'Text', text: /^weighing 399/ })).toBeUndefined()
+    // Unfolded, the long output and thinking are far more than a drawing holds; what is drawn stays
+    // well inside the engine's 100,000 characters (past them it drops elements and the desktop refuses
+    // the tree).
+    await chat.press({ key: 'fold-e5-h' })
     // Unfolded, the 140,000 characters of output are more than a drawing holds: the newest rows are
     // drawn, and the first message waits for a scroll to the top.
     await chat.press({ key: 'fold-e3-h' })
-    expect(await chat.find({ type: 'Text', text: /output line 199/ })).toBeDefined()
+    expect(await chat.find({ type: 'Text', text: /^weighing 399/ })).toBeDefined()
     expect(await chat.find({ type: 'Markdown', text: /Build the wishlist API\./ })).toBeUndefined()
-    // The chat's switch folds all output again.
+    expect(spent(await chat.drawn())).toBeLessThan(90_000)
+    // The chat's switches fold all output and thinking again.
     await chat.press({ key: 'tools-codex-1' })
-    expect(await chat.find({ type: 'Text', text: /output line 199/ })).toBeUndefined()
+    await chat.press({ key: 'thinking-codex-1' })
+    await chat.press({ key: 'thinking-codex-1' })
+    expect(await chat.find({ type: 'Text', text: /^weighing 399/ })).toBeUndefined()
     expect(await chat.find({ type: 'Markdown', text: /Build the wishlist API\./ })).toBeDefined()
     await chat.unmount()
 

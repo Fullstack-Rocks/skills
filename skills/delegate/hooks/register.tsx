@@ -26,13 +26,15 @@ const NO_PROJECT = '__none'
 const NEW_PROJECT = '__new'
 const DEFAULT = 'default'
 const SELECT_MAX = 64
-// The engine draws 100,000 characters of a tree, so a conversation draws its newest DRAWN_CHARS of text.
-// Long tool output starts folded to its first PREVIEW lines, so a chat usually fits whole and the surface
-// scrolls it from its first message. One that doesn't fit draws the next older batch (EARLIER more) when
-// scrolled to the top, its newest rows giving way, and scrolling to the bottom brings them back.
-const DRAWN_CHARS = 80_000
+// The engine draws 100,000 characters of a tree (texts, labels, logos' sources), and past that drops
+// elements, which the desktop refuses whole, keeping the last tree it took. So a conversation draws its
+// newest DRAWN_CHARS, the rest of the pane well inside the remainder. Long thinking and tool output start
+// folded (output to its first PREVIEW lines), so a chat usually fits whole and the surface scrolls it
+// from its first message. One that doesn't fit draws the next older batch (EARLIER more) when scrolled to
+// the top, its newest rows giving way, and scrolling to the bottom brings them back.
+const DRAWN_CHARS = 60_000
 const EARLIER = 20_000
-const LONG = 12 // lines of tool output past which it starts folded
+const LONG = 12 // lines of thinking or tool output past which it starts folded
 const PREVIEW = 3
 // A working chat's tab turns a spinner, one frame per SPIN_MS (nav.tsx turns its own in the list).
 const SPINNER = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
@@ -161,10 +163,10 @@ function wrap(text: string, width: number): string[] {
   return out
 }
 
-// Thinking and tool output fold; a block is folded when the chat folds its kind (long tool output
-// always), unless the person unfolded that one (and the other way round).
+// Thinking and tool output fold; a block is folded when the chat folds its kind, or when it is long,
+// unless the person unfolded that one (and the other way round).
 const isFolded = (ev: DelegateEvent, key: string, lines: number, fold: Fold | undefined) =>
-  (ev.kind === 'thinking' ? fold?.hideThinking === true : fold?.hideTools === true || lines > LONG) !==
+  ((ev.kind === 'thinking' ? fold?.hideThinking === true : fold?.hideTools === true) || lines > LONG) !==
   (fold?.toggled ?? []).includes(key)
 
 function toRows(list: DelegateEvent[], harness: string, width: number, fold: Fold | undefined): Row[] {
@@ -814,8 +816,8 @@ export const register: Register = on => {
     void where // the events' revision: a change redraws
     const all = toRows(eventsOf.get(current.id) ?? [], current.harness, Math.max(30, e.props.bodyColumns - 6), fold)
     const extra = extras[current.id] ?? 0
-    // A row costs its text and a few characters of its own (a label, a glyph).
-    const cost = (row: Row) => row.text.length + 4
+    // A row costs its text and a few characters of its own; a head row its logo's source and buttons too.
+    const cost = (row: Row) => row.text.length + 4 + (row.kind === 'head' ? (brandOf(row.ev.from).svg?.length ?? 0) + 16 : 0)
     let first = all.length
     let used = 0
     for (; first > 0 && used < DRAWN_CHARS + extra; first--) used += cost(all[first - 1]!)
