@@ -24,8 +24,11 @@ const NEW_PROJECT = '__new'
 const DEFAULT = 'default'
 const SELECT_MAX = 64
 // A drawing has a size limit, so the conversation draws its newest rows up to DRAWN_CHARS characters
-// of text; scrolling to the top of them draws the next older batch (EARLIER more each time).
+// of text; scrolling to the top of them draws the next older batch (EARLIER more each time). The engine
+// draws 100,000 characters of a tree, so past DRAWN_MAX the newest rows give way, and scrolling to the
+// bottom brings them back.
 const DRAWN_CHARS = 40_000
+const DRAWN_MAX = 80_000
 // While the person scrolls, the floating panels fade out, and fade back in once the wheel has been
 // still for SETTLE_MS. There is no opacity to animate, so a fade is FADE_STEPS frames of alpha colours:
 // a cover in the panel's colour rises over its contents, then the panel's background thins away.
@@ -90,8 +93,9 @@ const reported = new Map<string, number>()
 let allEvents: DelegateEvent[] = []
 // Whether the window is at the newest line, so new output keeps it there.
 let isFollowing = true
-// Whether older rows exist than the ones drawn.
+// Whether older, or newer, rows exist than the ones drawn.
 let hasEarlier = false
+let hasLater = false
 // When the person last moved the wheel, and where the fade is heading.
 let lastWheel = 0
 let fadeTarget = 0
@@ -342,6 +346,7 @@ function fadeTo($: EngineInterface, target: number) {
 // Shows the newest line: the window goes to the end, and keeps following new output from there.
 function toEnd($: EngineInterface) {
   isFollowing = true
+  if (hasLater) void $.state.set(EXTRA, 0)
   const place = async () => {
     await $.ui.scroll({ to: 'end', in: PANE })
   }
@@ -540,11 +545,12 @@ export const register: Register = on => {
   on('ui.scroll', { component: 'Pane', requestId: PANE }, async ($, e, next) => {
     if (e.origin.kind === 'person') fadeOut($)
     if (Number.isFinite(e.offset)) {
-      isFollowing = e.offset >= e.contentRows - e.bodyRows - 1
+      const atBottom = e.offset >= e.contentRows - e.bodyRows - 1
+      isFollowing = atBottom && !hasLater
       await $.state.set(SCROLL, e.offset)
-      if (e.offset <= 2 && hasEarlier && e.origin.kind === 'person') {
-        await $.state.set(EXTRA, ((await $.state.get(EXTRA)).value ?? 0) + EARLIER)
-      }
+      const extra = (await $.state.get(EXTRA)).value ?? 0
+      if (e.offset <= 2 && hasEarlier && e.origin.kind === 'person') await $.state.set(EXTRA, extra + EARLIER)
+      else if (atBottom && hasLater && e.origin.kind === 'person') await $.state.set(EXTRA, Math.max(0, extra - EARLIER))
     }
     return next(e)
   })
@@ -758,9 +764,13 @@ export const register: Register = on => {
       void where // the events' revision: a change redraws
       const all = toRows(allEvents, current.harness, Math.max(30, e.props.bodyColumns - navWidth - 8))
       let first = all.length
-      for (let used = 0; first > 0 && used < DRAWN_CHARS + extra; first--) used += all[first - 1]!.text.length + 40
-      const visible = all.slice(first)
+      let used = 0
+      for (; first > 0 && used < DRAWN_CHARS + extra; first--) used += all[first - 1]!.text.length + 40
+      let last = all.length
+      for (; last > first + 1 && used > DRAWN_MAX; last--) used -= all[last - 1]!.text.length + 40
+      const visible = all.slice(first, last)
       hasEarlier = first > 0
+      hasLater = last < all.length
       const line = (row: Row) => {
         const ev = row.ev
         if (row.kind === 'gap') return <Box key={row.key} flexShrink={0}><Text> </Text></Box>

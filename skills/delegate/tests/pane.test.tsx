@@ -16,7 +16,7 @@ const FILES: Record<string, string> = {
   [`${ROOT}/.delegate/codex-1/events.jsonl`]: line(
     { ts: 1, turn: 1, from: 'claude', kind: 'message', text: 'Build the wishlist API.', attachments: ['/tmp/brief.md'] },
     { ts: 2, turn: 1, from: 'codex', kind: 'tool', text: '$ ls demo/app' },
-    { ts: 3, turn: 1, from: 'codex', kind: 'tool_result', text: Array.from({ length: 200 }, (_, i) => `output line ${i}`).join('\n') },
+    { ts: 3, turn: 1, from: 'codex', kind: 'tool_result', text: Array.from({ length: 200 }, (_, i) => `output line ${i} ${'·'.repeat(700)}`).join('\n') },
     { ts: 4, turn: 1, from: 'codex', kind: 'final', status: 'done', seconds: 9,
       text: Array.from({ length: 20 }, (_, i) => `line ${i}`).join('\n') },
   ),
@@ -92,10 +92,10 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
       const ui = await $.ui.mount({ ...PANE, surface })
       const hasClient = surface === 'terminal' || surface === 'desktop'
       expect(await ui.find({ type: 'Text', text: /queued: Also add a docstring/ })).toBeDefined()
-      // The whole conversation is drawn and the pane scrolls it natively: the first message and the
-      // last output line are both there.
+      // The pane scrolls the conversation natively. 140,000 characters of output are more than a drawing
+      // holds, so the newest rows are drawn and the first message waits for a scroll to the top.
       expect(await ui.find({ type: 'Text', text: /output line 199/ })).toBeDefined()
-      expect(await ui.find({ type: 'Markdown', text: /Build the wishlist API\./ })).toBeDefined()
+      expect(await ui.find({ type: 'Markdown', text: /Build the wishlist API\./ })).toBeUndefined()
       // Replies are drawn as markdown.
       expect(await ui.find({ type: 'Markdown', text: /line 19/ })).toBeDefined()
       // At the newest end there is nothing below, so no "jump to the latest".
