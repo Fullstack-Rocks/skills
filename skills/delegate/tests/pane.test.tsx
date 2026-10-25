@@ -17,7 +17,7 @@ const FILES: Record<string, string> = {
     { ts: 1, turn: 1, from: 'claude', kind: 'message', text: 'Build the wishlist API.', attachments: ['/tmp/brief.md'] },
     { ts: 2, turn: 1, from: 'codex', kind: 'thinking', text: 'The routes come first.' },
     // A call and its output in the same millisecond, as Codex logs them.
-    { ts: 3, turn: 1, from: 'codex', kind: 'tool', text: '$ ls demo/app' },
+    { ts: 3, turn: 1, from: 'codex', kind: 'tool', text: `$ ls ${ROOT}/demo/app` },
     { ts: 3, turn: 1, from: 'codex', kind: 'tool_result', text: Array.from({ length: 200 }, (_, i) => `output line ${i} ${'·'.repeat(700)}`).join('\n') },
     { ts: 4, turn: 1, from: 'codex', kind: 'thinking', text: 'Now the handlers.' },
     // Thinking as long as a Cursor review's: 400 lines.
@@ -125,6 +125,8 @@ const spent = (node: unknown): number => {
       expect(await ui.find({ type: 'Text', text: /^output line 3$/ })).toBeUndefined()
       // Replies are drawn as markdown.
       expect(await ui.find({ type: 'Markdown', text: /line 19/ })).toBeDefined()
+      // Paths read relative to the project.
+      expect(await ui.find({ type: 'Text', text: /› \$ ls demo\/app$/ })).toBeDefined()
       // The header's pickers are reachable from the composer.
       expect(await ui.find({ key: 'to-header-codex-1' })).toBeDefined()
       // Model, effort and speed are separate pickers where the surface draws a Select (not mobile).

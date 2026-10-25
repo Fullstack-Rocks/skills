@@ -814,7 +814,12 @@ export const register: Register = on => {
     // ---- the conversation: every event, the newest at the bottom, scrolled by the surface
 
     void where // the events' revision: a change redraws
-    const all = toRows(eventsOf.get(current.id) ?? [], current.harness, Math.max(30, e.props.bodyColumns - 6), fold)
+    // Paths read relative to the project (or the delegate's worktree), as the person would write them.
+    const root = await $.session.root()
+    const prefixes = [`file://${root}/.delegate/${current.id}/worktree/`, `${root}/.delegate/${current.id}/worktree/`, `file://${root}/`, `${root}/`]
+    const relative = (text: string) => prefixes.reduce((out, prefix) => out.split(prefix).join(''), text)
+    const events = (eventsOf.get(current.id) ?? []).map(ev => ({ ...ev, text: relative(ev.text) }))
+    const all = toRows(events, current.harness, Math.max(30, e.props.bodyColumns - 6), fold)
     const extra = extras[current.id] ?? 0
     // A row costs its text and a few characters of its own; a head row its logo's source and buttons too.
     const cost = (row: Row) => row.text.length + 4 + (row.kind === 'head' ? (brandOf(row.ev.from).svg?.length ?? 0) + 16 : 0)
