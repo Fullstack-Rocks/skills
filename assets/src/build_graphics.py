@@ -233,6 +233,58 @@ def call_depth_chart() -> str:
 
 # ---------- skill banners ----------
 
+HARNESSES = {"antigravity": ("Antigravity", "#EA4335"), "codex": ("Codex", "#10A37F"),
+             "claude": ("Claude Opus 5.5", "#D97757"), "cursor": ("Grok 4.7 in Cursor", "#9A9A9A")}
+
+
+def delegate_chart() -> str:
+    """Agent time per phase of the Maison Lumen build, by harness, and the tokens each harness spent."""
+    runs = json.loads((RESULTS / "delegate" / "maison-lumen.json").read_text())["runs"]
+    phases = {}
+    for r in runs:
+        phase = phases.setdefault(r["phase"], {"name": r["phase_name"], "minutes": {}})
+        phase["minutes"][r["harness"]] = phase["minutes"].get(r["harness"], 0) + r["seconds"] / 60
+    body = header("delegate · benchmark", "One brief, 31 runs on four other agents")
+    left, top = 56, 168
+    body.append(text(left, top - 26, "Agent time per phase", "label"))
+    longest = max(sum(p["minutes"].values()) for p in phases.values())
+    for i, (number, phase) in enumerate(sorted(phases.items())):
+        y = top + i * 40
+        body.append(text(left, y + 13, f"{number}  {phase['name']}", "small"))
+        x = left + 210
+        for harness, minutes in sorted(phase["minutes"].items(), key=lambda kv: list(HARNESSES).index(kv[0])):
+            width = 300 * minutes / longest
+            body.append(bar(x, y, width, HARNESSES[harness][1]))
+            x += max(width, 3) + 2
+        body.append(text(x + 8, y + 13, f"{sum(phase['minutes'].values()):.0f} min", "value"))
+    right = 760
+    body.append(text(right, top - 26, "Tokens per agent (fresh input · output)", "label"))
+    totals = {h: {"input": 0, "output": 0, "cost": 0.0, "runs": 0} for h in HARNESSES}
+    for r in runs:
+        t = totals[r["harness"]]
+        t["input"] += r["input"]
+        t["output"] += r["output"]
+        t["cost"] += r["cost_usd"]
+        t["runs"] += 1
+    scale = max(t["input"] for t in totals.values())
+    for i, (harness, (name, color)) in enumerate(HARNESSES.items()):
+        t, y = totals[harness], top + i * 66
+        cost = f" · ${t['cost']:.2f}" if t["cost"] else ""
+        body.append(text(right, y + 4, f"{name} · {t['runs']} runs{cost}", "small"))
+        for b, (value, opacity) in enumerate([(t["input"], 0.45), (t["output"], 1)]):
+            by = y + 14 + b * 20
+            width = 300 * value / scale
+            body.append(bar(right, by, width, color, h=14).replace("/>", f' opacity="{opacity}"/>'))
+            body.append(text(right + max(width, 3) + 10, by + 12, f"{value / 1000:,.0f}k", "value"))
+    body.append(text(56, 486, "Lead: Claude Code · every run through delegate.py, three at a time · cached tokens not shown "
+                     "(31M in all) · only Claude reports a cost.", "small"))
+    total_minutes = sum(r["seconds"] for r in runs) / 60
+    return frame(520, "\n".join(body), "delegate benchmark",
+                 f"The Maison Lumen agency build: {len(runs)} delegated runs, {total_minutes:.0f} agent-minutes. "
+                 + "; ".join(f"{HARNESSES[h][0]} {t['runs']} runs, {t['input']} fresh input and {t['output']} output tokens"
+                             for h, t in totals.items()) + ".")
+
+
 def motif(skill: str) -> str:
     """A small line drawing per skill, on the right side of its banner."""
     s = f'fill="none" stroke="{LIME}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"'
@@ -290,7 +342,7 @@ def banner(skill: str, tagline: str) -> str:
 
 def main() -> None:
     charts = {"code-standards": code_standards_chart(), "under-engineering": under_engineering_chart(),
-              "call-depth": call_depth_chart()}
+              "call-depth": call_depth_chart(), "delegate": delegate_chart()}
     for folder, items in (("charts", charts), ("banners", {k: banner(k, v) for k, v in BANNERS.items()})):
         (ASSETS / folder).mkdir(exist_ok=True)
         for name, svg in items.items():

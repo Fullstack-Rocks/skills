@@ -112,6 +112,12 @@ Neither version introduced new smells (memory hops, complexity, lint or duplicat
 
 On a refund route with a weighted depth of 7 and two hidden indirect calls (a dict registry and a `getattr` dispatch), **both versions got the depth and both calls right** when the prompt spelled out the counting rules. With the skill, nobody has to write those rules into the prompt, and `scan.py` finds both indirect calls across 58 files in **0.11 s**, before the agent reads any code.
 
+### delegate: what does a team of other agents cost?
+
+<p align="center"><img src="assets/charts/delegate.svg" alt="Chart: agent time per phase (research 31 min, client profiles 16, homepage designs 26, identity and assets 125, websites 16, reviews 42, fixes 18) and tokens per agent: Antigravity 1,034k fresh input and 228k output over 10 runs; Codex 1,045k and 116k over 12; Claude Opus 5.5 574k and 138k over 6 for $9.48; Grok 4.7 in Cursor 399k and 239k over 3" width="100%"></p>
+
+Claude Code led an invented luxury agency's whole job and handed every piece to another agent: research to Antigravity, client profiles, homepage designs and photographs to Codex, identity and photographs to Antigravity with Nano Banana, three websites to Claude Opus 5.5, an independent review to Grok 4.7 in Cursor, and the fixes back to Codex and Opus. **31 runs, three at a time, about 4½ agent-hours, 3M fresh input tokens; $9.48 on the one harness that reports a price.** The write-up, the three websites and everything the agents made are on the [demo site](https://fullstack-rocks.github.io/skills/maison-lumen/); the usage behind the chart is in [`benchmarks/results/delegate/`](benchmarks/results/delegate/).
+
 ## Install
 
 With the [`skills`](https://github.com/vercel-labs/skills) CLI, for Claude Code, Codex, Cursor and other agents:
@@ -427,7 +433,7 @@ Pinned tool versions, the config format and the scripts are in [`skills/code-sta
 - **Never blocking.** Every turn runs in the background; the lead hears back when it ends, with the reply and a `STATUS: done | question | blocked` line.
 - **Safe by default.** Read-only unless `--write`, which gives the delegate its own git worktree; the lead reviews `diff` before applying anything.
 - **Queues, attachments, models.** A message sent mid-turn waits its turn. Files, folders and images go along with `--attach` or `@path`. Model, effort and speed are picked per delegate, split out of how each harness names them.
-- **The Delegations panes** (Claude Code). The skill folder is also a plugin with two panes. Delegations lists every chat grouped by project; right-click one to rename, archive or delete it. Clicking a chat opens it beside the list: its stream with each provider's logo, replies as markdown, and a composer at the end to write to the delegate yourself. `/delegations` opens them.
+- **The Delegations panes** (Claude Code). The skill folder is also a plugin with two panes. Delegations lists every chat grouped by project; right-click one to rename, archive or delete it. Clicking a chat opens it in a tab of its own, marked with its agent and a spinner while it works: its stream with each provider's logo, replies as markdown, thinking and tool output that fold, and a composer at the end to write to the delegate yourself. `/delegations` opens them.
 - **Other hosts.** `scripts/mcp_server.py` serves the same tools and the panel as an MCP App, for hosts that draw MCP Apps. See [`references/mcp-app.md`](skills/delegate/references/mcp-app.md).
 
 Everything is plain files in `.delegate/<id>/` in your repo (kept out of git): the stream in both directions, the last reply, the queue.
