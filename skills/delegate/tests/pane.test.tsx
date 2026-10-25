@@ -1,8 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 
-// Both panes drawn from a fake .delegate/ folder on every surface, so a tree a surface refuses
-// (too many Select options, a key on a Text) fails here rather than in a session.
-// The test's hooks stand in for the engine: the filesystem, the store, the clock and processes.
+// The panes drawn from a fake .delegate/ folder on every surface, so a tree a surface refuses (too
+// many Select options, a key twice, a key on a Text) fails here rather than in a session. The test's
+// hooks stand in for the engine: the filesystem, the store, the clock, processes and the pane list.
 
 const ROOT = '/proj'
 const line = (...rows: object[]) => rows.map(row => JSON.stringify(row)).join('\n') + '\n'
@@ -15,9 +15,12 @@ const FILES: Record<string, string> = {
   [`${ROOT}/.delegate/codex-1/meta.json`]: JSON.stringify({ project: 'wishlist', seen_turns: 2 }),
   [`${ROOT}/.delegate/codex-1/events.jsonl`]: line(
     { ts: 1, turn: 1, from: 'claude', kind: 'message', text: 'Build the wishlist API.', attachments: ['/tmp/brief.md'] },
-    { ts: 2, turn: 1, from: 'codex', kind: 'tool', text: '$ ls demo/app' },
+    { ts: 2, turn: 1, from: 'codex', kind: 'thinking', text: 'The routes come first.' },
+    // A call and its output in the same millisecond, as Codex logs them.
+    { ts: 3, turn: 1, from: 'codex', kind: 'tool', text: '$ ls demo/app' },
     { ts: 3, turn: 1, from: 'codex', kind: 'tool_result', text: Array.from({ length: 200 }, (_, i) => `output line ${i} ${'·'.repeat(700)}`).join('\n') },
-    { ts: 4, turn: 1, from: 'codex', kind: 'final', status: 'done', seconds: 9,
+    { ts: 4, turn: 1, from: 'codex', kind: 'thinking', text: 'Now the handlers.' },
+    { ts: 5, turn: 1, from: 'codex', kind: 'final', status: 'done', seconds: 9,
       text: Array.from({ length: 20 }, (_, i) => `line ${i}`).join('\n') },
   ),
   [`${ROOT}/.delegate/codex-1/queue.jsonl`]: line({ from: 'user', text: 'Also add a docstring.', attachments: [], ts: 5 }),
@@ -37,39 +40,46 @@ const MODELS = JSON.stringify(
   Array.from({ length: 70 }, (_, i) => ({ id: `model-${i}`, label: `Model ${i}`, efforts: ['low', 'high'], speeds: ['fast'] })),
 )
 
-const pane = (requestId: string, title: string) => ({
-  plugin: 'delegate',
-  component: 'Pane',
-  requestId,
-  props: {
-    title,
-    isFocused: false,
-    bodyColumns: 100,
-    placement: 'dock',
-    scroll: { offset: 0, bodyRows: 60 },
-    view: {},
-  },
-}) as const
-const LIST = pane('delegate', 'Delegations')
-const CHAT = pane('delegate-chat', 'Build the wishlist API')
+const pane = (requestId: string, title: string) =>
+  ({
+    plugin: 'delegate',
+    component: 'Pane',
+    requestId,
+    props: {
+      title,
+      isFocused: false,
+      bodyColumns: 100,
+      placement: 'dock',
+      scroll: { offset: 0, bodyRows: 60 },
+      view: {},
+    },
+  }) as const
+const LIST = pane('delegate', '☰ Delegations')
+const CHAT = pane('chat-codex-1', 'Build the wishlist API')
 
 const missing = (path: string) => new Error(`ENOENT: ${path}`)
 
 {
-  test('both panes draw on every surface', { timeoutMs: 20000 }, async ($, on) => {
+  test('the panes draw on every surface', { timeoutMs: 20000 }, async ($, on) => {
     on('session.start', (_, e) => ({ cwd: e.cwd }))
     on('session.root', () => ({ value: ROOT }))
     on('clock.every', () => ({ value: undefined }))
     on('clock.after', () => ({ value: undefined }))
     on('command.register', () => ({ value: { command: 'delegations' } }))
     on('tool.register', () => ({ value: { tool: 'mcp__delegate__pane' } }))
+    // The panes the plugin opened, each open id once, its latest title kept.
+    const open = new Map<string, string>()
     const opened: string[] = []
     on('ui.open', (_, e) => {
+      open.set(e.id, e.title ?? e.id)
       opened.push(`${e.id}: ${e.title}`)
       return { value: { isPlaced: true } }
     })
-    on('ui.panes', () => ({ value: [] }))
+    on('ui.panes', () => ({
+      value: [...open].map(([id, title]) => ({ id, title, isShown: true, isFocused: false, isPlaced: true })),
+    }))
     on('ui.status', () => ({ value: undefined }))
+    on('store.get', () => ({ value: undefined }))
     on('fs.exists', (_, e) => ({ value: e.path === `${ROOT}/.delegate` || e.path in FILES }))
     on('fs.list', () => ({ value: DIRS.map(name => ({ name, kind: 'dir' as const, size: 0, mtimeMs: 1 })) }))
     on('fs.stat', (_, e) => {
@@ -88,9 +98,9 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
     await $.session.start({ cwd: ROOT, surface: 'desktop', isInteractive: true })
     await $.command.run({ command: 'delegations' })
     await $.command.run({ command: 'delegations' }) // the model list lands between the two polls
-    // The list, and the running chat beside it, titled by its name.
-    expect(opened).toContain('delegate: Delegations')
-    expect(opened).toContain('delegate-chat: Build the wishlist API')
+    // The pinned list, and the running chat in a tab of its own: its spinner, its agent's glyph, its name.
+    expect(open.get('delegate')).toBe('☰ Delegations')
+    expect(open.get('chat-codex-1')).toMatch(/^[⠀-⣿] ◆ Build the wishlist API$/)
 
     for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
       const ui = await $.ui.mount({ ...CHAT, surface })
@@ -112,6 +122,21 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
       await ui.unmount()
     }
 
+    // Thinking folds: the chat's switch hides all of it, a block's arrow unfolds that one again.
+    const chat = await $.ui.mount({ ...CHAT, surface: 'desktop' })
+    expect(await chat.find({ type: 'Text', text: /Now the handlers\./ })).toBeDefined()
+    await chat.press({ key: 'thinking-codex-1' })
+    expect(await chat.find({ type: 'Text', text: /Now the handlers\./ })).toBeUndefined()
+    expect(await chat.find({ type: 'Text', text: /thinking · 1 lines/ })).toBeDefined()
+    await chat.press({ key: 'fold-e4-h' })
+    expect(await chat.find({ type: 'Text', text: /Now the handlers\./ })).toBeDefined()
+    // Tool output folds too, and the first message, older than the drawing held, comes into it.
+    await chat.press({ key: 'tools-codex-1' })
+    expect(await chat.find({ type: 'Text', text: /output line 199/ })).toBeUndefined()
+    expect(await chat.find({ type: 'Text', text: /↳ output · 200 lines/ })).toBeDefined()
+    expect(await chat.find({ type: 'Markdown', text: /Build the wishlist API\./ })).toBeDefined()
+    await chat.unmount()
+
     for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
       const ui = await $.ui.mount({ ...LIST, surface })
       const hasClient = surface === 'terminal' || surface === 'desktop'
@@ -122,8 +147,9 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
         expect(await ui.find({ in: 'nav', text: /Map the client/ })).toBeDefined()
         expect(await ui.find({ in: 'nav', text: /Map the API/ })).toBeUndefined()
         expect(await ui.find({ in: 'nav', text: /Archived \(1\)/ })).toBeDefined()
-        // cursor-1 finished a turn nobody has looked at.
+        // cursor-1 finished a turn nobody has looked at; codex-1 is working.
         expect(await ui.find({ in: 'nav', text: /●/ })).toBeDefined()
+        expect(await ui.find({ in: 'nav', text: /[⠀-⣿]/ })).toBeDefined()
       } else {
         expect(await ui.find({ key: 'tab-cursor-1' })).toBeDefined()
         expect(await ui.find({ key: 'tab-antigravity-1' })).toBeUndefined()
@@ -141,12 +167,15 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
         expect(await ui.find({ in: 'nav', key: 'rename-chat-codex-1' })).toBeDefined()
         await ui.pointer({ type: 'down', button: 'left', x: 2, y: 0, in: 'nav' })
         expect(await ui.find({ in: 'nav', key: 'rename-chat-codex-1' })).toBeUndefined()
-        // A click on a chat opens it in the chat pane.
+        // A click on another chat opens it in a tab of its own, beside the first.
         await ui.pointer({ type: 'down', button: 'left', x: 4, y: 6, in: 'nav' })
-        expect(opened.at(-1)).toBe('delegate-chat: Map the client')
-        await ui.pointer({ type: 'down', button: 'left', x: 4, y: 2, in: 'nav' }) // back, for the next surface
+        expect(open.get('chat-cursor-1')).toBe('◆ Map the client')
+        expect(open.has('chat-codex-1')).toBe(true)
       }
       await ui.unmount()
     }
+    // A second click on an open chat brings its tab forward: no second tab.
+    expect(opened.filter(one => one.startsWith('chat-cursor-1')).length).toBeGreaterThan(1)
+    expect(open.size).toBe(3)
   })
 }

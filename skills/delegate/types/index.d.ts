@@ -39,6 +39,10 @@ export type Brand = { name: string; color: string; glyph: string; svg: string }
 // A message waiting in .delegate/<id>/queue.jsonl for the running turn to end.
 export type QueuedMessage = { from: string; text: string; attachments: string[]; ts: number }
 
+// A chat's folds: whether its thinking and its tool output are folded, and the blocks (by event key)
+// folded or unfolded against that.
+export type Fold = { hideThinking: boolean; hideTools: boolean; toggled: string[] }
+
 // What hooks/nav.tsx (the Delegations pane's chat list) draws, and what it posts back.
 export type NavChat = { id: string; name: string; glyph: string; color: string; running: boolean; unread: boolean }
 export type NavProps = {
@@ -63,8 +67,9 @@ declare module 'claude-code' {
       naming: string
       drafts: Record<string, string>
       attachments: Record<string, string[]>
-      queue: QueuedMessage[]
-      extra: number
+      queue: Record<string, QueuedMessage[]>
+      extra: Record<string, number>
+      folds: Record<string, Fold>
     }
   }
 }

@@ -9,14 +9,26 @@ import type { NavAction, NavChat, NavProps } from '../types'
 
 type Menu = { kind: 'chat' | 'project'; target: string; label: string; x: number; y: number }
 type Line = { key: string; text: string; action: NavAction; menu?: Omit<Menu, 'x' | 'y'>; chat?: NavChat }
-type NavState = { menu?: Menu; mode?: 'menu' | 'rename' | 'delete'; hover?: number }
+type NavState = { menu?: Menu; mode?: 'menu' | 'rename' | 'delete'; hover?: number; frame?: number }
 
 const MENU_ROWS = 5 // room kept under the last line so a menu opened there still fits the region
+// A working chat's spinner, turned by the surface's own clock.
+const SPINNER = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+// The props of the last draw, which the spinner's clock reads.
+let latest: NavProps = { hoverColor: '', selected: '', archived: 0, groups: [] }
 
 const Nav: ClientModule<NavProps, NavState> = (props, surface) => {
   const { Box, Text, Button, Input } = surface.elements
   const state = surface.state ?? {}
-  const close = () => surface.setState({})
+  latest = props
+  if (!surface.state) {
+    surface.setState({ frame: 0 })
+    surface.every(120, () => {
+      const now = surface.state ?? {}
+      if (latest.groups.some(group => group.chats.some(chat => chat.running))) surface.setState({ ...now, frame: (now.frame ?? 0) + 1 })
+    })
+  }
+  const close = () => surface.setState({ frame: state.frame })
   const lines: Line[] = []
   const none: NavAction = { type: 'none' }
   const blank = (key: string) => lines.push({ key, text: ' ', action: none })
@@ -52,8 +64,9 @@ const Nav: ClientModule<NavProps, NavState> = (props, surface) => {
       const isOn = line.chat.id === props.selected
       return (
         <Box key={line.key} flexDirection="row" backgroundColor={lit(i, line)}>
-          <Text color={line.chat.color} bold>{`  ${line.chat.glyph} `}</Text>
-          <Text bold={isOn} inverse={isOn} wrap="truncate-end">{`${line.chat.name}${line.chat.running ? ' …' : ''}`}</Text>
+          <Text dimColor>{` ${line.chat.running ? SPINNER[(state.frame ?? 0) % SPINNER.length] : ' '} `}</Text>
+          <Text color={line.chat.color} bold>{`${line.chat.glyph} `}</Text>
+          <Text bold={isOn} inverse={isOn} wrap="truncate-end">{line.chat.name}</Text>
           {line.chat.unread ? <Text color="#3FB950"> ●</Text> : null}
         </Box>
       )
