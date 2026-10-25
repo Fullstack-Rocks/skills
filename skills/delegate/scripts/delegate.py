@@ -311,7 +311,9 @@ def command(state, prompt, attachments=()):
         argv += (["--resume", sid] if sid else []) + (["--model", model] if model else []) + extra
     elif h == "antigravity":
         argv = ["agy", "--output-format", "stream-json"]
-        argv += ["--dangerously-skip-permissions"] if write else ["--mode", "plan"]
+        # Headless agy can't answer a permission prompt, so it is denied and the turn ends empty; plan
+        # mode is what keeps a read-only run from editing, so its tools are approved too.
+        argv += ["--dangerously-skip-permissions"] + ([] if write else ["--mode", "plan"])
         argv += (["--conversation", sid] if sid else []) + (["--model", model] if model else [])
         argv += (["--effort", effort] if effort and not effort_in_id else []) + extra + ["-p"]
     elif h == "gemini":
