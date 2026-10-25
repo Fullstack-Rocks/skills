@@ -49,7 +49,7 @@ BINARIES = {"codex": "codex", "cursor": "cursor-agent", "antigravity": "agy", "g
             "claude": "claude"}
 GRACE = 10  # seconds between SIGTERM and SIGKILL when a turn times out or is stopped
 
-STATUS_RE = re.compile(r"^\s*\**STATUS:?\**\s*(done|question|blocked)\b[:\s]*(.*)$", re.I | re.M)
+STATUS_RE = re.compile(r"^\s*\**STATUS:?\**\s*(done|question|blocked)\b[:\s]*(.*)$", re.IGNORECASE | re.MULTILINE)
 PROTOCOL = """
 
 ---
@@ -395,7 +395,7 @@ CLAUDE_ALIASES = ["fable", "opus", "sonnet", "haiku"]
 EFFORT_LEVELS = ["none", "minimal", "low", "medium", "high", "xhigh", "extra-high", "max", "ultra"]
 # Cursor and Antigravity fold effort and speed into the id: `gpt-5.3-codex-high-fast`.
 VARIANT_RE = re.compile(r"^(?P<base>.+?)(?:-(?P<effort>" + "|".join(EFFORT_LEVELS) + r"))?(?P<fast>-fast)?$")
-LABEL_TAIL_RE = re.compile(r"(\s+\(?(None|Minimal|Low|Medium|High|Extra High|XHigh|Max|Ultra|Fast)\)?)+$", re.I)
+LABEL_TAIL_RE = re.compile(r"(\s+\(?(None|Minimal|Low|Medium|High|Extra High|XHigh|Max|Ultra|Fast)\)?)+$", re.IGNORECASE)
 FLAG_EFFORTS = {"claude": ["low", "medium", "high", "xhigh", "max"], "antigravity": ["low", "medium", "high", "xhigh", "max"]}
 
 
@@ -453,10 +453,10 @@ def raw_models(harness):
     rows = []
     try:
         if harness == "cursor":  # "id - Label"
-            out = subprocess.run(["cursor-agent", "models"], capture_output=True, text=True, timeout=60).stdout
+            out = subprocess.run(["cursor-agent", "models"], capture_output=True, check=False, text=True, timeout=60).stdout
             rows = [dict(zip(("id", "label"), x.split(" - ", 1))) for x in out.splitlines() if " - " in x]
         elif harness == "antigravity":  # "id<TAB>Label"
-            out = subprocess.run(["agy", "models"], capture_output=True, text=True, timeout=60).stdout
+            out = subprocess.run(["agy", "models"], capture_output=True, check=False, text=True, timeout=60).stdout
             rows = [dict(zip(("id", "label"), x.split("\t", 1))) for x in out.splitlines() if "\t" in x]
         elif harness == "codex":  # Codex keeps the account's models in a cache
             cache = json.loads((Path.home() / ".codex" / "models_cache.json").read_text())
@@ -464,7 +464,7 @@ def raw_models(harness):
         elif harness == "claude":
             rows = [{"id": a, "label": a.capitalize()} for a in CLAUDE_ALIASES]
         elif harness == "gemini-api":  # "  id   Description", under Gemma:/Gemini:/Image: headings
-            out = subprocess.run(["gemini-api", "models", "--no-interactive"], capture_output=True, text=True, timeout=60).stdout
+            out = subprocess.run(["gemini-api", "models", "--no-interactive"], capture_output=True, check=False, text=True, timeout=60).stdout
             rows = [{"id": x.split()[0], "label": x.split()[0]} for x in out.splitlines()
                     if x.startswith("  ") and x.split() and "image" not in x.split()[0]]
     except (OSError, ValueError, subprocess.SubprocessError, KeyError):
@@ -941,7 +941,7 @@ def cmd_pick(args):
         argv = ["zenity", "--file-selection", "--multiple", "--separator=\n"] + (["--directory"] if args.folders else [])
     else:
         sys.exit("no file dialog here (macOS osascript or Linux zenity); attach with @path instead")
-    done = subprocess.run(argv, capture_output=True, text=True)
+    done = subprocess.run(argv, capture_output=True, check=False, text=True)
     print(json.dumps([x.rstrip("/") or "/" for x in done.stdout.splitlines() if x.strip()] if done.returncode == 0 else []))
     return 0
 
@@ -992,7 +992,7 @@ def cmd_usage(args):
     for r in rows:
         print(f"{r['id']:<16}{r['harness']:<12}{clip(r['model'], 25):<26}{r['turns']:>6}{r['seconds']:>7}s{r.get('input', 0):>10}"
               f"{r.get('cached', 0):>10}{r.get('output', 0):>9}{r.get('reasoning', 0):>9}"
-              f"{('$%.2f' % r['cost_usd']) if r.get('cost_usd') else '-':>8}")
+              f"{f'${r["cost_usd"]:.2f}' if r.get('cost_usd') else '-':>8}")
         t = totals.setdefault(r["harness"], {"delegations": 0})
         t["delegations"] += 1
         for k in ("turns", "seconds", "input", "cached", "output", "reasoning", "cost_usd"):
@@ -1079,7 +1079,7 @@ def cmd_close(args):
         state = load(base, args.id)
         if state.get("worktree"):
             for cmd in (["worktree", "remove", "--force", "--force", state["worktree"]], ["branch", "-D", state["branch"]]):
-                done = subprocess.run(["git", "-C", str(root), *cmd], capture_output=True, text=True)
+                done = subprocess.run(["git", "-C", str(root), *cmd], capture_output=True, check=False, text=True)
                 if done.returncode != 0 and "not a working tree" not in done.stderr and "not found" not in done.stderr:
                     sys.exit(f"could not close {args.id}: git {' '.join(cmd[:2])}: {done.stderr.strip()}")
         state.update(status="closed", pid=None, worktree=None)

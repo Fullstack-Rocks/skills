@@ -332,8 +332,8 @@ def banner(skill: str, tagline: str) -> str:
     size = 44 if len(skill) < 20 else 36
     body = [f'    <g transform="translate(56 40) scale(0.064)" fill="#fff">\n{logo}\n    </g>',
             text(96, 62, "FULLSTACK.ROCKS/SKILLS", "kicker"),
-            f'    <text x="56" y="{128 if size == 44 else 124}" style="font: 600 {size}px \'UNB\', \'Unbounded\', '
-            f'system-ui, sans-serif; fill: #fff; letter-spacing: -0.5px">{escape(skill)}</text>',
+            (f'    <text x="56" y="{128 if size == 44 else 124}" style="font: 600 {size}px \'UNB\', \'Unbounded\', '
+             f'system-ui, sans-serif; fill: #fff; letter-spacing: -0.5px">{escape(skill)}</text>'),
             text(56, 170, tagline, "label", extra='style="font-size: 19px; font-weight: 500; fill: #D1D5DB"'),
             motif(skill)]
     return frame(212, "\n".join(body), f"{skill}: {tagline}", f"fullstack.rocks/skills · {skill}: {tagline}",
