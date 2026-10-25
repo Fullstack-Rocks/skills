@@ -302,7 +302,9 @@ def command(state, prompt, attachments=()):
     extra = attachment_flags(h, attachments, state["workdir"])
     if h == "codex":
         sandbox = f'sandbox_mode="{"workspace-write" if write else "read-only"}"'
+        # Live web search as the other harnesses have it; `--search` is missing from `exec resume`, the config key is not.
         argv = ["codex", "exec"] + (["resume", sid] if sid else []) + ["--json", "--skip-git-repo-check", "-c", sandbox]
+        argv += ["-c", 'web_search="live"']
         argv += (["-m", model] if model else []) + (["-c", f'model_reasoning_effort="{effort}"'] if effort else [])
         argv += (["-c", 'service_tier="priority"'] if speed == "fast" else []) + extra + ["--"]
     elif h == "cursor":
