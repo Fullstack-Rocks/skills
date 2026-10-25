@@ -26,13 +26,14 @@ const NO_PROJECT = '__none'
 const NEW_PROJECT = '__new'
 const DEFAULT = 'default'
 const SELECT_MAX = 64
-// A drawing has a size limit, so the conversation draws its newest rows up to DRAWN_CHARS characters
-// of text; scrolling to the top of them draws the next older batch (EARLIER more each time). The engine
-// draws 100,000 characters of a tree, so past DRAWN_MAX the newest rows give way, and scrolling to the
-// bottom brings them back. A folded block draws its head alone.
-const DRAWN_CHARS = 40_000
-const DRAWN_MAX = 80_000
+// The engine draws 100,000 characters of a tree, so a conversation draws its newest DRAWN_CHARS of text.
+// Long tool output starts folded to its first PREVIEW lines, so a chat usually fits whole and the surface
+// scrolls it from its first message. One that doesn't fit draws the next older batch (EARLIER more) when
+// scrolled to the top, its newest rows giving way, and scrolling to the bottom brings them back.
+const DRAWN_CHARS = 80_000
 const EARLIER = 20_000
+const LONG = 12 // lines of tool output past which it starts folded
+const PREVIEW = 3
 // A working chat's tab turns a spinner, one frame per SPIN_MS (nav.tsx turns its own in the list).
 const SPINNER = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
 const SPIN_MS = 250
@@ -160,10 +161,11 @@ function wrap(text: string, width: number): string[] {
   return out
 }
 
-// Thinking and tool output fold; a block is folded when the chat folds its kind, unless the person
-// unfolded that one (and the other way round).
-const isFolded = (ev: DelegateEvent, key: string, fold: Fold | undefined) =>
-  (ev.kind === 'thinking' ? fold?.hideThinking === true : fold?.hideTools === true) !== (fold?.toggled ?? []).includes(key)
+// Thinking and tool output fold; a block is folded when the chat folds its kind (long tool output
+// always), unless the person unfolded that one (and the other way round).
+const isFolded = (ev: DelegateEvent, key: string, lines: number, fold: Fold | undefined) =>
+  (ev.kind === 'thinking' ? fold?.hideThinking === true : fold?.hideTools === true || lines > LONG) !==
+  (fold?.toggled ?? []).includes(key)
 
 function toRows(list: DelegateEvent[], harness: string, width: number, fold: Fold | undefined): Row[] {
   const rows: Row[] = []
@@ -172,14 +174,17 @@ function toRows(list: DelegateEvent[], harness: string, width: number, fold: Fol
     const body = ev.kind === 'tool' ? ev.text.split('\n').slice(1).join('\n') : ev.kind === 'status' ? '' : ev.text
     const lines = ev.kind === 'message' || ev.kind === 'final' ? [] : body.trim() ? wrap(body, width) : []
     const foldable = (ev.kind === 'thinking' || ev.kind === 'tool' || ev.kind === 'tool_result') && lines.length > 0
-    const folded = foldable && isFolded(ev, key, fold)
-    const count = `${body.trim().split('\n').length} lines`
+    const count = body.trim().split('\n').length
+    const folded = foldable && isFolded(ev, key, count, fold)
+    // Folded output keeps its first lines in view, as a preview; folded thinking keeps none.
+    const preview = ev.kind === 'thinking' ? '' : body.trim().split('\n').slice(0, PREVIEW).join('\n')
+    const shown = folded ? (preview ? wrap(preview, width) : []) : lines
     const label = {
       message: ev.from === harness ? ev.from : `${ev.from} → ${harness}`,
       final: `${ev.from} · turn ${ev.turn} · ${ev.seconds ?? 0}s · STATUS: ${ev.status ?? '?'}`,
-      thinking: folded ? `thinking · ${count}` : 'thinking',
+      thinking: folded ? `thinking · ${count} lines` : 'thinking',
       tool: `› ${ev.text.split('\n')[0]}`,
-      tool_result: folded ? `↳ output · ${count}` : '↳ output',
+      tool_result: folded ? `↳ output · ${count} lines` : '↳ output',
       error: '✗ error',
       status: `· ${ev.text}`,
     }[ev.kind]
@@ -189,8 +194,11 @@ function toRows(list: DelegateEvent[], harness: string, width: number, fold: Fol
       markdownBlocks(ev.text + files).forEach((text, i) => {
         rows.push({ key: `${key}-${i}`, ev, kind: 'md', text, foldable: false, folded: false })
       })
-    } else if (!folded) {
-      lines.forEach((text, i) => rows.push({ key: `${key}-${i}`, ev, kind: 'body', text, foldable: false, folded: false }))
+    } else {
+      shown.forEach((text, i) => rows.push({ key: `${key}-${i}`, ev, kind: 'body', text, foldable: false, folded: false }))
+      if (folded && shown.length && count > PREVIEW) {
+        rows.push({ key: `${key}-more`, ev, kind: 'body', text: `… ${count - PREVIEW} more lines (▸ unfolds)`, foldable: false, folded: false })
+      }
     }
     if (n < list.length - 1) rows.push({ key: `${key}-gap`, ev, kind: 'gap', text: ' ', foldable: false, folded: false })
   })
@@ -302,6 +310,8 @@ async function readAll($: EngineInterface) {
   let isNewEvents = false
   for (const pane of panes) {
     const chat = now.find(one => one.id === chatOf(pane.id))
+    // A tab nothing draws any more (its chat deleted, or a pane id of an older version) is closed.
+    if (!chat && pane.id !== LIST && pane.id !== ARCHIVE) void $.ui.close({ id: pane.id }).catch(() => undefined)
     if (!chat) continue
     void loadModels($, chat.harness)
     // A mark that fails is tried again on the next poll.
@@ -773,7 +783,7 @@ export const register: Register = on => {
           />
           <Button
             key={`tools-${current.id}`}
-            label={fold?.hideTools ? '▤ Show tool output' : '▤ Fold tool output'}
+            label={fold?.hideTools ? '▤ Unfold short output' : '▤ Fold all output'}
             plain
             dimColor
             onPress={() => void setFold($, current.id, one => ({ ...one, hideTools: !one.hideTools, toggled: [] }))}
@@ -804,11 +814,13 @@ export const register: Register = on => {
     void where // the events' revision: a change redraws
     const all = toRows(eventsOf.get(current.id) ?? [], current.harness, Math.max(30, e.props.bodyColumns - 6), fold)
     const extra = extras[current.id] ?? 0
+    // A row costs its text and a few characters of its own (a label, a glyph).
+    const cost = (row: Row) => row.text.length + 4
     let first = all.length
     let used = 0
-    for (; first > 0 && used < DRAWN_CHARS + extra; first--) used += all[first - 1]!.text.length + 40
+    for (; first > 0 && used < DRAWN_CHARS + extra; first--) used += cost(all[first - 1]!)
     let last = all.length
-    for (; last > first + 1 && used > DRAWN_MAX; last--) used -= all[last - 1]!.text.length + 40
+    for (; last > first + 1 && used > DRAWN_CHARS; last--) used -= cost(all[last - 1]!)
     edges.set(current.id, { hasEarlier: first > 0, hasLater: last < all.length })
     const line = (row: Row) => {
       const ev = row.ev

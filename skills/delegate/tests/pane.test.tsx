@@ -105,10 +105,12 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
     for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
       const ui = await $.ui.mount({ ...CHAT, surface })
       expect(await ui.find({ type: 'Text', text: /queued: Also add a docstring/ })).toBeDefined()
-      // The pane scrolls the conversation natively. 140,000 characters of output are more than a drawing
-      // holds, so the newest rows are drawn and the first message waits for a scroll to the top.
-      expect(await ui.find({ type: 'Text', text: /output line 199/ })).toBeDefined()
-      expect(await ui.find({ type: 'Markdown', text: /Build the wishlist API\./ })).toBeUndefined()
+      // The pane scrolls the conversation natively, from its first message: the long output starts
+      // folded to a preview of its first lines.
+      expect(await ui.find({ type: 'Markdown', text: /Build the wishlist API\./ })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /↳ output · 200 lines/ })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /^output line 2$/ })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /^output line 3$/ })).toBeUndefined()
       // Replies are drawn as markdown.
       expect(await ui.find({ type: 'Markdown', text: /line 19/ })).toBeDefined()
       // The header's pickers are reachable from the composer.
@@ -130,10 +132,14 @@ const missing = (path: string) => new Error(`ENOENT: ${path}`)
     expect(await chat.find({ type: 'Text', text: /thinking · 1 lines/ })).toBeDefined()
     await chat.press({ key: 'fold-e4-h' })
     expect(await chat.find({ type: 'Text', text: /Now the handlers\./ })).toBeDefined()
-    // Tool output folds too, and the first message, older than the drawing held, comes into it.
+    // Unfolded, the 140,000 characters of output are more than a drawing holds: the newest rows are
+    // drawn, and the first message waits for a scroll to the top.
+    await chat.press({ key: 'fold-e3-h' })
+    expect(await chat.find({ type: 'Text', text: /output line 199/ })).toBeDefined()
+    expect(await chat.find({ type: 'Markdown', text: /Build the wishlist API\./ })).toBeUndefined()
+    // The chat's switch folds all output again.
     await chat.press({ key: 'tools-codex-1' })
     expect(await chat.find({ type: 'Text', text: /output line 199/ })).toBeUndefined()
-    expect(await chat.find({ type: 'Text', text: /↳ output · 200 lines/ })).toBeDefined()
     expect(await chat.find({ type: 'Markdown', text: /Build the wishlist API\./ })).toBeDefined()
     await chat.unmount()
 
