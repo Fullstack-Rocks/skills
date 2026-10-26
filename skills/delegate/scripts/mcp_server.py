@@ -114,7 +114,7 @@ class Server:
             f.write(message or "")
         try:
             argv = [sys.executable, str(DELEGATE), "--no-color", *args] + (["--file", f.name] if message else [])
-            return subprocess.run(argv, cwd=self.root, capture_output=True, text=True, timeout=120)
+            return subprocess.run(argv, cwd=self.root, capture_output=True, text=True, timeout=120, check=False)
         finally:
             os.unlink(f.name)
 

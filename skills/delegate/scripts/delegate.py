@@ -3,10 +3,11 @@
 
     delegate.py start <harness> [--write] [--model M] [--title T] [--attach PATH]... [--detach] (MESSAGE | --file F)
     delegate.py send <id> [--as-user] [--attach PATH]... [--detach] (MESSAGE | --file F)
-    delegate.py list | show <id> [--follow] | stop <id> | diff <id> | close <id>
+    delegate.py list | show <id> [--follow] | stop <id> | diff <id> [--apply [--exclude PATH]...] [--all] | close <id>
     delegate.py models <harness> | set <id> [--model M] [--effort E] [--speed S]   (default clears one)
     delegate.py meta <id> [--archive | --unarchive] [--name NAME] [--project NAME | --no-project] [--seen]
     delegate.py rename-project OLD NEW | delete <id> | pick [--folders] | usage [--json]
+    delegate.py start --unit U [--plan F] [MESSAGE | --file F]   (a unit of the delegation plan) | plan check
 
 How a delegation is filed (archived, its project tag, the turn the person last saw) lives in
 .delegate/<id>/meta.json, which only the UIs and `meta` write, never a running turn.
@@ -29,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import fnmatch
 import json
 import os
 import re
@@ -49,15 +51,26 @@ BINARIES = {"codex": "codex", "cursor": "cursor-agent", "antigravity": "agy", "g
             "claude": "claude"}
 GRACE = 10  # seconds between SIGTERM and SIGKILL when a turn times out or is stopped
 
-STATUS_RE = re.compile(r"^\s*\**STATUS:?\**\s*(done|question|blocked)\b[:\s]*(.*)$", re.I | re.M)
+# No word break after the status: Cursor runs its closing sentence on ("STATUS: doneTask completed…").
+STATUS_RE = re.compile(r"^\s*\**STATUS:?\**\s*(done|question|blocked)[:\s]*(.*)$", re.IGNORECASE | re.MULTILINE)
 PROTOCOL = """
 
 ---
 You are working for {lead}, another coding agent, who delegated this task and reads only your final \
-message. Make that message self-contained: what you did or found, and every file you changed.{mode_note}
+message. You are the delegate, not the orchestrator: where the project's instructions (CLAUDE.md, AGENTS.md, \
+GEMINI.md) describe an orchestrator who hands work to other agents, they are written for {lead}. Do this task \
+yourself; don't delegate it to another agent. Nobody approves plans or answers prompts during your turn: work \
+straight through, and if you need a decision only {lead} can make, end with `STATUS: question`.
+Run whatever does not return on its own (a dev or preview server, a watcher, a long build) as a background \
+process, never in the foreground, and give it a heartbeat: its output in a log file, and a check that it still \
+answers (a request to its port, `kill -0 <pid>`) before each use. Stop each one when you are done with it, \
+before your final message.
+Make your final message self-contained: what you did or found, and every file you changed.{mode_note}
+Before the last line, add a short **Left open** list: what you could not verify, what you found but did not fix, \
+and what you could do next (or `Left open: nothing`).
 End it with exactly one line: `STATUS: done`, `STATUS: question <your question>` or `STATUS: blocked <why>`."""
 READ_NOTE = "\nThis is a read-only task: do not modify files."
-REMINDER = "\n\n(End your reply with a STATUS line, as before.)"
+REMINDER = "\n\n(End your reply with a Left open list and a STATUS line, as before.)"
 
 
 # ---------------------------------------------------------------- stream parsers, one per harness
@@ -389,13 +402,171 @@ def resolve_attachments(root, paths, text):
     return found
 
 
+def unopened_inputs(harness, attachments, tools):
+    """The attachments no tool call of the turn named: inputs the agent may never have looked at.
+
+    Images Codex takes with -i, and every file the Gemini API takes, are in the prompt itself."""
+    def native(a):
+        return harness == "gemini-api" or (harness == "codex" and Path(a).suffix.lower() in IMAGES)
+
+    calls = "\n".join(tools)
+    return [a for a in attachments if not native(a) and a not in calls and Path(a).name not in calls]
+
+
+# ---------------------------------------------------------------- delegation plans
+
+PLAN_FILE = "delegation-plan.md"
+PLAN_REQUIRED = ("role", "agent", "model", "effort", "makes", "handed to", "done when")
+FINAL = {"final", "the user", "deliverable"}
+
+
+def find_plan(root, path=None):
+    candidates = [Path(path)] if path else [Path(root) / PLAN_FILE, Path(root) / "docs" / PLAN_FILE]
+    for p in candidates:
+        p = p if p.is_absolute() else Path(root) / p
+        if p.is_file():
+            return p
+    sys.exit(f"no delegation plan: write {candidates[0]} (see the skill's references/plan-template.md) or pass --plan")
+
+
+def read_plan(path):
+    """`key: value` lines before the first `## <unit>` heading, then one `## <unit>` section of `- key: value` lines per unit."""
+    plan, units, unit = {}, {}, None
+    for raw in Path(path).read_text().splitlines():
+        if m := re.match(r"^##\s+`?([\w.-]+)`?\s*$", raw):
+            unit = units.setdefault(m[1], {"name": m[1]})
+        elif m := re.match(r"^\s*[-*]?\s*([A-Za-z][\w ]*?)\s*:\s*(.+)$", raw):
+            (unit if unit is not None else plan)[m[1].strip().lower()] = m[2].strip()
+    plan["units"] = units
+    return plan
+
+
+def plan_items(value):
+    """`docs/SPEC.md, art/*.png (the look to match)` -> [("docs/SPEC.md", ""), ("art/*.png", "the look to match")]."""
+    parts, depth, cur = [], 0, ""
+    for ch in value or "":
+        depth += (ch == "(") - (ch == ")")
+        if ch == "," and depth == 0:
+            parts.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    items = []
+    for part in [*parts, cur]:
+        m = re.match(r"^\s*`?([^`(]+?)`?\s*(?:\((.*)\))?\s*$", part)
+        if m and m[1].strip().lower() not in ("none", "-", "—", ""):
+            items.append((m[1].strip(), (m[2] or "").strip()))
+    return items
+
+
+def overlaps(a, b):
+    """Whether two paths or globs can name the same file: `src/ui/**` and `src/ui/button.tsx` do."""
+    def stem(p):
+        p = p.rstrip("/")
+        return p if not re.search(r"[*?[]", p) else re.split(r"[*?[]", p)[0].rsplit("/", 1)[0]
+    if fnmatch.fnmatch(a, b) or fnmatch.fnmatch(b, a):
+        return True
+    sa, sb = stem(a), stem(b)
+    return bool(sa and sb) and (sa == sb or sa.startswith(sb + "/") or sb.startswith(sa + "/"))
+
+
+def expand(root, pattern):
+    """The existing files or folder an input names, as absolute paths: a folder whole, a glob's matches."""
+    path = Path(root) / pattern
+    if "**" in pattern or path.is_dir():
+        folder = Path(root) / re.split(r"[*?[]", pattern)[0]
+        folder = folder if folder.is_dir() else folder.parent
+        return [str(folder)] if folder.is_dir() else []
+    matches = sorted(str(p) for p in Path(root).glob(pattern) if p.is_file())
+    return matches if len(matches) <= 12 else [str(Path(matches[0]).parent)]
+
+
+def unit_header(plan, unit, ident, root):
+    """The top of a unit's brief: who the agent is, what it receives from whom, and whom its work goes to."""
+    units = plan["units"]
+
+    def made_by(path):
+        return [u["name"] for u in units.values() if u is not unit and any(overlaps(path, m) for m, _ in plan_items(u.get("makes")))]
+
+    def line(path, note, source="", check=True):
+        there = " (not there yet)" if check and not expand(root, path) else ""
+        return f"- `{path}`" + (f": {note}" if note else "") + (f" (from `{source}`)" if source else "") + there
+
+    project = f", project `{plan['project']}`" if plan.get("project") else ""
+    out = [f"You are **{unit.get('role', unit['name'])}**: unit `{unit['name']}` of the delegation plan, delegation `{ident}`{project}.",
+           f"Your unit of work is done when: {unit.get('done when', 'the brief below is met')}."]
+    uses = plan_items(unit.get("uses"))
+    if uses:
+        out.append("Your inputs (paths from the repository root; use each one as its note says):")
+        out += [line(p, n, ", ".join(made_by(p))) for p, n in uses]
+    makes = plan_items(unit.get("makes"))
+    if makes:
+        out.append("Your outputs:")
+        out += [line(p, n, check=False) for p, n in makes]
+    to = plan_items(unit.get("handed to"))
+    if to:
+        out.append("Your outputs go to:")
+        out += [f"- {units[n].get('role', n)} (`{n}`)" + (f", who uses them as: {note}" if note else "")
+                if n in units else "- the user, as a finished deliverable" for n, note in to]
+        out.append("Make them ready for that next step, not only for this brief.")
+    return "\n".join(out) + "\n\n---\n\n"
+
+
+def plan_problems(plan, root):
+    """What would leave work unused or a unit without what it needs."""
+    units, found = plan["units"], []
+    for u in units.values():
+        name = u["name"]
+        found += [f"{name}: no `{k}`" for k in PLAN_REQUIRED if not u.get(k)]
+        if u.get("agent") and ALIASES.get(u["agent"], u["agent"]) not in PARSERS:
+            found.append(f"{name}: unknown agent `{u['agent']}`")
+        to = [n for n, _ in plan_items(u.get("handed to"))]
+        found += [f"{name}: hands to `{n}`, which is not a unit" for n in to if n not in units and n.lower() not in FINAL]
+        makes = [m for m, _ in plan_items(u.get("makes"))]
+        for n in to:
+            if n in units and not any(overlaps(i, m) for i, _ in plan_items(units[n].get("uses")) for m in makes):
+                found.append(f"{name}: hands to `{n}`, but `{n}` uses nothing `{name}` makes; add it to `{n}`'s uses")
+        if not any(n.lower() in FINAL for n in to):
+            for m in makes:
+                if not any(overlaps(i, m) for v in units.values() if v is not u for i, _ in plan_items(v.get("uses"))):
+                    found.append(f"{name}: makes `{m}`, but no unit uses it; hand it on or mark the unit final")
+        for i, _ in plan_items(u.get("uses")):
+            makers = [v["name"] for v in units.values() if v is not u and any(overlaps(i, m) for m, _ in plan_items(v.get("makes")))]
+            if not makers and not expand(root, i):
+                found.append(f"{name}: uses `{i}`, which no unit makes and which is not there")
+    return found
+
+
+def cmd_plan(args):
+    root, base = home()
+    path = find_plan(root, args.plan)
+    plan = read_plan(path)
+    runs = {}
+    for p in sorted(base.glob("*/state.json")):
+        s = json.loads(p.read_text())
+        if s.get("unit"):
+            runs.setdefault(s["unit"], []).append(f"{s['id']} {s.get('status', '')} {s.get('agent_status') or '-'}")
+    print(f"plan {path.relative_to(root) if path.is_relative_to(root) else path}"
+          + (f", project {plan['project']}" if plan.get("project") else "") + f": {len(plan['units'])} units")
+    for u in plan["units"].values():
+        how = " ".join(x for x in (u.get("agent"), u.get("model"), u.get("effort"), u.get("mode")) if x)
+        print(f"  {u['name']:<20} {clip(u.get('role', ''), 34):<34} {how:<32} {'; '.join(runs.get(u['name'], [])) or 'not started'}")
+    problems = plan_problems(plan, root)
+    if problems:
+        print("problems:")
+        print("\n".join(f"  - {p}" for p in problems))
+    else:
+        print("no problems: every output has a consumer and every input a source.")
+    return 1 if problems else 0
+
+
 CLAUDE_ALIASES = ["fable", "opus", "sonnet", "haiku"]
 
 
 EFFORT_LEVELS = ["none", "minimal", "low", "medium", "high", "xhigh", "extra-high", "max", "ultra"]
 # Cursor and Antigravity fold effort and speed into the id: `gpt-5.3-codex-high-fast`.
 VARIANT_RE = re.compile(r"^(?P<base>.+?)(?:-(?P<effort>" + "|".join(EFFORT_LEVELS) + r"))?(?P<fast>-fast)?$")
-LABEL_TAIL_RE = re.compile(r"(\s+\(?(None|Minimal|Low|Medium|High|Extra High|XHigh|Max|Ultra|Fast)\)?)+$", re.I)
+LABEL_TAIL_RE = re.compile(r"(\s+\(?(None|Minimal|Low|Medium|High|Extra High|XHigh|Max|Ultra|Fast)\)?)+$", re.IGNORECASE)
 FLAG_EFFORTS = {"claude": ["low", "medium", "high", "xhigh", "max"], "antigravity": ["low", "medium", "high", "xhigh", "max"]}
 
 
@@ -453,10 +624,10 @@ def raw_models(harness):
     rows = []
     try:
         if harness == "cursor":  # "id - Label"
-            out = subprocess.run(["cursor-agent", "models"], capture_output=True, text=True, timeout=60).stdout
+            out = subprocess.run(["cursor-agent", "models"], capture_output=True, check=False, text=True, timeout=60).stdout
             rows = [dict(zip(("id", "label"), x.split(" - ", 1))) for x in out.splitlines() if " - " in x]
         elif harness == "antigravity":  # "id<TAB>Label"
-            out = subprocess.run(["agy", "models"], capture_output=True, text=True, timeout=60).stdout
+            out = subprocess.run(["agy", "models"], capture_output=True, check=False, text=True, timeout=60).stdout
             rows = [dict(zip(("id", "label"), x.split("\t", 1))) for x in out.splitlines() if "\t" in x]
         elif harness == "codex":  # Codex keeps the account's models in a cache
             cache = json.loads((Path.home() / ".codex" / "models_cache.json").read_text())
@@ -464,7 +635,7 @@ def raw_models(harness):
         elif harness == "claude":
             rows = [{"id": a, "label": a.capitalize()} for a in CLAUDE_ALIASES]
         elif harness == "gemini-api":  # "  id   Description", under Gemma:/Gemini:/Image: headings
-            out = subprocess.run(["gemini-api", "models", "--no-interactive"], capture_output=True, text=True, timeout=60).stdout
+            out = subprocess.run(["gemini-api", "models", "--no-interactive"], capture_output=True, check=False, text=True, timeout=60).stdout
             rows = [{"id": x.split()[0], "label": x.split()[0]} for x in out.splitlines()
                     if x.startswith("  ") and x.split() and "image" not in x.split()[0]]
     except (OSError, ValueError, subprocess.SubprocessError, KeyError):
@@ -682,7 +853,7 @@ def run_turn(base, state, text, sender, timeout, color, attachments=()):
     killer = threading.Timer(timeout, expire)
     killer.daemon = True
     killer.start()
-    noise = []
+    noise, tools = [], []
     try:
         for raw in proc.stdout:
             try:
@@ -695,6 +866,8 @@ def run_turn(base, state, text, sender, timeout, color, attachments=()):
                 for ev in parser.feed(obj):
                     if str(ev["text"]).strip():
                         log.emit(state["harness"], ev["kind"], ev["text"])
+                    if ev["kind"] == "tool":
+                        tools.append(str(ev["text"]))
         for ev in parser.flush():
             log.emit(state["harness"], ev["kind"], ev["text"])
     finally:
@@ -734,10 +907,14 @@ def run_turn(base, state, text, sender, timeout, color, attachments=()):
         detail = hint or (clip(err, 600) if err.strip() else f"stderr: {folder / 'stderr.log'}")
         log.emit(state["harness"], "error", f"{state['harness']} {problem}. {detail}")
         print(f"\n{state['harness']} {problem}. {detail}")
+    unopened = unopened_inputs(state["harness"], attachments, tools)
     if reply:
-        log.emit(state["harness"], "final", reply, status=state["agent_status"], seconds=seconds, usage=parser.usage)
+        log.emit(state["harness"], "final", reply, status=state["agent_status"], seconds=seconds, usage=parser.usage,
+                 **({"unopened": unopened} if unopened else {}))
         print(f"\n{rule} {state['harness']} · {state['id']} · turn {state['turns']} · {seconds}s · "
               f"STATUS: {state['agent_status']} {rule}\n{reply}\n{rule}")
+        if unopened:
+            print(f"inputs not opened ({len(unopened)} of {len(attachments)}): " + ", ".join(unopened))
     elif stopped:
         log.emit("user", "status", "stopped", echo=False)
     save(base, state)
@@ -771,6 +948,8 @@ def serve_queue(base, ident, fd, timeout, color):
 
 def submit(base, state, text, sender, attachments, args):
     """Queue the message, then run the queue here or in a detached process, unless a turn is already running it."""
+    # A turn runs as long as the delegation was given at start, unless this command says otherwise.
+    args.timeout = args.timeout or state.get("timeout") or 1800
     waiting = enqueue(base, state["id"], {"from": sender, "text": text, "attachments": attachments, "ts": time.time()})
     fd = lock(base, state["id"])
     if fd is None:
@@ -807,13 +986,29 @@ def lead_name(args):
 
 
 def cmd_start(args):
+    root, base = home()
+    plan = unit = None
+    if args.unit and args.harness and ALIASES.get(args.harness, args.harness) not in PARSERS:
+        args.message, args.harness = [args.harness, *args.message], None  # the message's first word, not an agent
+    if args.unit:
+        plan = read_plan(find_plan(root, args.plan))
+        unit = plan["units"].get(args.unit) or sys.exit(f"no unit {args.unit!r} in the plan: {', '.join(plan['units'])}")
+        # The plan fills what the command line leaves out, so what ran matches what was planned.
+        args.harness = args.harness or unit.get("agent")
+        args.model = args.model or (unit.get("model") if unit.get("model") != "default" else None)
+        args.effort = args.effort or (unit.get("effort") if unit.get("effort") != "default" else None)
+        args.write = args.write or unit.get("mode", "").lower() == "write"
+        args.project = args.project or plan.get("project")
+        args.title = args.title or clip(f"{args.unit}: {unit.get('role', '')}", 60)
+        args.attach = [*args.attach, *(a for p, _ in plan_items(unit.get("uses")) for a in expand(root, p))]
+    if not args.harness:
+        sys.exit("name a harness, or a --unit whose plan names its agent")
     harness = ALIASES.get(args.harness, args.harness)
     if harness not in PARSERS:
         sys.exit(f"unknown harness {args.harness!r}: {', '.join(PARSERS)}")
     if not shutil.which(BINARIES[harness]):
         sys.exit(f"{BINARIES[harness]} is not on PATH")
     text = read_message(args)
-    root, base = home()
     # The next free number; mkdir claims it, so starts running at the same moment each get their own.
     n = 1 + sum(1 for p in base.glob(f"{harness}-*") if p.is_dir())
     while True:
@@ -826,7 +1021,11 @@ def cmd_start(args):
     mode = "write" if args.write else "read"
     state = {"id": ident, "harness": harness, "mode": mode, "lead": lead_name(args),
              "title": args.title or clip(text.strip().splitlines()[0], 40), "root": str(root), "workdir": str(root),
-             "turns": 0, "created": time.time(), "status": "idle", "new_session_id": str(uuid.uuid4())}
+             "turns": 0, "created": time.time(), "status": "idle", "new_session_id": str(uuid.uuid4()),
+             "timeout": args.timeout or 1800}
+    if unit:
+        state["unit"] = args.unit
+        text = unit_header(plan, unit, ident, root) + text
     apply_choice(state, args.model, args.effort, args.speed)
     if mode == "write":
         wt = folder / "worktree"
@@ -941,7 +1140,7 @@ def cmd_pick(args):
         argv = ["zenity", "--file-selection", "--multiple", "--separator=\n"] + (["--directory"] if args.folders else [])
     else:
         sys.exit("no file dialog here (macOS osascript or Linux zenity); attach with @path instead")
-    done = subprocess.run(argv, capture_output=True, text=True)
+    done = subprocess.run(argv, capture_output=True, check=False, text=True)
     print(json.dumps([x.rstrip("/") or "/" for x in done.stdout.splitlines() if x.strip()] if done.returncode == 0 else []))
     return 0
 
@@ -992,7 +1191,7 @@ def cmd_usage(args):
     for r in rows:
         print(f"{r['id']:<16}{r['harness']:<12}{clip(r['model'], 25):<26}{r['turns']:>6}{r['seconds']:>7}s{r.get('input', 0):>10}"
               f"{r.get('cached', 0):>10}{r.get('output', 0):>9}{r.get('reasoning', 0):>9}"
-              f"{('$%.2f' % r['cost_usd']) if r.get('cost_usd') else '-':>8}")
+              f"{f'${r["cost_usd"]:.2f}' if r.get('cost_usd') else '-':>8}")
         t = totals.setdefault(r["harness"], {"delegations": 0})
         t["delegations"] += 1
         for k in ("turns", "seconds", "input", "cached", "output", "reasoning", "cost_usd"):
@@ -1056,17 +1255,39 @@ def cmd_stop(args):
     return 0
 
 
+def worktree_tree(wt):
+    """The worktree's files as a git tree, untracked ones included, built in a scratch index so its own index is untouched."""
+    env = {**os.environ, "GIT_INDEX_FILE": str(Path(git(wt, "rev-parse", "--git-dir")) / "delegate-snapshot.index")}
+    for cmd in (["read-tree", "HEAD"], ["add", "-A"]):
+        subprocess.run(["git", "-C", wt, *cmd], env=env, capture_output=True, check=True)
+    return subprocess.run(["git", "-C", wt, "write-tree"], env=env, capture_output=True, text=True, check=True).stdout.strip()
+
+
 def cmd_diff(args):
-    _, base = home()
+    root, base = home()
     state = load(base, args.id)
     if not state.get("worktree"):
         sys.exit(f"{args.id} worked read-only in the checkout; there is nothing to diff")
     wt = state["worktree"]
-    git(wt, "add", "-A", "-N")  # untracked files show up in the diff
-    # Against the commit it started from, so its own commits are included; --binary so images apply.
-    out = subprocess.run(["git", "-C", wt, "diff", "--binary", "--no-ext-diff", "--no-textconv", state["base"]],
-                         capture_output=True, text=True, check=True)
-    sys.stdout.write(out.stdout)
+    # Since the last --apply, so a follow-up turn's diff holds only what is new; else since the commit it started from.
+    since = state["base"] if args.all or not state.get("applied") else state["applied"]
+    tree = worktree_tree(wt)
+    # --binary so images apply.
+    out = subprocess.run(["git", "-C", wt, "diff", "--binary", "--no-ext-diff", "--no-textconv", since, tree],
+                         capture_output=True, text=True, check=True).stdout
+    if not args.apply:
+        sys.stdout.write(out)
+        return 0
+    if out.strip():
+        skip = [f"--exclude={x}" for x in args.exclude]
+        done = subprocess.run(["git", "-C", str(root), "apply", "--binary", *skip], input=out, capture_output=True, text=True,
+                              check=False)
+        if done.returncode:
+            sys.exit(f"git apply failed; nothing recorded:\n{done.stderr.strip()}")
+    state["applied"] = tree
+    save(base, state)
+    files = len(re.findall(r"^diff --git", out, re.MULTILINE))
+    print(f"applied {files} changed file{'s' * (files != 1)} from {args.id}; its next diff starts here")
     return 0
 
 
@@ -1079,7 +1300,7 @@ def cmd_close(args):
         state = load(base, args.id)
         if state.get("worktree"):
             for cmd in (["worktree", "remove", "--force", "--force", state["worktree"]], ["branch", "-D", state["branch"]]):
-                done = subprocess.run(["git", "-C", str(root), *cmd], capture_output=True, text=True)
+                done = subprocess.run(["git", "-C", str(root), *cmd], capture_output=True, check=False, text=True)
                 if done.returncode != 0 and "not a working tree" not in done.stderr and "not found" not in done.stderr:
                     sys.exit(f"could not close {args.id}: git {' '.join(cmd[:2])}: {done.stderr.strip()}")
         state.update(status="closed", pid=None, worktree=None)
@@ -1099,13 +1320,15 @@ def main():
         sp.add_argument("message", nargs="*")
         sp.add_argument("--file", help="read the message from a file")
         sp.add_argument("--lead", help="name the sender (default: claude inside Claude Code)")
-        sp.add_argument("--timeout", type=int, default=1800, help="seconds per turn (default 1800)")
+        sp.add_argument("--timeout", type=int, help="seconds per turn (default: the delegation's own, set at start; 1800)")
         sp.add_argument("--detach", action="store_true", help="print the id and run the turn in the background")
         sp.add_argument("--attach", action="append", default=[], metavar="PATH",
                         help="a file, folder or image to send with the message (repeatable)")
 
     s = sub.add_parser("start", help="start a delegation and run its first turn")
-    s.add_argument("harness")
+    s.add_argument("harness", nargs="?", help="the agent; with --unit, the plan's agent by default")
+    s.add_argument("--unit", help="run this unit of the delegation plan: its role, inputs, handoff, agent, model and effort")
+    s.add_argument("--plan", help=f"the plan file (default: {PLAN_FILE} or docs/{PLAN_FILE})")
     s.add_argument("--write", action="store_true", help="let it edit files, in a git worktree of its own")
     s.add_argument("--model")
     s.add_argument("--title")
@@ -1141,8 +1364,17 @@ def main():
     s = sub.add_parser("show")
     s.add_argument("id")
     s.add_argument("--follow", action="store_true")
-    for name in ("stop", "diff", "close"):
+    for name in ("stop", "close"):
         sub.add_parser(name).add_argument("id")
+    s = sub.add_parser("diff", help="a write delegation's changes, since the last --apply or since it started")
+    s.add_argument("id")
+    s.add_argument("--apply", action="store_true", help="apply them to the checkout and diff from here next time")
+    s.add_argument("--all", action="store_true", help="every change since it started, even those already applied")
+    s.add_argument("--exclude", action="append", default=[], metavar="PATH",
+                   help="with --apply, leave out these paths (globs; repeatable), e.g. a file the lead keeps itself")
+    s = sub.add_parser("plan", help="check the delegation plan: outputs nobody uses, inputs nobody makes, units' runs")
+    s.add_argument("action", nargs="?", default="check", choices=["check"])
+    s.add_argument("--plan", help=f"the plan file (default: {PLAN_FILE} or docs/{PLAN_FILE})")
     s = sub.add_parser("models", help="list a harness's models")
     s.add_argument("harness")
     s.add_argument("--json", action="store_true")
@@ -1162,7 +1394,7 @@ def main():
                "usage": cmd_usage,
                "stop": cmd_stop, "diff": cmd_diff, "close": cmd_close, "models": cmd_models,
                "set": cmd_set, "meta": cmd_meta,
-               "rename-project": cmd_rename_project, "delete": cmd_delete, "pick": cmd_pick}[args.cmd]
+               "rename-project": cmd_rename_project, "delete": cmd_delete, "pick": cmd_pick, "plan": cmd_plan}[args.cmd]
     sys.exit(handler(args))
 
 

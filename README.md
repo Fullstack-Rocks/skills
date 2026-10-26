@@ -128,7 +128,13 @@ npx skills add Fullstack-Rocks/skills --skill code-standards   # just one
 npx skills add Fullstack-Rocks/skills -g                       # for every project
 ```
 
-Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards` and `delegate` stand alone. Installed globally (`-g`), `delegate` brings its Delegations panes to every Claude Code session.
+Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards` and `delegate` stand alone.
+
+`delegate`'s Delegations panes are a Claude Code plugin. Install it, with the skill, for every session at a terminal session's prompt (in the desktop app: + next to the prompt box, Plugins, Add marketplace `Fullstack-Rocks/skills`, then Add plugin):
+
+```
+/plugin install delegate --marketplace Fullstack-Rocks/skills
+```
 
 > [!TIP]
 > To make the checkpoint run every time, add one line to your `AGENTS.md` or `CLAUDE.md`:
