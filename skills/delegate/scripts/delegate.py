@@ -3,7 +3,7 @@
 
     delegate.py start <harness> [--write] [--model M] [--title T] [--attach PATH]... [--detach] (MESSAGE | --file F)
     delegate.py send <id> [--as-user] [--attach PATH]... [--detach] (MESSAGE | --file F)
-    delegate.py list | show <id> [--follow] | stop <id> | diff <id> | close <id>
+    delegate.py list | show <id> [--follow] | stop <id> | diff <id> [--apply] [--all] | close <id>
     delegate.py models <harness> | set <id> [--model M] [--effort E] [--speed S]   (default clears one)
     delegate.py meta <id> [--archive | --unarchive] [--name NAME] [--project NAME | --no-project] [--seen]
     delegate.py rename-project OLD NEW | delete <id> | pick [--folders] | usage [--json]
@@ -1251,17 +1251,37 @@ def cmd_stop(args):
     return 0
 
 
+def worktree_tree(wt):
+    """The worktree's files as a git tree, untracked ones included, built in a scratch index so its own index is untouched."""
+    env = {**os.environ, "GIT_INDEX_FILE": str(Path(git(wt, "rev-parse", "--git-dir")) / "delegate-snapshot.index")}
+    for cmd in (["read-tree", "HEAD"], ["add", "-A"]):
+        subprocess.run(["git", "-C", wt, *cmd], env=env, capture_output=True, check=True)
+    return subprocess.run(["git", "-C", wt, "write-tree"], env=env, capture_output=True, text=True, check=True).stdout.strip()
+
+
 def cmd_diff(args):
-    _, base = home()
+    root, base = home()
     state = load(base, args.id)
     if not state.get("worktree"):
         sys.exit(f"{args.id} worked read-only in the checkout; there is nothing to diff")
     wt = state["worktree"]
-    git(wt, "add", "-A", "-N")  # untracked files show up in the diff
-    # Against the commit it started from, so its own commits are included; --binary so images apply.
-    out = subprocess.run(["git", "-C", wt, "diff", "--binary", "--no-ext-diff", "--no-textconv", state["base"]],
-                         capture_output=True, text=True, check=True)
-    sys.stdout.write(out.stdout)
+    # Since the last --apply, so a follow-up turn's diff holds only what is new; else since the commit it started from.
+    since = state["base"] if args.all or not state.get("applied") else state["applied"]
+    tree = worktree_tree(wt)
+    # --binary so images apply.
+    out = subprocess.run(["git", "-C", wt, "diff", "--binary", "--no-ext-diff", "--no-textconv", since, tree],
+                         capture_output=True, text=True, check=True).stdout
+    if not args.apply:
+        sys.stdout.write(out)
+        return 0
+    if out.strip():
+        done = subprocess.run(["git", "-C", str(root), "apply", "--binary"], input=out, capture_output=True, text=True, check=False)
+        if done.returncode:
+            sys.exit(f"git apply failed; nothing recorded:\n{done.stderr.strip()}")
+    state["applied"] = tree
+    save(base, state)
+    files = len(re.findall(r"^diff --git", out, re.MULTILINE))
+    print(f"applied {files} changed file{'s' * (files != 1)} from {args.id}; its next diff starts here")
     return 0
 
 
@@ -1338,8 +1358,12 @@ def main():
     s = sub.add_parser("show")
     s.add_argument("id")
     s.add_argument("--follow", action="store_true")
-    for name in ("stop", "diff", "close"):
+    for name in ("stop", "close"):
         sub.add_parser(name).add_argument("id")
+    s = sub.add_parser("diff", help="a write delegation's changes, since the last --apply or since it started")
+    s.add_argument("id")
+    s.add_argument("--apply", action="store_true", help="apply them to the checkout and diff from here next time")
+    s.add_argument("--all", action="store_true", help="every change since it started, even those already applied")
     s = sub.add_parser("plan", help="check the delegation plan: outputs nobody uses, inputs nobody makes, units' runs")
     s.add_argument("action", nargs="?", default="check", choices=["check"])
     s.add_argument("--plan", help=f"the plan file (default: {PLAN_FILE} or docs/{PLAN_FILE})")
