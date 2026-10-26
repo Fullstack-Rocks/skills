@@ -51,7 +51,8 @@ BINARIES = {"codex": "codex", "cursor": "cursor-agent", "antigravity": "agy", "g
             "claude": "claude"}
 GRACE = 10  # seconds between SIGTERM and SIGKILL when a turn times out or is stopped
 
-STATUS_RE = re.compile(r"^\s*\**STATUS:?\**\s*(done|question|blocked)\b[:\s]*(.*)$", re.IGNORECASE | re.MULTILINE)
+# No word break after the status: Cursor runs its closing sentence on ("STATUS: doneTask completed…").
+STATUS_RE = re.compile(r"^\s*\**STATUS:?\**\s*(done|question|blocked)[:\s]*(.*)$", re.IGNORECASE | re.MULTILINE)
 PROTOCOL = """
 
 ---
