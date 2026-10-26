@@ -1,0 +1,1995 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A traceable benchmark of Kaelvorn’s build and redesign: agent runs, time, tokens, images and list-price costs."
+    />
+    <title>Kaelvorn — build and redesign benchmark</title>
+    <link rel="stylesheet" href="../../style.css" />
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #eee7d8;
+        color: #202934;
+        font:
+          17px/1.65 Georgia,
+          "Times New Roman",
+          serif;
+      }
+      main {
+        max-width: 1420px;
+        margin: auto;
+        padding: clamp(20px, 5vw, 72px);
+      }
+      nav {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 44px;
+        font-size: 15px;
+      }
+      a {
+        color: #355d69;
+        text-underline-offset: 3px;
+      }
+      a:hover {
+        color: #8a3f34;
+      }
+      h1,
+      h2,
+      h3 {
+        color: #202934;
+        font-family: Georgia, "Times New Roman", serif;
+        line-height: 1.15;
+      }
+      h1 {
+        max-width: 1000px;
+        font-size: clamp(36px, 5vw, 68px);
+        letter-spacing: -0.035em;
+        margin: 0 0 32px;
+      }
+      h2 {
+        font-size: 32px;
+        margin: 60px 0 22px;
+        padding-top: 18px;
+        border-top: 2px solid #ac8d52;
+      }
+      h3 {
+        font-size: 23px;
+        margin-top: 35px;
+      }
+      p,
+      li {
+        max-width: 100ch;
+      }
+      p {
+        margin: 18px 0;
+      }
+      strong {
+        color: #202934;
+      }
+      code {
+        font-size: 0.85em;
+        background: #e4dccb;
+        padding: 2px 4px;
+        border-radius: 3px;
+        overflow-wrap: anywhere;
+      }
+      .table-scroll {
+        overflow: auto;
+        margin: 26px 0;
+        border: 1px solid #c7b99e;
+        background: #f8f4eb;
+      }
+      .table-scroll:focus-visible,
+      a:focus-visible {
+        outline: 3px solid #355d69;
+        outline-offset: 4px;
+      }
+      table {
+        width: 100%;
+        min-width: 850px;
+        border-collapse: collapse;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      th,
+      td {
+        padding: 15px 16px;
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid #d8cebc;
+      }
+      thead th {
+        background: #252e39;
+        color: #f6e5bd;
+        font-weight: normal;
+      }
+      tbody th {
+        min-width: 150px;
+        font-weight: bold;
+      }
+      tr:nth-child(even) {
+        background: #efe8da;
+      }
+      figure {
+        margin: 35px 0;
+      }
+      figure svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid #c7b99e;
+        border-radius: 12px;
+      }
+      figcaption {
+        font-size: 14px;
+        margin-top: 10px;
+        color: #51565b;
+      }
+      footer {
+        margin-top: 50px;
+        border-top: 1px solid #ac8d52;
+        padding-top: 20px;
+        font-size: 14px;
+      }
+      @media (max-width: 600px) {
+        main {
+          padding: 24px 16px;
+        }
+        nav {
+          flex-direction: column;
+          gap: 6px;
+          margin-bottom: 30px;
+        }
+        h2 {
+          font-size: 27px;
+        }
+        table {
+          font-size: 13px;
+        }
+        figure {
+          overflow: auto;
+        }
+        figure svg {
+          min-width: 700px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <nav aria-label="Benchmark">
+        <a href="../">← Visit Kaelvorn</a
+        ><a
+          href="ledgers/BENCHMARK.md"
+          >Markdown report and ledgers</a
+        >
+      </nav>
+      <h1>Kaelvorn: build and redesign benchmark</h1>
+      <p>
+        One Claude Code orchestrator on
+        <strong>Claude Opus 5.5</strong> commissioned research, art,
+        implementation and reviews through the <code>delegate</code> skill. The
+        result is the
+        <a href="https://fullstack-rocks.github.io/skills/kaelvorn/"
+          >live Kaelvorn site</a
+        >: 37 prerendered pages for a fictional upcoming MMORPG, with 13
+        Callings, four full dossiers, skill trees and a painted atlas. The
+        redesign brought the implementation closer to its painted concepts,
+        adding a central HUD, a heraldic logo, brush masks, crown moulding and
+        painted interface icons.
+      </p>
+      <h2>Summary</h2>
+      <div
+        class="table-scroll"
+        role="region"
+        aria-label="Stage table"
+        tabindex="0"
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Stage</th>
+              <th scope="col">Runs / turns</th>
+              <th scope="col">Summed agent time</th>
+              <th scope="col">Images made</th>
+              <th scope="col">Agents USD</th>
+              <th scope="col">Orchestrator USD</th>
+              <th scope="col">Combined USD</th>
+              <th scope="col">Orchestrator share</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Build</th>
+              <td>43 / 50</td>
+              <td>9h 07m 37s (9.1269 h)</td>
+              <td>111</td>
+              <td>$72.77</td>
+              <td>$24.20</td>
+              <td><strong>$96.97</strong></td>
+              <td>24.96%</td>
+            </tr>
+            <tr>
+              <th scope="row">Redesign</th>
+              <td>18 / 20</td>
+              <td>5h 09m 12s (5.1533 h)</td>
+              <td>36</td>
+              <td>$68.19</td>
+              <td>$37.42</td>
+              <td><strong>$105.61</strong></td>
+              <td>35.43%</td>
+            </tr>
+            <tr>
+              <th scope="row">Both stages</th>
+              <td>61 / 70</td>
+              <td>14h 16m 49s (14.2803 h)</td>
+              <td>147</td>
+              <td>$140.95</td>
+              <td>$61.62</td>
+              <td><strong>$202.57</strong></td>
+              <td>30.42%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        These are
+        <strong
+          >Standard list-price usage valuations, not subscription
+          invoices</strong
+        >. Image output uses the first benchmark&#x27;s high-quality assumption
+        and explicitly declared size proxies; reasoning is not charged twice.
+        All values are rounded only for display. Agent time sums overlapping run
+        durations, not elapsed delivery time; orchestrator hours are unmeasured.
+      </p>
+      <figure>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 1100 620"
+          width="1100"
+          height="620"
+          role="img"
+          aria-labelledby="chart-title chart-desc"
+        >
+          <title id="chart-title">
+            Kaelvorn: build and redesign cost by agent
+          </title>
+          <desc id="chart-desc">
+            Stacked horizontal bars in US dollars at Standard list prices. Dark
+            segments represent the build; light segments the redesign. Image
+            output costs are separated from text agent costs. The orchestrator
+            is one shared Claude Code session. All figures and formulas are in
+            BENCHMARK.md.
+          </desc>
+          <rect width="1100" height="620" rx="12" fill="#f6f1e6" />
+          <g font-family="Georgia, serif" fill="#202934">
+            <text x="34" y="45" font-size="26">
+              The cost of making Kaelvorn
+            </text>
+            <text x="34" y="75" font-size="16">
+              Standard list-price USD · image output estimates included
+            </text>
+            <rect x="34" y="95" width="16" height="16" fill="#535a63" />
+            <text x="58" y="109" font-size="15">Build · darker</text>
+            <rect x="205" y="95" width="16" height="16" fill="#b8c0cb" />
+            <text x="229" y="109" font-size="15">Redesign · lighter</text>
+            <path d="M310 130V570" stroke="#d8d1c4" />
+            <text x="310" y="594" text-anchor="middle" font-size="14">$0</text>
+            <path d="M470 130V570" stroke="#d8d1c4" />
+            <text x="470" y="594" text-anchor="middle" font-size="14">$20</text>
+            <path d="M630 130V570" stroke="#d8d1c4" />
+            <text x="630" y="594" text-anchor="middle" font-size="14">$40</text>
+            <path d="M790 130V570" stroke="#d8d1c4" />
+            <text x="790" y="594" text-anchor="middle" font-size="14">$60</text>
+            <path d="M950 130V570" stroke="#d8d1c4" />
+            <text x="950" y="594" text-anchor="middle" font-size="14">$80</text>
+            <text x="34" y="165" font-size="18">Codex · text</text>
+            <rect x="310" y="140" width="298.714" height="36" fill="#407d8c" />
+            <rect
+              x="608.714"
+              y="140"
+              width="325.217"
+              height="36"
+              fill="#9cd5df"
+            />
+            <text x="948.931" y="164" font-size="17" font-weight="bold">
+              $77.99
+            </text>
+            <text x="34" y="218" font-size="18">Cursor · GPT-5.6 Sol</text>
+            <rect x="310" y="193" width="52.197" height="36" fill="#80683a" />
+            <rect
+              x="362.197"
+              y="193"
+              width="189.729"
+              height="36"
+              fill="#e1bf7c"
+            />
+            <text x="566.926" y="217" font-size="17" font-weight="bold">
+              $30.24
+            </text>
+            <text x="34" y="271" font-size="18">Cursor · Grok 4.7</text>
+            <rect x="310" y="246" width="21.696" height="36" fill="#76434e" />
+            <rect
+              x="331.696"
+              y="246"
+              width="0.000"
+              height="36"
+              fill="#dba0ae"
+            />
+            <text x="346.696" y="270" font-size="17" font-weight="bold">
+              $2.71
+            </text>
+            <text x="34" y="324" font-size="18">Antigravity · text</text>
+            <rect x="310" y="299" width="71.229" height="36" fill="#487052" />
+            <rect
+              x="381.229"
+              y="299"
+              width="0.000"
+              height="36"
+              fill="#9bc7a4"
+            />
+            <text x="396.229" y="323" font-size="17" font-weight="bold">
+              $8.90
+            </text>
+            <text x="34" y="377" font-size="18">Gemini API · text</text>
+            <rect x="310" y="352" width="9.059" height="36" fill="#665788" />
+            <rect
+              x="319.059"
+              y="352"
+              width="0.000"
+              height="36"
+              fill="#c0afe0"
+            />
+            <text x="334.059" y="376" font-size="17" font-weight="bold">
+              $1.13
+            </text>
+            <text x="34" y="430" font-size="18">Nano Banana images</text>
+            <rect x="310" y="405" width="3.226" height="36" fill="#8c6034" />
+            <rect
+              x="313.226"
+              y="405"
+              width="8.064"
+              height="36"
+              fill="#f0bc83"
+            />
+            <text x="336.290" y="429" font-size="17" font-weight="bold">
+              $1.41
+            </text>
+            <text x="34" y="483" font-size="18">Codex images</text>
+            <rect x="310" y="458" width="126.008" height="36" fill="#466b92" />
+            <rect
+              x="436.008"
+              y="458"
+              width="22.482"
+              height="36"
+              fill="#aac8f0"
+            />
+            <text x="473.490" y="482" font-size="17" font-weight="bold">
+              $18.56
+            </text>
+            <text x="34" y="536" font-size="18">Orchestrator</text>
+            <rect x="310" y="511" width="193.600" height="36" fill="#535a63" />
+            <rect
+              x="503.600"
+              y="511"
+              width="299.360"
+              height="36"
+              fill="#b8c0cb"
+            />
+            <text x="817.960" y="535" font-size="17" font-weight="bold">
+              $61.62
+            </text>
+          </g>
+        </svg>
+        <figcaption>
+          Dark = build; light = redesign. Totals beside each bar use unrounded
+          component costs.
+        </figcaption>
+      </figure>
+      <p>
+        The fixed source snapshot is
+        <a
+          href="ledgers/usage.json"
+          >usage.json</a
+        >,
+        <a
+          href="ledgers/orchestrator.json"
+          >orchestrator.json</a
+        >,
+        <a
+          href="ledgers/prices.md"
+          >prices.md</a
+        >
+        (sources read 2026-10-26), the
+        <a
+          href="ledgers/DECISIONS.md"
+          >decision log</a
+        >,
+        <a
+          href="ledgers/prompts.md"
+          >image ledger</a
+        >,
+        <a
+          href="ledgers/delegation-plan.md"
+          >redesign plan</a
+        >
+        and
+        <a
+          href="ledgers/11-benchmark.md"
+          >benchmark brief</a
+        >. Build means the recorded codex-1…25, antigravity-1…9, cursor-1…6 and
+        gemini-api-1…3 records, including cursor-2-nested-codex. There is no
+        cursor-3 record. Redesign means codex-26…33, cursor-7…12 and
+        antigravity-10…13. This writer (codex-34) is absent and excluded; 61
+        runs are present, including four quota attempts.
+      </p>
+      <h2>Cost and usage per agent</h2>
+      <p>
+        Each stage cell reports
+        <strong
+          >USD; runs / turns; time (hours); fresh / cached / output / reasoning
+          tokens (F/C/O/R); images</strong
+        >. Image-model rows split output charges from their owners&#x27; text
+        costs without adding delegations or hours: Nano Banana was invoked
+        inside antigravity-7 in the build and cursor-7…10 in the redesign; Codex
+        image calls were inside Codex runs. Thus text rows show zero images
+        allocated to that row, rather than claiming the harness generated none.
+      </p>
+      <div
+        class="table-scroll"
+        role="region"
+        aria-label="Agent / model table"
+        tabindex="0"
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Agent / model</th>
+              <th scope="col">Build</th>
+              <th scope="col">Redesign</th>
+              <th scope="col">Both stages</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Codex · GPT-6.1 Sol¹</th>
+              <td>
+                <strong>$37.34</strong>; 26 runs / 31 turns; 6h 04m 49s (6.0803
+                h); F/C/O/R 4,265,451 / 171,732,608 / 842,527 / 287,450; 0
+                images³
+              </td>
+              <td>
+                <strong>$40.65</strong>; 8 runs / 13 turns; 4h 06m 49s (4.1136
+                h); F/C/O/R 2,303,944 / 134,502,272 / 534,066 / 222,488; 0
+                images³
+              </td>
+              <td>
+                <strong>$77.99</strong>; 34 runs / 44 turns; 10h 11m 38s
+                (10.1939 h); F/C/O/R 6,569,395 / 306,234,880 / 1,376,593 /
+                509,938; 0 images³
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Cursor · GPT-5.6 Sol¹</th>
+              <td>
+                <strong>$6.52</strong>; 2 runs / 2 turns; 0h 34m 31s (0.5753 h);
+                F/C/O/R 369 / 14,523,120 / 35,692 / 0; 0 images³
+              </td>
+              <td>
+                <strong>$23.72</strong>; 6 runs / 7 turns; 1h 02m 23s (1.0397
+                h); F/C/O/R 1,410 / 51,902,941 / 147,466 / 0; 0 images³
+              </td>
+              <td>
+                <strong>$30.24</strong>; 8 runs / 9 turns; 1h 36m 54s (1.6150
+                h); F/C/O/R 1,779 / 66,426,061 / 183,158 / 0; 0 images³
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Cursor · Grok 4.7¹</th>
+              <td>
+                <strong>$2.71</strong>; 3 runs / 3 turns; 0h 19m 53s (0.3314 h);
+                F/C/O/R 339,157 / 2,794,880 / 106,036 / 0; 0 images³
+              </td>
+              <td>$0.00; 0 runs; 0 h; F/C/O/R 0/0/0/0; 0 images</td>
+              <td>
+                <strong>$2.71</strong>; 3 runs / 3 turns; 0h 19m 53s (0.3314 h);
+                F/C/O/R 339,157 / 2,794,880 / 106,036 / 0; 0 images³
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Antigravity · Gemini 4 Argon¹</th>
+              <td>
+                <strong>$8.90</strong>; 9 runs / 10 turns; 1h 49m 52s (1.8311
+                h); F/C/O/R 1,911,744 / 19,322,338 / 314,789 / 73,737; 0 images³
+              </td>
+              <td>
+                <strong>$0.00 recorded</strong>; 4 quota attempts; 0 turns / 0 h
+                recorded; F/C/O/R not supplied; 0 images
+              </td>
+              <td>
+                <strong>$8.90</strong>; 13 runs / 10 turns; 1h 49m 52s (1.8311
+                h); F/C/O/R 1,911,744 / 19,322,338 / 314,789 / 73,737; 0 images³
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Gemini API text · Gemini 4 Argon¹</th>
+              <td>
+                <strong>$1.13</strong>; 3 runs / 4 turns; 0h 18m 32s (0.3089 h);
+                F/C/O/R 93,929 / 0 / 94,453 / 0; 0 images³
+              </td>
+              <td>$0.00; 0 runs; 0 h; F/C/O/R 0/0/0/0; 0 images</td>
+              <td>
+                <strong>$1.13</strong>; 3 runs / 4 turns; 0h 18m 32s (0.3089 h);
+                F/C/O/R 93,929 / 0 / 94,453 / 0; 0 images³
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Nano Banana 2.1 images²</th>
+              <td>
+                <strong>$0.40</strong>; 8 images; runs/hours: counted with
+                owner; F/C/O/R: not supplied
+              </td>
+              <td>
+                <strong>$1.01</strong>; 20 images; runs/hours: counted with
+                owner; F/C/O/R: not supplied
+              </td>
+              <td>
+                <strong>$1.41</strong>; 28 images; runs/hours: counted with
+                owner; F/C/O/R: not supplied
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Codex images · GPT Image 2³</th>
+              <td>
+                <strong>$15.75</strong>; 103 images; runs/hours: counted with
+                owner; F/C/O/R: not supplied
+              </td>
+              <td>
+                <strong>$2.81</strong>; 16 images; runs/hours: counted with
+                owner; F/C/O/R: not supplied
+              </td>
+              <td>
+                <strong>$18.56</strong>; 119 images; runs/hours: counted with
+                owner; F/C/O/R: not supplied
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><strong>All agents (recorded)</strong></th>
+              <td>
+                <strong>$72.77</strong>; 43 runs / 50 turns; 9h 07m 37s; F/C/O/R
+                6,610,650 / 208,372,946 / 1,393,497 / 361,187; 111 images
+              </td>
+              <td>
+                <strong>$68.19</strong>; 18 runs / 20 turns; 5h 09m 12s; F/C/O/R
+                2,305,354 / 186,405,213 / 681,532 / 222,488; 36 images
+              </td>
+              <td>
+                <strong>$140.95</strong>; 61 runs / 70 turns; 14h 16m 49s;
+                F/C/O/R 8,916,004 / 394,778,159 / 2,075,029 / 583,675; 147
+                images
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Orchestrator · Claude Opus 5.5⁴</th>
+              <td>
+                <strong>$24.20</strong>; 1 shared session / 274 responses; hours
+                unmeasured; F/C/O/R 630 / 86,957,211 / 149,021 / not supplied;
+                1h cache writes 478,599; 0 images
+              </td>
+              <td>
+                <strong>$37.42</strong>; 1 shared session / 182 responses; hours
+                unmeasured; F/C/O/R 408 / 119,417,957 / 126,761 / not supplied;
+                1h cache writes 1,374,455; 0 images
+              </td>
+              <td>
+                <strong>$61.62</strong>; 1 shared session / 456 responses; hours
+                unmeasured; F/C/O/R 1,038 / 206,375,168 / 275,782 / not
+                supplied; 1h cache writes 1,853,054; 0 images
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        ¹ <strong>Text formula and tier.</strong> For each run, USD =
+        <code
+          >(F × fresh rate + C × cache-read rate + O × output rate) /
+          1,000,000</code
+        >. As in the first report, <code>input</code> is treated as fresh input
+        and <code>cached</code> as separate cache reads; cached tokens often
+        exceed input, so subtraction would be invalid. Rates F/C/O are GPT-6.1
+        Sol <strong>2 / 0.10 / 10</strong>, Cursor GPT-5.6 Sol
+        <strong>4 / 0.40 / 20</strong>, Cursor Grok 4.7
+        <strong>2 / 0.50 / 6</strong>, and Gemini 4 Argon
+        <strong>2 / 0.10 / 10</strong> (the promotional Standard tariff valid
+        through 2026-11-30), from
+        <a
+          href="ledgers/prices.md"
+          >prices.md</a
+        >. Model effort suffixes are normalized to the same model; no Fast
+        multiplier is assumed. Output is charged once; reported reasoning is
+        treated as included in output. Zero reasoning means none reported.
+      </p>
+      <p>
+        <strong
+          >Long-context estimate, following the first benchmark&#x27;s
+          convention:</strong
+        >
+        use fresh input divided by recorded turns as a proxy for per-turn input.
+        The whole-run GPT-6.1 Sol long tier
+        <strong>4 / 0.20 / 15</strong> applies to cursor-2-nested-codex
+        (595,275), codex-30 (1,380,020 / 5 = 276,004), and codex-33 (275,141),
+        above 272,000. Actual tiers depend on individual API requests including
+        cached context; aggregate run data cannot establish them. This preserves
+        the original estimator, not proof of billing. No separately reported
+        agent cache-write counts are available.
+      </p>
+      <p>
+        ² <strong>Nano Banana formula.</strong> Standard 2K image output =
+        <code
+          >images × 1,680 image-output tokens × $30 / 1,000,000 = images ×
+          $0.0504</code
+        >. Build: <code>8 × 0.0504 = $0.4032000</code>; redesign:
+        <code>20 × 0.0504 = $1.0080000</code>; total
+        <strong>$1.4112000</strong>. Prompt/reference inputs and image-model
+        text/thinking output are unreported and excluded; image calls are not
+        extra delegation runs.
+      </p>
+      <p>
+        ³ <strong>Codex image formula.</strong> GPT Image 2 high-quality
+        output-only valuation: 1024×1536 and 1536×1024 <strong>$0.165</strong>;
+        saved 1672×941/940 uses nearby valid 1680×944 <strong>$0.13944</strong>;
+        saved 1254×1254 uses 1248×1248 <strong>$0.24591</strong>. The last two
+        are calculator proxies, not exact tariffs for those files. Actual
+        generation quality and image input tokens are unavailable. Build:
+        <code>55 × 0.13944 + 46 × 0.165 + 2 × 0.24591 = $15.7510200</code>;
+        redesign:
+        <code>6 × 0.13944 + 6 × 0.165 + 4 × 0.24591 = $2.8102800</code>; total
+        <strong>$18.5613000</strong>.
+      </p>
+      <p>
+        ⁴ <strong>Orchestrator formula and boundary.</strong> Use the explicitly
+        supplied <code>by_stage</code> prices: build <strong>$24.20</strong>,
+        redesign <strong>$37.42</strong>, sum <strong>$61.62</strong>. Rates
+        F/cache-read/1h-cache-write/output are
+        <strong>4 / 0.20 / 8 / 20 USD/M</strong>; 5-minute cache writes are
+        zero. The unrounded recomputations are <strong>$24.2031742</strong> and
+        <strong>$37.4160834</strong>, consistent with the rounded stage prices.
+        The older top-level snapshot says $61.41 and 455 responses; the stage
+        records sum to 456 responses and have newer token totals. We use the
+        requested stage split consistently, not that stale top-level total. This
+        is one session across both stages, not two sessions; responses are not
+        delegate turns. The redesign includes writing and fixing the delegate
+        skill&#x27;s plan workflow in that same session, so it is not solely
+        site-production cost. The JSON links its
+        <a href="https://platform.claude.com/docs/en/about-claude/pricing"
+          >Claude price source</a
+        >.
+      </p>
+      <p>
+        <strong>Shares and rounding:</strong> orchestrator share = stage
+        orchestrator USD / (unrounded agent USD + stage orchestrator USD) × 100.
+        Currency totals sum unrounded text and image costs, so rounded rows may
+        differ by a cent from displayed totals.
+      </p>
+      <h3>Recomputable text subtotals</h3>
+      <p>
+        Each line below sums exactly the matching run IDs in usage.json under
+        the formula above. F/C/O/R counts and hours are in the cost table; the
+        explicit IDs and rate selections remove ambiguity about grouping.
+      </p>
+      <div
+        class="table-scroll"
+        role="region"
+        aria-label="Group table"
+        tabindex="0"
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Group</th>
+              <th scope="col">Build IDs</th>
+              <th scope="col">Build text USD (unrounded)</th>
+              <th scope="col">Redesign IDs</th>
+              <th scope="col">Redesign text USD (unrounded)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Codex</th>
+              <td>
+                <code>codex-1</code>, <code>codex-10</code>,
+                <code>codex-11</code>, <code>codex-12</code>,
+                <code>codex-13</code>, <code>codex-14</code>,
+                <code>codex-15</code>, <code>codex-16</code>,
+                <code>codex-17</code>, <code>codex-18</code>,
+                <code>codex-19</code>, <code>codex-2</code>,
+                <code>codex-20</code>, <code>codex-21</code>,
+                <code>codex-22</code>, <code>codex-23</code>,
+                <code>codex-24</code>, <code>codex-25</code>,
+                <code>codex-3</code>, <code>codex-4</code>,
+                <code>codex-5</code>, <code>codex-6</code>,
+                <code>codex-7</code>, <code>codex-8</code>,
+                <code>codex-9</code>, <code>cursor-2-nested-codex</code>
+              </td>
+              <td>37.3392162</td>
+              <td>
+                <code>codex-26</code>, <code>codex-27</code>,
+                <code>codex-28</code>, <code>codex-29</code>,
+                <code>codex-30</code>, <code>codex-31</code>,
+                <code>codex-32</code>, <code>codex-33</code>
+              </td>
+              <td>40.6521244</td>
+            </tr>
+            <tr>
+              <th scope="row">Cursor GPT</th>
+              <td><code>cursor-2</code>, <code>cursor-5</code></td>
+              <td>6.5245640</td>
+              <td>
+                <code>cursor-10</code>, <code>cursor-11</code>,
+                <code>cursor-12</code>, <code>cursor-7</code>,
+                <code>cursor-8</code>, <code>cursor-9</code>
+              </td>
+              <td>23.7161364</td>
+            </tr>
+            <tr>
+              <th scope="row">Cursor Grok</th>
+              <td>
+                <code>cursor-1</code>, <code>cursor-4</code>,
+                <code>cursor-6</code>
+              </td>
+              <td>2.7119700</td>
+              <td>—</td>
+              <td>0.0000000</td>
+            </tr>
+            <tr>
+              <th scope="row">Antigravity</th>
+              <td>
+                <code>antigravity-1</code>, <code>antigravity-2</code>,
+                <code>antigravity-3</code>, <code>antigravity-4</code>,
+                <code>antigravity-5</code>, <code>antigravity-6</code>,
+                <code>antigravity-7</code>, <code>antigravity-8</code>,
+                <code>antigravity-9</code>
+              </td>
+              <td>8.9036118</td>
+              <td>
+                <code>antigravity-10</code>, <code>antigravity-11</code>,
+                <code>antigravity-12</code>, <code>antigravity-13</code>
+              </td>
+              <td>0.0000000</td>
+            </tr>
+            <tr>
+              <th scope="row">Gemini API text</th>
+              <td>
+                <code>gemini-api-1</code>, <code>gemini-api-2</code>,
+                <code>gemini-api-3</code>
+              </td>
+              <td>1.1323880</td>
+              <td>—</td>
+              <td>0.0000000</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        The long-context uplift is $3.2097834 in the build and $17.2533492 in
+        the redesign. An all-base GPT-6.1 Sol sensitivity reduces both-stage
+        agent cost by
+        <strong>$20.46</strong> to <strong>$120.49</strong>, and combined cost
+        to <strong>$182.11</strong>; this changes no usage counts. The original
+        build report was $72.05 agents / $23.24 orchestrator: the current build
+        includes codex-25&#x27;s second turn (639 seconds versus 501, with
+        refreshed tokens) and the updated $24.20 stage snapshot. Those snapshot
+        changes explain the revised build figures.
+      </p>
+      <h2>Images: attempts, not files</h2>
+      <p>
+        Generated outputs include rejected attempts. Cropping icons, keying
+        backgrounds, favicon exports, contact sheets, atlas pin previews,
+        deterministic SVGs and delivery derivatives are not additional
+        generations. The
+        <a
+          href="ledgers/prompts.md"
+          >image ledger</a
+        >
+        records the attempts; the
+        <a
+          href="ledgers/DECISIONS.md"
+          >decision log</a
+        >
+        confirms the Nano Banana reply counts.
+      </p>
+      <div
+        class="table-scroll"
+        role="region"
+        aria-label="Stage / run table"
+        tabindex="0"
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Stage / run</th>
+              <th scope="col">Batch</th>
+              <th scope="col">Wide 1672×941/940</th>
+              <th scope="col">Portrait 1024×1536</th>
+              <th scope="col">Landscape 1536×1024</th>
+              <th scope="col">Square 1254×1254</th>
+              <th scope="col">Generated</th>
+              <th scope="col">Retained originals</th>
+              <th scope="col">Discarded</th>
+              <th scope="col">Output USD</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Build / <code>codex-3</code></th>
+              <td>Style candidates</td>
+              <td>4 (one ×940)</td>
+              <td>0</td>
+              <td>0</td>
+              <td>0</td>
+              <td>4</td>
+              <td>3</td>
+              <td>1</td>
+              <td>4 × 0.13944 = 0.55776</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-4</code></th>
+              <td>Style anchors</td>
+              <td>4</td>
+              <td>1</td>
+              <td>0</td>
+              <td>2</td>
+              <td>7</td>
+              <td>4</td>
+              <td>3</td>
+              <td>4 × 0.13944 + 0.165 + 2 × 0.24591 = 1.21458</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-7</code></th>
+              <td>Key art + website concepts</td>
+              <td>17</td>
+              <td>0</td>
+              <td>0</td>
+              <td>0</td>
+              <td>17</td>
+              <td>9</td>
+              <td>8</td>
+              <td>17 × 0.13944 = 2.37048</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-8</code></th>
+              <td>Full characters</td>
+              <td>0</td>
+              <td>14</td>
+              <td>0</td>
+              <td>0</td>
+              <td>14</td>
+              <td>8</td>
+              <td>6</td>
+              <td>14 × 0.165 = 2.31000</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-9</code></th>
+              <td>Teaser characters</td>
+              <td>0</td>
+              <td>14</td>
+              <td>0</td>
+              <td>0</td>
+              <td>14</td>
+              <td>9</td>
+              <td>5</td>
+              <td>14 × 0.165 = 2.31000</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-10</code></th>
+              <td>Regions</td>
+              <td>9</td>
+              <td>0</td>
+              <td>0</td>
+              <td>0</td>
+              <td>9</td>
+              <td>6</td>
+              <td>3</td>
+              <td>9 × 0.13944 = 1.25496</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-11</code></th>
+              <td>Bestiary bosses</td>
+              <td>14</td>
+              <td>0</td>
+              <td>0</td>
+              <td>0</td>
+              <td>14</td>
+              <td>6</td>
+              <td>8</td>
+              <td>14 × 0.13944 = 1.95216</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-12</code></th>
+              <td>World bosses</td>
+              <td>7 (one ×940)</td>
+              <td>0</td>
+              <td>0</td>
+              <td>0</td>
+              <td>7</td>
+              <td>6</td>
+              <td>1</td>
+              <td>7 × 0.13944 = 0.97608</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-13</code></th>
+              <td>Mounts</td>
+              <td>0</td>
+              <td>0</td>
+              <td>8</td>
+              <td>0</td>
+              <td>8</td>
+              <td>6</td>
+              <td>2</td>
+              <td>8 × 0.165 = 1.32000</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-14</code></th>
+              <td>Pets</td>
+              <td>0</td>
+              <td>0</td>
+              <td>9</td>
+              <td>0</td>
+              <td>9</td>
+              <td>6</td>
+              <td>3</td>
+              <td>9 × 0.165 = 1.48500</td>
+            </tr>
+            <tr>
+              <th scope="row">Build / Codex subtotal</th>
+              <td>Style and production</td>
+              <td>55</td>
+              <td>29</td>
+              <td>17</td>
+              <td>2</td>
+              <td><strong>103</strong></td>
+              <td><strong>63</strong></td>
+              <td><strong>40</strong></td>
+              <td><strong>15.7510200</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Build / antigravity-7</th>
+              <td>Nano Banana sheets</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>8</td>
+              <td>6</td>
+              <td>2</td>
+              <td>0.4032000</td>
+            </tr>
+            <tr>
+              <th scope="row">Redesign / codex-26</th>
+              <td>Navigation concepts</td>
+              <td>6</td>
+              <td>5</td>
+              <td>0</td>
+              <td>0</td>
+              <td>11</td>
+              <td>6</td>
+              <td>5</td>
+              <td>1.6616400</td>
+            </tr>
+            <tr>
+              <th scope="row">Redesign / codex-27</th>
+              <td>Logo concepts</td>
+              <td>0</td>
+              <td>0</td>
+              <td>0</td>
+              <td>4</td>
+              <td>4</td>
+              <td>3</td>
+              <td>1</td>
+              <td>0.9836400</td>
+            </tr>
+            <tr>
+              <th scope="row">Redesign / codex-31</th>
+              <td>Painted atlas</td>
+              <td>0</td>
+              <td>0</td>
+              <td>1</td>
+              <td>0</td>
+              <td>1</td>
+              <td>1</td>
+              <td>0</td>
+              <td>0.1650000</td>
+            </tr>
+            <tr>
+              <th scope="row">Redesign / cursor-7</th>
+              <td>Nano Banana UI icon sheets</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>3</td>
+              <td>2</td>
+              <td>1</td>
+              <td>0.1512000</td>
+            </tr>
+            <tr>
+              <th scope="row">Redesign / cursor-8</th>
+              <td>Nano Banana masks/dividers</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>7</td>
+              <td>7</td>
+              <td>0</td>
+              <td>0.3528000</td>
+            </tr>
+            <tr>
+              <th scope="row">Redesign / cursor-9</th>
+              <td>Nano Banana ornaments</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>6</td>
+              <td>6</td>
+              <td>0</td>
+              <td>0.3024000</td>
+            </tr>
+            <tr>
+              <th scope="row">Redesign / cursor-10</th>
+              <td>Nano Banana final logo</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>4</td>
+              <td>3</td>
+              <td>1</td>
+              <td>0.2016000</td>
+            </tr>
+            <tr>
+              <th scope="row"><strong>Redesign subtotal</strong></th>
+              <td></td>
+              <td><strong>6</strong></td>
+              <td><strong>5</strong></td>
+              <td><strong>1</strong></td>
+              <td><strong>4</strong></td>
+              <td><strong>36</strong></td>
+              <td><strong>28</strong></td>
+              <td><strong>8</strong></td>
+              <td><strong>3.8182800</strong></td>
+            </tr>
+            <tr>
+              <th scope="row"><strong>Both stages</strong></th>
+              <td></td>
+              <td><strong>61</strong></td>
+              <td><strong>34</strong></td>
+              <td><strong>18</strong></td>
+              <td><strong>6</strong></td>
+              <td><strong>147</strong></td>
+              <td><strong>97</strong></td>
+              <td><strong>50</strong></td>
+              <td><strong>19.9725000</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Navigation has six first passes and five remakes; one rejected mobile
+        first pass was actually landscape 1672×940. Logo concept C needed a
+        second attempt to retain the full KAELVORN spelling. The atlas was
+        retained on its first generation. Nano Banana redesign counts reconcile
+        to <strong>3 + 7 + 6 + 4 = 20</strong>: icons discarded one sheet;
+        masks&#x27; rejected 5:1 requests generated nothing; ornaments had no
+        remakes; the horizontal logo needed one remake. Icon validation also
+        rejected one request before generation. These failed requests add no
+        images.
+      </p>
+      <p>
+        The build&#x27;s 103 Codex generations yielded 63 retained originals
+        (seven style references and 56 production paintings); eight Nano Banana
+        generations yielded six sheets, cut into 48 skill and seven item icons.
+        The original filesystem reconciliation remains
+        <strong>103 − 40 + 8 − 2 + 55 = 124 build PNGs</strong>, including six
+        sheets and seven style references, versus 111 production assets. That
+        historical count is not the redesigned repository&#x27;s current PNG
+        count.
+      </p>
+      <h2>Who did what in the redesign</h2>
+      <p>
+        The original plan had 11 units; atlas became a new unit and benchmark
+        followed publication. Times below are complete recorded run durations,
+        including follow-ups, from usage.json; outcomes come from
+        <a
+          href="ledgers/DECISIONS.md"
+          >DECISIONS.md</a
+        >, starting at “Redesign (phase 10)”, and the
+        <a
+          href="ledgers/delegation-plan.md"
+          >plan</a
+        >. Zero recorded duration on quota attempts does not establish zero
+        actual waiting time.
+      </p>
+      <div
+        class="table-scroll"
+        role="region"
+        aria-label="Delegation / unit table"
+        tabindex="0"
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Delegation / unit</th>
+              <th scope="col">Agent / model</th>
+              <th scope="col">What it made</th>
+              <th scope="col">Time / turns</th>
+              <th scope="col">Outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>antigravity-10</code> · audit</th>
+              <td>antigravity / <code>gemini-4-argon-high</code></td>
+              <td>No accepted audit</td>
+              <td>0h 00m 00s / 0</td>
+              <td>Failed on account quota; reassigned to codex-28.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>antigravity-11</code> · ornaments</th>
+              <td>antigravity / <code>gemini-4-argon-medium</code></td>
+              <td>No accepted ornaments</td>
+              <td>0h 00m 00s / 0</td>
+              <td>
+                Stopped as the account quota failed; reassigned to cursor-9.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>antigravity-12</code> · masks</th>
+              <td>antigravity / <code>gemini-4-argon-medium</code></td>
+              <td>No accepted masks</td>
+              <td>0h 00m 00s / 0</td>
+              <td>Failed on account quota; reassigned to cursor-8.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>antigravity-13</code> · ui-icons</th>
+              <td>antigravity / <code>gemini-4-argon-medium</code></td>
+              <td>No accepted icons</td>
+              <td>0h 00m 00s / 0</td>
+              <td>Failed on account quota; reassigned to cursor-7.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-26</code> · nav-concepts</th>
+              <td>codex / <code>gpt-6.1-sol</code></td>
+              <td>Three desktop/phone concept pairs</td>
+              <td>0h 19m 36s / 1</td>
+              <td>
+                Accepted C central HUD, with B’s hanging Adventures dropdown;
+                closed after shell acceptance.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-27</code> · logo-concepts</th>
+              <td>codex / <code>gpt-6.1-sol</code></td>
+              <td>Three logo directions</td>
+              <td>0h 12m 13s / 2</td>
+              <td>
+                Accepted B heraldic crest; finisher isolated shield and
+                simplified favicon; closed after consumer acceptance.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>cursor-7</code> · ui-icons</th>
+              <td>cursor / <code>gpt-5.6-sol-medium</code></td>
+              <td>
+                Twelve transparent interface icons from two retained sheets
+              </td>
+              <td>0h 05m 14s / 1</td>
+              <td>Accepted; wide padding left for shell to trim.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>cursor-8</code> · masks</th>
+              <td>cursor / <code>gpt-5.6-sol-medium</code></td>
+              <td>Seven brush masks/dividers</td>
+              <td>0h 06m 06s / 1</td>
+              <td>
+                Accepted; 4:1 banner replaces unsupported 5:1; key.py collision
+                resolved as key_masks.py.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>cursor-9</code> · ornaments</th>
+              <td>cursor / <code>gpt-5.6-sol-medium</code></td>
+              <td>Six painted crown/edge/corner/divider assets</td>
+              <td>0h 08m 31s / 1</td>
+              <td>Accepted; helper scripts renamed to avoid collisions.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>cursor-10</code> · logo-final</th>
+              <td>cursor / <code>gpt-5.6-sol-medium</code></td>
+              <td>Lockups, shield emblem, favicon exports</td>
+              <td>0h 06m 33s / 1</td>
+              <td>Accepted; concept B finished with Nano Banana.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-28</code> · audit</th>
+              <td>codex / <code>gpt-6.1-sol</code></td>
+              <td>20 screenshots; route/component inventory</td>
+              <td>0h 20m 31s / 1</td>
+              <td>
+                Accepted; mobile-concept gap closed by nav-concepts; closed
+                after all three consumers accepted.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-29</code> · svg-art</th>
+              <td>codex / <code>gpt-6.1-sol</code></td>
+              <td>29 SVGs, each under 3 KB, placement README</td>
+              <td>0h 12m 05s / 1</td>
+              <td>
+                Accepted; Left open exposed missing painted atlas and triggered
+                new unit.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-30</code> · build-shell</th>
+              <td>codex / <code>gpt-6.1-sol</code></td>
+              <td>
+                HUD, responsive menu, masks, frames, icons, atlas and shared
+                page layouts
+              </td>
+              <td>2h 07m 46s / 5</td>
+              <td>
+                Accepted, then sent back for review findings and clipped/doubled
+                header logo; five turns include atlas and final polish. Review
+                fixes reported 261 tests / 36 smoke checks.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-31</code> · atlas</th>
+              <td>codex / <code>gpt-6.1-sol</code></td>
+              <td>3:2 painted parchment map and six measured pins</td>
+              <td>0h 03m 18s / 1</td>
+              <td>
+                Accepted; attached to build-shell as follow-up; closed on
+                handoff.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>cursor-11</code> · build-pages, pass 1</th>
+              <td>cursor / <code>gpt-5.6-sol-high</code></td>
+              <td>
+                Open sections, framed feature/dossier/news cards, masked art
+              </td>
+              <td>0h 13m 00s / 1</td>
+              <td>
+                Accepted pending review; later closed and reassigned to fresh
+                cursor-12 on current shared code.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-32</code> · review</th>
+              <td>codex / <code>gpt-6.1-sol</code></td>
+              <td>94-item audit and 19 findings</td>
+              <td>0h 24m 06s / 1</td>
+              <td>
+                Not ready: 42 closed, 48 partly, 4 open; sent findings to shell
+                and a fresh pages run. F13 crown ornament request partly
+                accepted as is.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>cursor-12</code> · build-pages, pass 2</th>
+              <td>cursor / <code>gpt-5.6-sol-high</code></td>
+              <td>Page findings and follow-up fixes</td>
+              <td>0h 22m 59s / 2</td>
+              <td>
+                Sent back after empty plan-approval turn, then again for N1–N3
+                and F4/F6/F15; final decision log says every unit closed and
+                redesign published. Usage snapshot reports only two turns.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><code>codex-33</code> · review, re-review</th>
+              <td>codex / <code>gpt-6.1-sol</code></td>
+              <td>Verification of all 19 findings</td>
+              <td>0h 27m 14s / 1</td>
+              <td>
+                14 fixed, 5 partly, 3 regressions; N1–N3 sent to pages.
+                Remaining F13/F18 accepted as intentional ornament/polish.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        The benchmark unit itself is this report; no codex-34 usage record
+        exists in the supplied snapshot. Redesign Antigravity records contain
+        four attempts, zero recorded turns/seconds and no token fields:
+        <strong>$0.00 recorded</strong> is a lower-bound accounting entry, not
+        evidence that the failed harness sessions consumed no resources.
+      </p>
+      <h2>What the plan workflow changed</h2>
+      <p>
+        <strong>Checked consumers before launch.</strong>
+        <code>plan check</code> caught two outputs with no consumer before wave
+        1 started. The decision log does not name the two files, so they cannot
+        be identified from these inputs; the useful change was requiring an
+        explicit handoff for every output, instead of assuming generated work
+        would be integrated.
+      </p>
+      <p>
+        <strong>Reassignment kept the work moving.</strong> Antigravity
+        exhausted its account quota, with a reported reset roughly 125 hours
+        away; audit, ornaments, masks and ui-icons could not finish there. The
+        plan moved audit/review to Codex with headless Chrome and image-making
+        units to Cursor GPT-5.6 Sol, retaining Nano Banana through
+        <code>gemini-api image</code>; logo-final changed assignment before an
+        Antigravity run was launched.
+      </p>
+      <p>
+        <strong>Send-backs preserved context and respected new code.</strong>
+        The first visual review&#x27;s 19 findings went back to codex-30 for
+        shared components, while page fixes started on a fresh Cursor worktree
+        because cursor-11 predated the shared changes. Re-review still found
+        three regressions—mobile launch art below the fold, fragmented “Revealed
+        soon” text and copy over brush fringes—so cursor-12 received another
+        follow-up; the orchestrator also returned clipped/doubled header
+        branding to its shell owner.
+      </p>
+      <p>
+        <strong>Left open became an owned deliverable.</strong> The SVG
+        unit&#x27;s README exposed that the audit called for a painted world
+        atlas, but no unit made it. The orchestrator added atlas, accepted its
+        3:2 painting and six pin positions, then sent it to the existing shell
+        builder as an attached follow-up; acceptance by consumers also
+        determined when upstream units closed.
+      </p>
+      <p>
+        <strong>Incremental application needed an explicit contract.</strong>
+        The benchmark brief identifies incremental <code>diff --apply</code> as
+        a skill fix discovered during the workflow: repeated follow-ups require
+        applying the new delta against already accepted work. The supplied
+        decision log does not describe its implementation or verification, so
+        this report records the fix without claiming a particular patch
+        algorithm or test result.
+      </p>
+      <p>
+        <strong
+          >Follow-up timeouts must inherit the run&#x27;s settings.</strong
+        >
+        codex-30&#x27;s third turn hit 30 minutes because
+        <code>send</code> ignored the timeout used by <code>start</code>; the
+        decision log records a skill fix. A follow-up is part of the same
+        long-running unit and needs its execution settings carried forward along
+        with its context.
+      </p>
+      <p>
+        <strong>Completion needs a parseable status line.</strong> The benchmark
+        brief lists a status-line skill fix, and the delegate brief requires a
+        final <code>STATUS: done</code>, <code>STATUS: question …</code> or
+        <code>STATUS: blocked …</code> line. That gives the orchestrator an
+        explicit terminal outcome beside the deliverables and Left open list;
+        the supplied sources do not detail the parser change.
+      </p>
+      <p>
+        <strong>Nobody approves plans mid-turn.</strong> cursor-12 initially
+        ended empty after creating a plan for approval, so it was sent back; the
+        skill now tells delegates nobody approves plans during their turn.
+        Delegates must execute within the brief, or finish with a concrete
+        question when an orchestrator decision is essential, rather than wait
+        for an interactive approval that cannot arrive.
+      </p>
+      <h2>Who did what in the build</h2>
+      <p>
+        The first stage&#x27;s complete run table is retained below. Durations
+        now use the refreshed usage snapshot (notably codex-25&#x27;s two
+        turns); the original per-phase acceptance and rework notes remain useful
+        context. Units often ran in parallel.
+      </p>
+      <div
+        class="table-scroll"
+        role="region"
+        aria-label="Phase table"
+        tabindex="0"
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Phase</th>
+              <th scope="col">ID</th>
+              <th scope="col">Agent / model</th>
+              <th scope="col">What it made</th>
+              <th scope="col">Time</th>
+              <th scope="col">Rework / follow-up and reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">0 · Setup</th>
+              <td><code>codex-1</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Vite/React/TypeScript scaffold and checks</td>
+              <td>8m 00s</td>
+              <td>
+                Accepted as is; local Node version differed from .nvmrc, but
+                checks passed.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">1 · R1</th>
+              <td><code>antigravity-1</code></td>
+              <td>Antigravity / <code>gemini-4-argon</code></td>
+              <td>MMO marketing-site research</td>
+              <td>10m 57s</td>
+              <td>Accepted as written.</td>
+            </tr>
+            <tr>
+              <th scope="row">1 · R2</th>
+              <td><code>antigravity-2</code></td>
+              <td>Antigravity / <code>gemini-4-argon</code></td>
+              <td>In-game UI and accessibility research</td>
+              <td>17m 17s</td>
+              <td>
+                Accepted; raw genre rarity colours failed AA, so calibrated
+                tokens were used.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">1 · R3a</th>
+              <td><code>antigravity-3</code></td>
+              <td>Antigravity / <code>gemini-4-argon</code></td>
+              <td>Three art directions with references</td>
+              <td>8m 13s</td>
+              <td>Accepted; user chose direction A in phase 2.</td>
+            </tr>
+            <tr>
+              <th scope="row">1 · R3b</th>
+              <td><code>antigravity-4</code></td>
+              <td>Antigravity / <code>gemini-4-argon</code></td>
+              <td>Self-hosted typography and colour system</td>
+              <td>9m 01s</td>
+              <td>Accepted; calibrated AA colour pairs informed the spec.</td>
+            </tr>
+            <tr>
+              <th scope="row">1 · R4</th>
+              <td><code>antigravity-5</code></td>
+              <td>Antigravity / <code>gemini-4-argon</code></td>
+              <td>Legal-page research and outlines</td>
+              <td>8m 02s</td>
+              <td>Accepted as written.</td>
+            </tr>
+            <tr>
+              <th scope="row">1 · R5</th>
+              <td><code>codex-2</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Frontend, image delivery and countdown research</td>
+              <td>12m 56s</td>
+              <td>Accepted as written.</td>
+            </tr>
+            <tr>
+              <th scope="row">1 · R6</th>
+              <td><code>antigravity-6</code></td>
+              <td>Antigravity / <code>gemini-4-argon</code></td>
+              <td>Ten naming candidates and checks</td>
+              <td>12m 49s</td>
+              <td>
+                User chose Kaelvorn; repo renamed, delegation project tag
+                retained.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">2 · Art direction</th>
+              <td><code>codex-3</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Three style candidates</td>
+              <td>5m 16s</td>
+              <td>
+                One internal remake of A for broader brushwork; A selected.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">2 · Style bible</th>
+              <td><code>codex-4</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Style bible and four reference anchors</td>
+              <td>10m 04s</td>
+              <td>
+                Three internal remakes: composition, clipped creature, icon
+                gutters.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">3 · Lore</th>
+              <td><code>gemini-api-1</code></td>
+              <td>Gemini API / <code>gemini-4-argon</code></td>
+              <td>World lore, then all 13 characters</td>
+              <td>9m 00s</td>
+              <td>
+                Two turns; 13 Grok findings later applied by codex-5 without
+                rewriting the whole bible.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">3 · Data</th>
+              <td><code>codex-5</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Typed game data, validator and lore corrections</td>
+              <td>19m 38s</td>
+              <td>
+                Follow-up turn applied all 13 findings; prose/prompt files
+                excluded from Prettier; reveal dates omitted.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">3 · Design review</th>
+              <td><code>cursor-1</code></td>
+              <td>Cursor / <code>grok-4.7</code></td>
+              <td>Lore consistency and marketing review</td>
+              <td>9m 13s</td>
+              <td>
+                All 13 findings and reveal ordering accepted; corrections
+                assigned to codex-5.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">4 · Spec</th>
+              <td><code>codex-6</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Technical spec: routes, components, assets and budgets</td>
+              <td>14m 51s</td>
+              <td>
+                Merged with copy spec: data wins facts, spec wins routes;
+                canonical news slugs and legal identity settled.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">4 · Copy</th>
+              <td><code>gemini-api-2</code></td>
+              <td>Gemini API / <code>gemini-4-argon</code></td>
+              <td>Page sections and marketing copy</td>
+              <td>9m 17s</td>
+              <td>
+                Merged with technical spec; five news slugs adopted; copy later
+                revised after reviews.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">5 · Key art</th>
+              <td><code>codex-7</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Three key paintings and six website concepts</td>
+              <td>28m 15s</td>
+              <td>
+                Eight internal remakes for composition, subjects and plain UI;
+                finals accepted.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">5 · Full characters</th>
+              <td><code>codex-8</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Four splashes and four portraits</td>
+              <td>14m 07s</td>
+              <td>
+                Six internal remakes for subject/style/framing; finals accepted.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">5 · Teasers</th>
+              <td><code>codex-9</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Nine teaser splashes</td>
+              <td>12m 42s</td>
+              <td>
+                Five internal remakes for clipped silhouettes and character
+                proportions; finals accepted.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">5 · Regions</th>
+              <td><code>codex-10</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Six regional paintings</td>
+              <td>10m 56s</td>
+              <td>
+                Three internal remakes: Dunes sky/framing and Crown storm
+                clearance; finals accepted.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">5 · Bestiary</th>
+              <td><code>codex-11</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Six dungeon/raid boss paintings</td>
+              <td>16m 19s</td>
+              <td>
+                Eight internal remakes for subject details, style and clipped
+                silhouettes; finals accepted.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">5 · World bosses</th>
+              <td><code>codex-12</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Six open-world boss paintings</td>
+              <td>6m 44s</td>
+              <td>
+                One internal remake repaired disconnected Unstruck Pipe body
+                arcs; finals accepted.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">5 · Mounts</th>
+              <td><code>codex-13</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Six mount paintings</td>
+              <td>11m 05s</td>
+              <td>
+                Two internal remakes for six readable feet and four complete
+                wings; finals accepted.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">5 · Pets</th>
+              <td><code>codex-14</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Six pet paintings</td>
+              <td>8m 07s</td>
+              <td>
+                Three internal remakes for body proportions and countable
+                shards/mushrooms; finals accepted.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">5 · Icon sheets</th>
+              <td><code>antigravity-7</code></td>
+              <td>Antigravity / <code>gemini-4-argon</code></td>
+              <td>Six Nano Banana sheets, cut into 55 icons</td>
+              <td>25m 08s</td>
+              <td>
+                Two sheet remakes (Kaelen, Tessa); one invalid request generated
+                no image. Crisper style accepted at 64 px.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">6 · Build A</th>
+              <td><code>codex-15</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Design system, shell, image pipeline and prerendering</td>
+              <td>32m 07s</td>
+              <td>
+                Follow-up raised shared-shell gate to 110 KiB; B later found
+                hydration deadlock, fixed by codex-17.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">6 · Build B</th>
+              <td><code>codex-16</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Skill trees, atlas, character selector and dossiers</td>
+              <td>19m 42s</td>
+              <td>
+                Found A’s production deadlock; integration heading conflict
+                fixed by codex-18; review fixes followed.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">6 · Build C</th>
+              <td><code>cursor-2</code></td>
+              <td>Cursor / <code>gpt-5.6-sol</code></td>
+              <td>Builder C supervision; started nested Codex</td>
+              <td>26m 39s</td>
+              <td>
+                Mistook CLAUDE.md for its own role; whole implementation
+                delegated. Its decision-log edits were dropped.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">6 · Build C, nested</th>
+              <td><code>cursor-2-nested-codex</code></td>
+              <td>Codex (nested) / <code>gpt-6.1-sol</code></td>
+              <td>31 content pages, copy modules and tests</td>
+              <td>24m 35s</td>
+              <td>
+                Actual C implementation credited to Codex; one integration test
+                remained for codex-18.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">6 · Hydration fix</th>
+              <td><code>codex-17</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Production import/hydration fix and smoke test</td>
+              <td>12m 45s</td>
+              <td>
+                Follow-up to A after B found top-level await deadlock; added npm
+                run smoke.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">6 · Integration</th>
+              <td><code>codex-18</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Combined B and C; world-page section structure</td>
+              <td>4m 58s</td>
+              <td>
+                Fixed duplicate h2 structure rather than weakening the failing
+                test.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">6 · Budget gates</th>
+              <td><code>codex-19</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Updated home/static route budget gates</td>
+              <td>0m 51s</td>
+              <td>
+                Follow-up: measured 166.5/150.6 KiB exceeded 160/150; gates set
+                to 175/160 pending Lighthouse.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">7 · Marketing review</th>
+              <td><code>cursor-4</code></td>
+              <td>Cursor / <code>grok-4.7</code></td>
+              <td>Marketing, copy and UX findings</td>
+              <td>4m 46s</td>
+              <td>
+                17 findings (3 high), accepted; copy and C-page fixes, then a
+                re-check.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">7 · Browser review</th>
+              <td><code>antigravity-8</code></td>
+              <td>Antigravity / <code>gemini-4-argon</code></td>
+              <td>Responsive/a11y review with 46 screenshots</td>
+              <td>5m 15s</td>
+              <td>
+                12 findings (6 high). Decision log says foreground preview timed
+                out and review needed a second turn; usage records only one.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">7 · Performance review</th>
+              <td><code>codex-20</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Lighthouse, links and image-weight audit</td>
+              <td>23m 57s</td>
+              <td>
+                9 findings, including late character-route CSS; fixes assigned
+                to codex-21.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">8 · Copy fixes</th>
+              <td><code>gemini-api-3</code></td>
+              <td>Gemini API / <code>gemini-4-argon</code></td>
+              <td>Home hook, return loops and countdown copy</td>
+              <td>0m 15s</td>
+              <td>Copy handed to Cursor for C-page implementation.</td>
+            </tr>
+            <tr>
+              <th scope="row">8 · A/B fixes</th>
+              <td><code>codex-21</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Performance, accessibility, layout and interaction fixes</td>
+              <td>26m 13s</td>
+              <td>
+                Three recorded turns; character desktop score 79→100.
+                Browser/Grok re-checks still found open issues.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">8 · C fixes</th>
+              <td><code>cursor-5</code></td>
+              <td>Cursor / <code>gpt-5.6-sol</code></td>
+              <td>Content-page, copy, alt-text and layout fixes</td>
+              <td>7m 52s</td>
+              <td>
+                Re-checks found incomplete fixes and regressions, including
+                news-card overflow and wrong article art.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">8 · Browser re-check</th>
+              <td><code>antigravity-9</code></td>
+              <td>Antigravity / <code>gemini-4-argon</code></td>
+              <td>Browser verification of fixes</td>
+              <td>13m 10s</td>
+              <td>
+                10/12 original findings fully fixed; new card-layout blocker and
+                copy defects sent to codex-23.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">8 · Marketing re-check</th>
+              <td><code>cursor-6</code></td>
+              <td>Cursor / <code>grok-4.7</code></td>
+              <td>Re-check of all 17 marketing findings</td>
+              <td>5m 54s</td>
+              <td>
+                Partial fixes and 8 new issues; final follow-up assigned to
+                codex-23.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">8 · Final fixes</th>
+              <td><code>codex-23</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Remaining findings from both re-checks</td>
+              <td>11m 48s</td>
+              <td>
+                Then orchestrator visual check found four further polish issues;
+                codex-24 followed.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">8 · Polish</th>
+              <td><code>codex-24</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Hero crop, badge, game buttons and mobile action bar</td>
+              <td>13m 49s</td>
+              <td>
+                Final pre-publication polish; benchmark reporting follows.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">9 · Benchmark prices</th>
+              <td><code>codex-22</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Published price sources and machine-readable rate card</td>
+              <td>4m 25s</td>
+              <td>
+                Ran alongside phase 8; valuation uses high-quality image prices
+                and declared size proxies.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">9 · Benchmark report</th>
+              <td><code>codex-25</code></td>
+              <td>Codex / <code>gpt-6.1-sol</code></td>
+              <td>Benchmark report, cost calculations and SVG chart</td>
+              <td>10m 39s</td>
+              <td>
+                Both recorded turns included in this refreshed build snapshot.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <h2>Build lessons retained</h2>
+      <p>
+        <strong>Cursor delegated the builder’s entire job.</strong> Builder C
+        read the orchestrator’s <code>CLAUDE.md</code>, assumed that role and
+        launched a 1,475-second Codex worker; its implementation was accepted,
+        but its decision-log edits were discarded. The
+        <code>delegate</code> lesson is to make role and scope explicit in every
+        brief: subsequent briefs say the agent is a delegate, must do the work
+        itself and must not edit the decision log; account for nested workers
+        under their actual harness.
+      </p>
+      <p>
+        <strong
+          >A foreground server consumed the browser reviewer’s turn.</strong
+        >
+        The decision log says Antigravity’s first review turn timed out while
+        running <code>vite preview</code> in the foreground, and a second turn
+        wrote findings from 46 screenshots. The skill lesson is to start
+        persistent servers in the background and preserve evidence between
+        turns; the snapshot records only one turn for
+        <code>antigravity-8</code>, so it cannot quantify the missing attempt
+        separately.
+      </p>
+      <p>
+        <strong
+          >Builder B found a production hydration deadlock in A’s shell.</strong
+        >
+        A top-level <code>await import()</code> in
+        <code>preferences.tsx</code> blocked production hydration even though
+        earlier checks had passed. The fix became a separate Codex run with
+        <code>npm run smoke</code>: delegated handoffs need a built-site browser
+        check of real interaction, not just compilation and unit tests.
+      </p>
+      <p>
+        <strong>Budget gates stopped integration twice.</strong> Builder A’s
+        shell measured 102.4 KiB gzip against a 100 KiB gate; the orchestrator
+        raised it to 110, then later raised home/static route gates from 160/150
+        to 175/160 after measuring 166.5/150.6. The lesson is to give delegates
+        a measured dependency baseline and an escalation path for budget
+        changes, then require performance evidence: Lighthouse subsequently
+        identified a real late-CSS defect rather than treating the relaxed gates
+        as proof of acceptable UX.
+      </p>
+      <p>
+        <strong>Ownership boundaries still needed an integration pass.</strong>
+        B’s <code>WorldMap</code> brought its own <code>h2</code> into C’s
+        <code>/world</code> section, breaking one integration test; the
+        integration worker corrected the page structure instead of changing the
+        assertion. The skill should specify shared component contracts, merge
+        checkpoints and an integration owner; phase 8 then split copy, A/B and C
+        fixes by ownership so parallel agents would not edit the same files.
+      </p>
+      <p>
+        <strong>Reviews and fixes needed more than one round.</strong> Three
+        phase 7 reviewers returned 17 marketing, 12 browser and 9 performance
+        findings; fixes reached 257 tests and 11 smoke checks and raised
+        character-page desktop Lighthouse from 79 to 100, but the browser/Grok
+        re-checks found incomplete fixes and new regressions. After a final fix
+        run, the orchestrator’s own visual pass still found four polish issues,
+        so the lesson is to budget for independent re-checks and a final visual
+        acceptance pass, with concrete routes, widths and evidence in every fix
+        brief.
+      </p>
+      <p>
+        <strong>Art delivery hid substantial iteration.</strong> All 56 phase 5
+        Codex finals were accepted by the orchestrator, yet the complete ledger
+        records 40 discarded Codex attempts across style and production work,
+        plus two discarded Nano Banana sheets. The skill should preserve
+        per-attempt image counts, native dimensions and rejection reasons; final
+        file counts alone understate generation cost and the effort needed for
+        consistent art.
+      </p>
+      <h2>Scope, timing and verification limits</h2>
+      <ul>
+        <li>
+          <strong>Elapsed versus summed time:</strong> the original build&#x27;s
+          commit bracket ran from 2026-10-25 23:07:26 to 2026-10-26 03:49:19
+          (+02:00), 4h 41m 53s; including its first benchmark turn estimated
+          roughly 4h 51m. Those are historical estimates, not updated stage wall
+          times. usage.json has durations without start/end timestamps, so
+          redesign elapsed time and active orchestrator hours cannot be
+          recovered.
+        </li>
+        <li>
+          <strong>Nested overlap:</strong> cursor-2&#x27;s 1,599 seconds contain
+          its 1,475-second nested Codex worker. Subtracting that interval once
+          yields build <strong>8h 43m 02s</strong>, and both stages
+          <strong>13h 52m 14s</strong>; this still is not wall time because
+          other workers overlapped. Runs count unique delegation records, turns
+          include recorded follow-ups.
+        </li>
+        <li>
+          <strong>Snapshot gaps:</strong> the decision log describes more
+          cursor-12 follow-up activity than its two recorded turns, and
+          Antigravity&#x27;s build browser retry is not fully represented by its
+          turn count. Outcomes follow the final decision log; quantitative usage
+          follows usage.json without inventing missing tokens/time. The current
+          writer and later orchestrator work are outside the snapshot.
+        </li>
+        <li>
+          <strong>Valuation limits:</strong> token categories vary by harness;
+          Standard speed and the stated approximate context tiers are
+          assumptions. Excluded items include separately unreported cache
+          writes, image prompt/reference and image-model text/thinking charges,
+          tool/search charges, taxes and subscription fees. Agent cost_usd zeros
+          in the JSON are not invoices.
+        </li>
+        <li>
+          <strong>Evidence of the result:</strong> the decision log records
+          publication and every redesign unit closed. Re-review was not a claim
+          that every visual issue disappeared: F13/F18 were partly accepted, and
+          the last fixes were accepted by the orchestrator; this report does not
+          claim a further independent post-publication audit.
+        </li>
+      </ul>
+      <footer>
+        Kaelvorn · a fictional MMORPG and delegation benchmark. Source snapshot:
+        26 October 2026. <a href="../">Return to the site</a>.
+      </footer>
+    </main>
+  </body>
+</html>
