@@ -1,0 +1,1 @@
+import{t as e}from"./framework-Dd8kRoAQ.js";import{i as t,t as n}from"./policy-page-w-516DRE.js";var r=e();function i(){return(0,r.jsx)(n,{copy:t,kind:`legal-notice`})}export{i as Component};

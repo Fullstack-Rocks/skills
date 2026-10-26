@@ -1,1 +1,0 @@
-import{d as e}from"./ui-BHL4H7Ih.js";var t=new Intl.DateTimeFormat(`en-GB`,{day:`numeric`,month:`long`,year:`numeric`,timeZone:`UTC`}).format(new Date(e)),n=new Intl.DateTimeFormat(`en-GB`,{hour:`2-digit`,minute:`2-digit`,hourCycle:`h23`,timeZone:`UTC`}).format(new Date(e))+` UTC`;export{n,t};
