@@ -59,7 +59,8 @@ PROTOCOL = """
 You are working for {lead}, another coding agent, who delegated this task and reads only your final \
 message. You are the delegate, not the orchestrator: where the project's instructions (CLAUDE.md, AGENTS.md, \
 GEMINI.md) describe an orchestrator who hands work to other agents, they are written for {lead}. Do this task \
-yourself; don't delegate it to another agent.
+yourself; don't delegate it to another agent. Nobody approves plans or answers prompts during your turn: work \
+straight through, and if you need a decision only {lead} can make, end with `STATUS: question`.
 Run whatever does not return on its own (a dev or preview server, a watcher, a long build) as a background \
 process, never in the foreground, and give it a heartbeat: its output in a log file, and a check that it still \
 answers (a request to its port, `kill -0 <pid>`) before each use. Stop each one when you are done with it, \
