@@ -3,7 +3,7 @@
 
     delegate.py start <harness> [--write] [--model M] [--title T] [--attach PATH]... [--detach] (MESSAGE | --file F)
     delegate.py send <id> [--as-user] [--attach PATH]... [--detach] (MESSAGE | --file F)
-    delegate.py list | show <id> [--follow] | stop <id> | diff <id> [--apply] [--all] | close <id>
+    delegate.py list | show <id> [--follow] | stop <id> | diff <id> [--apply [--exclude PATH]...] [--all] | close <id>
     delegate.py models <harness> | set <id> [--model M] [--effort E] [--speed S]   (default clears one)
     delegate.py meta <id> [--archive | --unarchive] [--name NAME] [--project NAME | --no-project] [--seen]
     delegate.py rename-project OLD NEW | delete <id> | pick [--folders] | usage [--json]
@@ -1278,7 +1278,9 @@ def cmd_diff(args):
         sys.stdout.write(out)
         return 0
     if out.strip():
-        done = subprocess.run(["git", "-C", str(root), "apply", "--binary"], input=out, capture_output=True, text=True, check=False)
+        skip = [f"--exclude={x}" for x in args.exclude]
+        done = subprocess.run(["git", "-C", str(root), "apply", "--binary", *skip], input=out, capture_output=True, text=True,
+                              check=False)
         if done.returncode:
             sys.exit(f"git apply failed; nothing recorded:\n{done.stderr.strip()}")
     state["applied"] = tree
@@ -1367,6 +1369,8 @@ def main():
     s.add_argument("id")
     s.add_argument("--apply", action="store_true", help="apply them to the checkout and diff from here next time")
     s.add_argument("--all", action="store_true", help="every change since it started, even those already applied")
+    s.add_argument("--exclude", action="append", default=[], metavar="PATH",
+                   help="with --apply, leave out these paths (globs; repeatable), e.g. a file the lead keeps itself")
     s = sub.add_parser("plan", help="check the delegation plan: outputs nobody uses, inputs nobody makes, units' runs")
     s.add_argument("action", nargs="?", default="check", choices=["check"])
     s.add_argument("--plan", help=f"the plan file (default: {PLAN_FILE} or docs/{PLAN_FILE})")
