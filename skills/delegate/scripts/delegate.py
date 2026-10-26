@@ -947,6 +947,8 @@ def serve_queue(base, ident, fd, timeout, color):
 
 def submit(base, state, text, sender, attachments, args):
     """Queue the message, then run the queue here or in a detached process, unless a turn is already running it."""
+    # A turn runs as long as the delegation was given at start, unless this command says otherwise.
+    args.timeout = args.timeout or state.get("timeout") or 1800
     waiting = enqueue(base, state["id"], {"from": sender, "text": text, "attachments": attachments, "ts": time.time()})
     fd = lock(base, state["id"])
     if fd is None:
@@ -1018,7 +1020,8 @@ def cmd_start(args):
     mode = "write" if args.write else "read"
     state = {"id": ident, "harness": harness, "mode": mode, "lead": lead_name(args),
              "title": args.title or clip(text.strip().splitlines()[0], 40), "root": str(root), "workdir": str(root),
-             "turns": 0, "created": time.time(), "status": "idle", "new_session_id": str(uuid.uuid4())}
+             "turns": 0, "created": time.time(), "status": "idle", "new_session_id": str(uuid.uuid4()),
+             "timeout": args.timeout or 1800}
     if unit:
         state["unit"] = args.unit
         text = unit_header(plan, unit, ident, root) + text
@@ -1314,7 +1317,7 @@ def main():
         sp.add_argument("message", nargs="*")
         sp.add_argument("--file", help="read the message from a file")
         sp.add_argument("--lead", help="name the sender (default: claude inside Claude Code)")
-        sp.add_argument("--timeout", type=int, default=1800, help="seconds per turn (default 1800)")
+        sp.add_argument("--timeout", type=int, help="seconds per turn (default: the delegation's own, set at start; 1800)")
         sp.add_argument("--detach", action="store_true", help="print the id and run the turn in the background")
         sp.add_argument("--attach", action="append", default=[], metavar="PATH",
                         help="a file, folder or image to send with the message (repeatable)")
