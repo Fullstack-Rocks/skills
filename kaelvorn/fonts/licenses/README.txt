@@ -1,0 +1,1 @@
+Fonts copied unchanged from the @fontsource-variable npm packages. Package names, versions and provenance are recorded in the adjacent *-source.txt files. Each original SIL OFL 1.1 licence is retained. No runtime font service is used.

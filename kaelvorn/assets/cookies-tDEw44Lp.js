@@ -1,0 +1,1 @@
+import{t as e}from"./framework-Dd8kRoAQ.js";import{r as t,t as n}from"./policy-page-DOOHx3LT.js";var r=e();function i(){return(0,r.jsx)(n,{copy:t,kind:`cookies`})}export{i as Component};

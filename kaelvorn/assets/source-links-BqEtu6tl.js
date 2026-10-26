@@ -1,0 +1,1 @@
+import{r as e,t}from"./framework-Dd8kRoAQ.js";var n=t();function r({links:t}){return(0,n.jsx)(`ul`,{"aria-label":`Acquisition sources`,className:`mt-6 flex flex-wrap gap-4`,children:t.map(t=>(0,n.jsx)(`li`,{children:(0,n.jsx)(e,{to:t.to,children:t.label})},t.to))})}export{r as t};

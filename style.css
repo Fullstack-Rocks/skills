@@ -65,6 +65,7 @@ code { font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; background: va
 .note { color: var(--muted); font-size: 14px; }
 .card { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; color: var(--text); text-decoration: none; max-width: 760px; }
 .card:hover { border-color: var(--accent); }
+.card + .card { margin-top: 24px; }
 .card div { padding: 20px 22px 24px; }
 .card h2 { margin: 0 0 8px; font-size: 24px; }
 footer { border-top: 1px solid var(--line); margin-top: 80px; }

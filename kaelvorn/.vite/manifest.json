@@ -1,0 +1,787 @@
+{
+  "_character-art-Cfr-y20v.js": {
+    "file": "assets/character-art-Cfr-y20v.js",
+    "name": "character-art"
+  },
+  "_character-select-DAb31Rps.js": {
+    "file": "assets/character-select-DAb31Rps.js",
+    "name": "character-select",
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "_prelaunch-B1i6BMeS.js",
+      "_character-art-Cfr-y20v.js",
+      "_interactions-DT4OtLH-.js"
+    ]
+  },
+  "_entity-card-DSacX5jC.js": {
+    "file": "assets/entity-card-DSacX5jC.js",
+    "name": "entity-card",
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js"
+    ]
+  },
+  "_framework-Dd8kRoAQ.js": {
+    "file": "assets/framework-Dd8kRoAQ.js",
+    "name": "framework",
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js"
+    ]
+  },
+  "_interactions-DKFgqcqc.css": {
+    "file": "assets/interactions-DKFgqcqc.css",
+    "src": "_interactions-DKFgqcqc.css"
+  },
+  "_interactions-DT4OtLH-.js": {
+    "file": "assets/interactions-DT4OtLH-.js",
+    "name": "interactions",
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_load-features-B7Po229A.js",
+      "_is-svg-component-CR4_Y1ye.js"
+    ],
+    "css": [
+      "assets/interactions-DKFgqcqc.css"
+    ]
+  },
+  "_interactions-DnQRUE0a.js": {
+    "file": "assets/interactions-DnQRUE0a.js",
+    "name": "interactions"
+  },
+  "_is-svg-component-CR4_Y1ye.js": {
+    "file": "assets/is-svg-component-CR4_Y1ye.js",
+    "name": "is-svg-component",
+    "imports": [
+      "_load-features-B7Po229A.js"
+    ]
+  },
+  "_load-features-B7Po229A.js": {
+    "file": "assets/load-features-B7Po229A.js",
+    "name": "load-features",
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js"
+    ]
+  },
+  "_page-layout-B43T9L1T.js": {
+    "file": "assets/page-layout-B43T9L1T.js",
+    "name": "page-layout",
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js"
+    ]
+  },
+  "_policy-page-DOOHx3LT.js": {
+    "file": "assets/policy-page-DOOHx3LT.js",
+    "name": "policy-page",
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "_time-B9-DAWq2.js",
+      "_page-layout-B43T9L1T.js"
+    ]
+  },
+  "_prelaunch-B1i6BMeS.js": {
+    "file": "assets/prelaunch-B1i6BMeS.js",
+    "name": "prelaunch",
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js"
+    ]
+  },
+  "_rolldown-runtime-XKyaHtl9.js": {
+    "file": "assets/rolldown-runtime-XKyaHtl9.js",
+    "name": "rolldown-runtime"
+  },
+  "_shell-BKqaIJ7J.js": {
+    "file": "assets/shell-BKqaIJ7J.js",
+    "name": "shell",
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js"
+    ],
+    "dynamicImports": [
+      "_shell-BKqaIJ7J.js",
+      "src/pages/c/launch/home.tsx",
+      "src/pages/c/launch/coming-soon.tsx",
+      "src/pages/c/world/world.tsx",
+      "src/pages/c/world/region.tsx",
+      "src/features/b/characters/roster-page.tsx",
+      "src/features/b/characters/character-page.tsx",
+      "src/features/b/skills/explorer-page.tsx",
+      "src/pages/c/systems/crafting.tsx",
+      "src/pages/c/systems/exploration.tsx",
+      "src/pages/c/systems/questing.tsx",
+      "src/pages/c/systems/guilds.tsx",
+      "src/pages/c/endgame/dungeons.tsx",
+      "src/pages/c/endgame/raids.tsx",
+      "src/pages/c/endgame/bestiary.tsx",
+      "src/pages/c/collections/mounts.tsx",
+      "src/pages/c/collections/pets.tsx",
+      "src/pages/c/media/gallery.tsx",
+      "src/pages/c/media/news.tsx",
+      "src/pages/c/media/article.tsx",
+      "src/pages/c/help/faq.tsx",
+      "src/pages/c/legal/privacy.tsx",
+      "src/pages/c/legal/cookies.tsx",
+      "src/pages/c/legal/terms.tsx",
+      "src/pages/c/legal/accessibility.tsx",
+      "src/pages/c/legal/legal-notice.tsx",
+      "src/shell/a/motion/provider.tsx"
+    ],
+    "css": [
+      "assets/shell-Cjf7aMfi.css"
+    ],
+    "assets": [
+      "fonts/cinzel-latin-wght-normal.woff2",
+      "fonts/plus-jakarta-sans-latin-wght-normal.woff2"
+    ]
+  },
+  "_shell-Cjf7aMfi.css": {
+    "file": "assets/shell-Cjf7aMfi.css",
+    "src": "_shell-Cjf7aMfi.css"
+  },
+  "_skill-tree-B57wy_Wx.js": {
+    "file": "assets/skill-tree-B57wy_Wx.js",
+    "name": "skill-tree",
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "_interactions-DnQRUE0a.js",
+      "_interactions-DT4OtLH-.js"
+    ]
+  },
+  "_source-links-BqEtu6tl.js": {
+    "file": "assets/source-links-BqEtu6tl.js",
+    "name": "source-links",
+    "imports": [
+      "_framework-Dd8kRoAQ.js"
+    ]
+  },
+  "_time-B9-DAWq2.js": {
+    "file": "assets/time-B9-DAWq2.js",
+    "name": "time",
+    "imports": [
+      "_ui-BHL4H7Ih.js"
+    ]
+  },
+  "_ui-BHL4H7Ih.js": {
+    "file": "assets/ui-BHL4H7Ih.js",
+    "name": "ui",
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js"
+    ]
+  },
+  "index.html": {
+    "file": "assets/index-DuEXqZFS.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "imports": [
+      "_shell-BKqaIJ7J.js"
+    ]
+  },
+  "public/fonts/cinzel-latin-wght-normal.woff2": {
+    "file": "fonts/cinzel-latin-wght-normal.woff2",
+    "src": "public/fonts/cinzel-latin-wght-normal.woff2"
+  },
+  "public/fonts/plus-jakarta-sans-latin-wght-normal.woff2": {
+    "file": "fonts/plus-jakarta-sans-latin-wght-normal.woff2",
+    "src": "public/fonts/plus-jakarta-sans-latin-wght-normal.woff2"
+  },
+  "src/content/c/collections.ts": {
+    "file": "assets/collections-CYW8i9tc.js",
+    "name": "collections",
+    "src": "src/content/c/collections.ts",
+    "isDynamicEntry": true
+  },
+  "src/content/c/endgame.ts": {
+    "file": "assets/endgame-DJxhYzRq.js",
+    "name": "endgame",
+    "src": "src/content/c/endgame.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/data/raids.ts"
+    ]
+  },
+  "src/content/c/launch.ts": {
+    "file": "assets/launch-xWsGrTZr.js",
+    "name": "launch",
+    "src": "src/content/c/launch.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "_time-B9-DAWq2.js",
+      "_prelaunch-B1i6BMeS.js"
+    ]
+  },
+  "src/content/c/media.ts": {
+    "file": "assets/media-CAM1jsyz.js",
+    "name": "media",
+    "src": "src/content/c/media.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/data/raids.ts",
+      "_time-B9-DAWq2.js",
+      "src/data/world.ts",
+      "src/data/characters.ts",
+      "src/data/dungeons.ts",
+      "src/data/bosses.ts",
+      "src/data/endgame.ts"
+    ]
+  },
+  "src/content/c/news.ts": {
+    "file": "assets/news-pe2KxlZL.js",
+    "name": "news",
+    "src": "src/content/c/news.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "_time-B9-DAWq2.js",
+      "src/content/c/news/summaries.ts"
+    ]
+  },
+  "src/content/c/news/summaries.ts": {
+    "file": "assets/summaries-BgPG4kK0.js",
+    "name": "summaries",
+    "src": "src/content/c/news/summaries.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "_time-B9-DAWq2.js"
+    ]
+  },
+  "src/content/c/systems.ts": {
+    "file": "assets/systems-BtePsYvl.js",
+    "name": "systems",
+    "src": "src/content/c/systems.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/data/professions.ts"
+    ]
+  },
+  "src/content/c/world.ts": {
+    "file": "assets/world-u3bcmDVg.js",
+    "name": "world",
+    "src": "src/content/c/world.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/data/world.ts",
+      "_interactions-DnQRUE0a.js"
+    ]
+  },
+  "src/data/bosses.ts": {
+    "file": "assets/bosses-I368HeJL.js",
+    "name": "bosses",
+    "src": "src/data/bosses.ts",
+    "isDynamicEntry": true
+  },
+  "src/data/characters.ts": {
+    "file": "assets/characters-CM28Y0Pv.js",
+    "name": "characters",
+    "src": "src/data/characters.ts",
+    "isDynamicEntry": true
+  },
+  "src/data/dungeons.ts": {
+    "file": "assets/dungeons-Us3dEX3B.js",
+    "name": "dungeons",
+    "src": "src/data/dungeons.ts",
+    "isDynamicEntry": true
+  },
+  "src/data/endgame.ts": {
+    "file": "assets/endgame-CCb8-dNo.js",
+    "name": "endgame",
+    "src": "src/data/endgame.ts",
+    "isDynamicEntry": true
+  },
+  "src/data/mounts.ts": {
+    "file": "assets/mounts-DoNob_JG.js",
+    "name": "mounts",
+    "src": "src/data/mounts.ts",
+    "isDynamicEntry": true
+  },
+  "src/data/pets.ts": {
+    "file": "assets/pets-CYjDmSgC.js",
+    "name": "pets",
+    "src": "src/data/pets.ts",
+    "isDynamicEntry": true
+  },
+  "src/data/professions.ts": {
+    "file": "assets/professions-CUqLpXQN.js",
+    "name": "professions",
+    "src": "src/data/professions.ts",
+    "isDynamicEntry": true
+  },
+  "src/data/raids.ts": {
+    "file": "assets/raids-Dm0JUEx7.js",
+    "name": "raids",
+    "src": "src/data/raids.ts",
+    "isDynamicEntry": true
+  },
+  "src/data/world.ts": {
+    "file": "assets/world-B3t7Aqgm.js",
+    "name": "world",
+    "src": "src/data/world.ts",
+    "isDynamicEntry": true
+  },
+  "src/features/b/characters/character-page.tsx": {
+    "file": "assets/character-page-BAGFaG3Z.js",
+    "name": "character-page",
+    "src": "src/features/b/characters/character-page.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "src/data/characters.ts",
+      "src/data/endgame.ts",
+      "_character-art-Cfr-y20v.js",
+      "_interactions-DT4OtLH-.js",
+      "_skill-tree-B57wy_Wx.js"
+    ]
+  },
+  "src/features/b/characters/roster-page.tsx": {
+    "file": "assets/roster-page-D2D7NlV_.js",
+    "name": "roster-page",
+    "src": "src/features/b/characters/roster-page.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "src/data/characters.ts",
+      "_character-art-Cfr-y20v.js",
+      "_character-select-DAb31Rps.js"
+    ]
+  },
+  "src/features/b/skills/explorer-page.tsx": {
+    "file": "assets/explorer-page-DxUGWGQt.js",
+    "name": "explorer-page",
+    "src": "src/features/b/skills/explorer-page.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "src/data/characters.ts",
+      "src/data/endgame.ts",
+      "_interactions-DnQRUE0a.js",
+      "_skill-tree-B57wy_Wx.js"
+    ]
+  },
+  "src/pages/c/collections/mounts.tsx": {
+    "file": "assets/mounts-CVb4dliW.js",
+    "name": "mounts",
+    "src": "src/pages/c/collections/mounts.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js",
+      "_source-links-BqEtu6tl.js"
+    ],
+    "dynamicImports": [
+      "src/data/mounts.ts",
+      "src/content/c/collections.ts",
+      "_prelaunch-B1i6BMeS.js",
+      "src/pages/c/collections/sources.ts"
+    ]
+  },
+  "src/pages/c/collections/pets.tsx": {
+    "file": "assets/pets-Bo3UkEK6.js",
+    "name": "pets",
+    "src": "src/pages/c/collections/pets.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js",
+      "_source-links-BqEtu6tl.js"
+    ],
+    "dynamicImports": [
+      "src/data/pets.ts",
+      "src/content/c/collections.ts",
+      "src/pages/c/collections/sources.ts"
+    ]
+  },
+  "src/pages/c/collections/sources.ts": {
+    "file": "assets/sources-QAmSZ9Ri.js",
+    "name": "sources",
+    "src": "src/pages/c/collections/sources.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "src/data/raids.ts",
+      "src/data/world.ts",
+      "src/data/characters.ts",
+      "src/data/dungeons.ts",
+      "src/data/bosses.ts",
+      "src/data/endgame.ts",
+      "src/data/professions.ts",
+      "src/data/mounts.ts",
+      "src/data/pets.ts"
+    ]
+  },
+  "src/pages/c/endgame/bestiary.tsx": {
+    "file": "assets/bestiary-B0F-HE44.js",
+    "name": "bestiary",
+    "src": "src/pages/c/endgame/bestiary.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/data/bosses.ts",
+      "src/data/dungeons.ts",
+      "src/data/raids.ts",
+      "src/data/world.ts",
+      "src/content/c/endgame.ts"
+    ]
+  },
+  "src/pages/c/endgame/dungeons.tsx": {
+    "file": "assets/dungeons-B2YSorJJ.js",
+    "name": "dungeons",
+    "src": "src/pages/c/endgame/dungeons.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/data/dungeons.ts",
+      "src/data/world.ts",
+      "src/data/bosses.ts",
+      "src/data/endgame.ts",
+      "src/content/c/endgame.ts"
+    ]
+  },
+  "src/pages/c/endgame/raids.tsx": {
+    "file": "assets/raids-CJSsJ8a2.js",
+    "name": "raids",
+    "src": "src/pages/c/endgame/raids.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/data/raids.ts",
+      "src/data/world.ts",
+      "src/data/bosses.ts",
+      "src/data/endgame.ts",
+      "src/data/mounts.ts",
+      "src/content/c/endgame.ts"
+    ]
+  },
+  "src/pages/c/help/faq.tsx": {
+    "file": "assets/faq-CJxC3is4.js",
+    "name": "faq",
+    "src": "src/pages/c/help/faq.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "_time-B9-DAWq2.js",
+      "_page-layout-B43T9L1T.js"
+    ]
+  },
+  "src/pages/c/launch/coming-soon.tsx": {
+    "file": "assets/coming-soon-F1X8hF9b.js",
+    "name": "coming-soon",
+    "src": "src/pages/c/launch/coming-soon.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/content/c/launch.ts",
+      "_prelaunch-B1i6BMeS.js",
+      "src/data/characters.ts",
+      "src/data/endgame.ts",
+      "src/data/world.ts",
+      "src/data/dungeons.ts",
+      "src/data/raids.ts",
+      "src/data/professions.ts"
+    ]
+  },
+  "src/pages/c/launch/home.tsx": {
+    "file": "assets/home-DQ2FJEK-.js",
+    "name": "home",
+    "src": "src/pages/c/launch/home.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "src/content/c/launch.ts",
+      "src/content/c/news/summaries.ts",
+      "_character-select-DAb31Rps.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/data/characters.ts",
+      "src/data/world.ts"
+    ]
+  },
+  "src/pages/c/legal/accessibility.tsx": {
+    "file": "assets/accessibility-CLx7XIsK.js",
+    "name": "accessibility",
+    "src": "src/pages/c/legal/accessibility.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_policy-page-DOOHx3LT.js"
+    ]
+  },
+  "src/pages/c/legal/cookies.tsx": {
+    "file": "assets/cookies-tDEw44Lp.js",
+    "name": "cookies",
+    "src": "src/pages/c/legal/cookies.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_policy-page-DOOHx3LT.js"
+    ]
+  },
+  "src/pages/c/legal/legal-notice.tsx": {
+    "file": "assets/legal-notice-D2mkpNli.js",
+    "name": "legal-notice",
+    "src": "src/pages/c/legal/legal-notice.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_policy-page-DOOHx3LT.js"
+    ]
+  },
+  "src/pages/c/legal/privacy.tsx": {
+    "file": "assets/privacy-Zt6Yex3E.js",
+    "name": "privacy",
+    "src": "src/pages/c/legal/privacy.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_policy-page-DOOHx3LT.js"
+    ]
+  },
+  "src/pages/c/legal/terms.tsx": {
+    "file": "assets/terms-Bemcpg2H.js",
+    "name": "terms",
+    "src": "src/pages/c/legal/terms.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_policy-page-DOOHx3LT.js"
+    ]
+  },
+  "src/pages/c/media/article.tsx": {
+    "file": "assets/article-CX8GhRsB.js",
+    "name": "article",
+    "src": "src/pages/c/media/article.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js"
+    ],
+    "dynamicImports": [
+      "src/content/c/news.ts"
+    ]
+  },
+  "src/pages/c/media/gallery.tsx": {
+    "file": "assets/gallery-DfVmZPc_.js",
+    "name": "gallery",
+    "src": "src/pages/c/media/gallery.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "_page-layout-B43T9L1T.js"
+    ],
+    "dynamicImports": [
+      "src/content/c/media.ts"
+    ]
+  },
+  "src/pages/c/media/news.tsx": {
+    "file": "assets/news-5j0Xv44v.js",
+    "name": "news",
+    "src": "src/pages/c/media/news.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/content/c/media.ts",
+      "src/content/c/news/summaries.ts"
+    ]
+  },
+  "src/pages/c/systems/crafting.tsx": {
+    "file": "assets/crafting-Ckh0-zjc.js",
+    "name": "crafting",
+    "src": "src/pages/c/systems/crafting.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/data/professions.ts",
+      "src/content/c/systems.ts",
+      "src/data/world.ts"
+    ]
+  },
+  "src/pages/c/systems/exploration.tsx": {
+    "file": "assets/exploration-R-zzofcy.js",
+    "name": "exploration",
+    "src": "src/pages/c/systems/exploration.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/data/world.ts",
+      "src/data/bosses.ts",
+      "src/data/mounts.ts",
+      "src/data/endgame.ts",
+      "src/content/c/systems.ts"
+    ]
+  },
+  "src/pages/c/systems/guilds.tsx": {
+    "file": "assets/guilds-44Jn7n6p.js",
+    "name": "guilds",
+    "src": "src/pages/c/systems/guilds.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/data/world.ts",
+      "src/data/endgame.ts",
+      "src/content/c/systems.ts"
+    ]
+  },
+  "src/pages/c/systems/questing.tsx": {
+    "file": "assets/questing-CZQkxdAR.js",
+    "name": "questing",
+    "src": "src/pages/c/systems/questing.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js"
+    ],
+    "dynamicImports": [
+      "src/data/world.ts",
+      "src/data/endgame.ts",
+      "_prelaunch-B1i6BMeS.js",
+      "src/content/c/systems.ts"
+    ]
+  },
+  "src/pages/c/world/region.tsx": {
+    "file": "assets/region-B-PZbWnJ.js",
+    "name": "region",
+    "src": "src/pages/c/world/region.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/data/world.ts",
+      "src/data/characters.ts",
+      "src/data/dungeons.ts",
+      "src/data/raids.ts",
+      "src/data/bosses.ts",
+      "src/data/endgame.ts",
+      "src/content/c/world.ts"
+    ]
+  },
+  "src/pages/c/world/world.tsx": {
+    "file": "assets/world-Cv2rs-x2.js",
+    "name": "world",
+    "src": "src/pages/c/world/world.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_ui-BHL4H7Ih.js",
+      "_interactions-DnQRUE0a.js",
+      "_interactions-DT4OtLH-.js",
+      "_page-layout-B43T9L1T.js",
+      "_entity-card-DSacX5jC.js"
+    ],
+    "dynamicImports": [
+      "src/content/c/world.ts",
+      "src/data/world.ts",
+      "_prelaunch-B1i6BMeS.js"
+    ]
+  },
+  "src/shell/a/motion-features.ts": {
+    "file": "assets/motion-features-B67K2eRh.js",
+    "name": "motion-features",
+    "src": "src/shell/a/motion-features.ts",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_load-features-B7Po229A.js",
+      "_is-svg-component-CR4_Y1ye.js",
+      "src/shell/a/motion/provider.tsx"
+    ]
+  },
+  "src/shell/a/motion/provider.tsx": {
+    "file": "assets/provider-BEj7Aod0.js",
+    "name": "provider",
+    "src": "src/shell/a/motion/provider.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_framework-Dd8kRoAQ.js",
+      "_shell-BKqaIJ7J.js",
+      "_load-features-B7Po229A.js"
+    ],
+    "dynamicImports": [
+      "src/shell/a/motion-features.ts"
+    ]
+  }
+}
