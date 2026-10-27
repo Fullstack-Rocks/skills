@@ -8,7 +8,7 @@ Written by `scripts/build.py` to `<root>/.big-picture/out/graph.json`; read by `
   "builtAt": "2026-10-27T18:00:00+00:00",
   "root": "/abs/path/to/project",
   "coverage": { "python": "scip", "typescript": "approx" },
-  "nodes": [], "edges": [], "findings": []
+  "nodes": [], "edges": [], "findings": [], "repeats": []
 }
 ```
 
@@ -31,6 +31,28 @@ Paths are relative to `root`. Lines are 1-based.
 | `rule` | `rule:<file stem>` | inventory: `.code-standards/rules/*.yml` | `file` |
 | any type a project rule names (`endpoint`, `model`, `table`, ...) | `<type>:<rendered id>` | `.big-picture/types`, `.big-picture/edges` | `file`, `start`, `end` for type-rule matches, which their module `contains`; list properties from `.big-picture/properties`, such as a model's `fields: [{name, type}]` |
 
+### Tables, views and lookups
+
+A `table` node also carries what it is, from SQL DDL (`*.sql`, `stages/data/schema.py`) or, when no DDL declares it, from the model that `maps-to` it:
+
+```json
+{ "id": "table:orders", "type": "table", "kind": "table | view | materialized view | temporary table",
+  "declared": true, "file": "db/schema.sql", "start": 9, "end": 16,
+  "columns": [{ "name": "customer_id", "type": "integer", "pk": false, "nullable": true, "unique": false,
+                "references": "customers.id", "default": "...", "check": "...", "inferred": false }],
+  "constraints": ["CONSTRAINT orders_status_check CHECK (status IN ('new', 'paid'))"],
+  "indexes": [{ "name": "orders_customer_idx", "unique": false, "columns": ["customer_id"] }] }
+```
+
+`declared: false` with `inferred: true` columns means the model's fields, with `id` as the key and `<x>_id` referencing `<x>s` by naming convention.
+
+A `lookup` node is a join or filter through a JSON column (`stages/data/lookups.py`, or a project lookup rule):
+
+```json
+{ "id": "lookup:orders.meta.customer_ref→customers.ref", "type": "lookup", "table": "orders", "column": "meta",
+  "path": "customer_ref", "to_table": "customers", "to_column": "ref", "expression": "c.ref = o.meta->>'customer_ref'" }
+```
+
 ## Edge
 
 ```json
@@ -38,7 +60,7 @@ Paths are relative to `root`. Lines are 1-based.
   "via": "db-reads", "resolved": "exact", "sites": [["app/services/order_service.py", 6]] }
 ```
 
-- `kind`: `contains`, `calls`, `handled-by`, or a kind a project rule names (`reads`, `writes`, `maps-to`, ...).
+- `kind`: `contains`, `calls`, `handled-by`, a kind a project rule names (`reads`, `writes`, `maps-to`, ...), or from the schema and lookup stages: `defines` (a SQL file to its tables), `references` (a table to a table it has a foreign key to), `selects-from` (a view to its base tables), `looks-up` (code or a view to a lookup), `through` and `finds` (a lookup to its JSON table and the table it finds).
 - `via`: what produced it: `inventory`, `lizard`, `scip`, `ast-grep` (the calls fallback), or a project rule id.
 - `resolved`: `exact`, or `approx` for calls matched by name and module where no SCIP index covered the file.
 - `sites`: every `[file, line]` where the connection happens.
@@ -54,3 +76,13 @@ Paths are relative to `root`. Lines are 1-based.
 - `id` is `<rule>:<node>`: readable, and the same across builds while the node keeps its name. A rule that hits one node twice adds a site.
 - `rule`: a `call-depth` kind in kebab case (`complexity`, `function-length`, `dynamic-call`, `folder-size`, ...) or the `code-standards` rule id (`cs-*`, a linter rule, `duplicate`).
 - `node`: the innermost function holding the line, else the module, or the folder for folder findings.
+- `fix`: what to do about it, from the under-engineering and call-depth skills, or the rule's message for linter and code-standards findings.
+
+## Repeat
+
+```json
+{ "kind": "operation", "key": "fetch_one db-reads table:orders",
+  "sites": [["app/reports.py", 23, "fn:app/reports.py#order_total"], ["app/reports.py", 27, "fn:app/reports.py#order_status"]] }
+```
+
+An operation is an edge-rule match: (rule, target, call name). `operation`: the same one from two or more functions; each also gets a `repeated-operation` finding. `shape`: the same rule and call on three or more targets (8 services reading their own table the same way), information only.

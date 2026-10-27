@@ -16,6 +16,8 @@ class Graph:
     outgoing: dict[str, list[dict]] = field(default_factory=dict)
     incoming: dict[str, list[dict]] = field(default_factory=dict)
     findings: dict[str, list[dict]] = field(default_factory=dict)
+    children: dict[str, list[str]] = field(default_factory=dict)
+    repeats: list[dict] = field(default_factory=list)
     built_at: str = ""
 
 
@@ -32,10 +34,12 @@ def build(root: Path) -> None:
 
 
 def index(data: dict) -> Graph:
-    graph = Graph({n["id"]: n for n in data["nodes"]}, built_at=data["builtAt"])
+    graph = Graph({n["id"]: n for n in data["nodes"]}, built_at=data["builtAt"], repeats=data.get("repeats", []))
     for edge in data["edges"]:
         graph.outgoing.setdefault(edge["from"], []).append(edge)
         graph.incoming.setdefault(edge["to"], []).append(edge)
+        if edge["kind"] == "contains":
+            graph.children.setdefault(edge["from"], []).append(edge["to"])
     for finding in data["findings"]:
         graph.findings.setdefault(finding["node"], []).append(finding)
     return graph

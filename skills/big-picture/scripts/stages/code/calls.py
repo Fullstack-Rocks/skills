@@ -6,9 +6,9 @@ import subprocess
 from pathlib import Path, PurePosixPath
 
 from graph import Graph
-from stages.scip_index import Occurrence
+from stages.code.scip_index import Occurrence
 
-PACKS = Path(__file__).resolve().parent.parent.parent / "packs"
+PACKS = Path(__file__).resolve().parents[3] / "packs"
 PYTHON = {".py", ".pyi"}
 TYPESCRIPT = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 

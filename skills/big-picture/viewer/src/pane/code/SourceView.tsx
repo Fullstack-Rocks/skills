@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components'
 
-import { useGraph } from '../store/graph'
-import { theme } from '../theme'
-import type { GraphNode } from '../types'
+import { useGraph } from '../../store/graph'
+import { theme } from '../../theme'
+import type { GraphNode } from '../../types'
 import { languageFor, monaco } from './monaco'
 import { readSource } from './source'
 

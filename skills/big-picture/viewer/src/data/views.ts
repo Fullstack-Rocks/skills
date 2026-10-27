@@ -1,5 +1,6 @@
 import type { LoadedGraph } from '../store/graph'
-import { ROOT, type Mode } from '../store/view'
+import { ROOT, type Mode, type Tab } from '../store/view'
+import type { GraphEdge } from '../types'
 import { leaves, neighbors } from './walk'
 
 // The nodes and edges the canvas shows for a focus:
@@ -10,9 +11,11 @@ import { leaves, neighbors } from './walk'
 //    are used by, edge by edge (the usage graph)
 //  - any other node: what it reaches downstream (3 steps) and what reaches it (2 steps)
 //  - leaves mode: the node and the terminal nodes it reaches, one edge each
-// layout.ts groups the nodes by folder and module.
-export type ViewEdge = { id: string; source: string; target: string; kind: string; label: string; approx: boolean }
-export type View = { nodes: string[]; edges: ViewEdge[]; outside: Set<string> }
+//  - the Database tab: every table, view and JSON lookup, with how they reference each other
+// layout.ts groups the nodes by folder and module. Each shown edge keeps the graph edges it stands for.
+export type ViewEdge = { id: string; source: string; target: string; kind: string; label: string; approx: boolean; members: GraphEdge[] }
+// heights: taller cards that list a table's columns (Database tab); flat: no folder or module frames.
+export type View = { nodes: string[]; edges: ViewEdge[]; outside: Set<string>; heights?: Map<string, number>; flat?: boolean }
 
 const notContains = (kind: string) => kind !== 'contains'
 const CODE_INSIDE_MODULES = new Set(['function', 'endpoint'])
@@ -39,7 +42,7 @@ function rollUp(graph: LoadedGraph, units: Set<string>, outsideLevel: (id: strin
     while (up && !units.has(up)) up = graph.parent.get(up)
     return up
   }
-  const pairs = new Map<string, { source: string; target: string; kinds: Map<string, number>; approx: boolean }>()
+  const pairs = new Map<string, { source: string; target: string; kinds: Map<string, number>; approx: boolean; members: GraphEdge[] }>()
   const outside = new Set<string>()
   for (const edge of graph.data.edges.filter((e) => notContains(e.kind))) {
     const [from, to] = [inside(edge.from), inside(edge.to)]
@@ -47,13 +50,14 @@ function rollUp(graph: LoadedGraph, units: Set<string>, outsideLevel: (id: strin
     if ((!from && !to) || source === target) continue
     if (!from) outside.add(source)
     if (!to) outside.add(target)
-    const pair = pairs.get(`${source}|${target}`) ?? { source, target, kinds: new Map(), approx: false }
+    const pair = pairs.get(`${source}|${target}`) ?? { source, target, kinds: new Map(), approx: false, members: [] as GraphEdge[] }
     pair.kinds.set(edge.kind, (pair.kinds.get(edge.kind) ?? 0) + 1)
+    pair.members.push(edge)
     pair.approx ||= edge.resolved === 'approx'
     pairs.set(`${source}|${target}`, pair)
   }
-  const edges = [...pairs].map(([id, { source, target, kinds, approx }]) => ({
-    id, source, target, approx, kind: [...kinds.keys()][0],
+  const edges = [...pairs].map(([id, { source, target, kinds, approx, members }]) => ({
+    id, source, target, approx, members, kind: [...kinds.keys()][0],
     label: [...kinds].map(([kind, count]) => (count > 1 ? `${kind} ×${count}` : kind)).join(' · '),
   }))
   return { nodes: [...units, ...outside], edges, outside }
@@ -63,7 +67,7 @@ function rollUp(graph: LoadedGraph, units: Set<string>, outsideLevel: (id: strin
 function edgesAmong(graph: LoadedGraph, shown: Set<string>): ViewEdge[] {
   return [...shown].flatMap((id) => (graph.outgoing.get(id) ?? [])
     .filter((e) => notContains(e.kind) && shown.has(e.to))
-    .map((e) => ({ id: `${e.from}|${e.kind}|${e.to}`, source: e.from, target: e.to, kind: e.kind, label: e.kind, approx: e.resolved === 'approx' })))
+    .map((e) => ({ id: `${e.from}|${e.kind}|${e.to}`, source: e.from, target: e.to, kind: e.kind, label: e.kind, approx: e.resolved === 'approx', members: [e] })))
 }
 
 function subgraphView(graph: LoadedGraph, focus: string): View {
@@ -74,11 +78,23 @@ function subgraphView(graph: LoadedGraph, focus: string): View {
 
 function leavesView(graph: LoadedGraph, focus: string): View {
   const ends = leaves(graph, focus)
-  const edges = ends.map((end) => ({ id: `${focus}|reaches|${end}`, source: focus, target: end, kind: 'reaches', label: 'reaches', approx: false }))
+  const edges = ends.map((end) => ({ id: `${focus}|reaches|${end}`, source: focus, target: end, kind: 'reaches', label: 'reaches', approx: false, members: [] }))
   return { nodes: [focus, ...ends], edges, outside: new Set() }
 }
 
-export function visibleGraph(graph: LoadedGraph, focus: string, mode: Mode): View {
+const DATABASE_KINDS = new Set(['references', 'selects-from', 'through', 'finds'])
+export const TABLE_HEAD = 66
+export const TABLE_ROW = 20
+
+function databaseView(graph: LoadedGraph): View {
+  const shown = new Set(graph.data.nodes.filter((n) => n.type === 'table' || n.type === 'lookup').map((n) => n.id))
+  const edges = edgesAmong(graph, shown).filter((e) => DATABASE_KINDS.has(e.kind))
+  const heights = new Map([...shown].map((id) => [id, TABLE_HEAD + TABLE_ROW * Math.max(graph.byId.get(id)?.columns?.length ?? 0, 1)]))
+  return { nodes: [...shown], edges, outside: new Set(), heights, flat: true }
+}
+
+export function visibleGraph(graph: LoadedGraph, focus: string, mode: Mode, tab: Tab): View {
+  if (tab === 'database') return databaseView(graph)
   if (mode === 'leaves') return leavesView(graph, focus)
   const type = graph.byId.get(focus)?.type
   if (focus !== ROOT && type !== 'folder' && type !== 'module') return subgraphView(graph, focus)

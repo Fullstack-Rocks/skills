@@ -17,6 +17,7 @@ class Graph:
         self.edges: dict[tuple[str, str, str], dict] = {}
         self.findings: dict[str, dict] = {}
         self.coverage: dict[str, str] = {}
+        self.repeats: list[dict] = []  # operations and shapes found in several places (stages/repeats.py)
         self.code_by_file: dict[str, list[dict]] = {}
 
     def add_node(self, node_id: str, node_type: str, name: str, **fields: object) -> str:
@@ -56,5 +57,6 @@ class Graph:
             "nodes": sorted(self.nodes.values(), key=lambda n: n["id"]),
             "edges": sorted(self.edges.values(), key=lambda e: (e["from"], e["kind"], e["to"])),
             "findings": sorted(self.findings.values(), key=lambda f: f["id"]),
+            "repeats": self.repeats,
         }
         path.write_text(json.dumps(data, indent=1) + "\n")

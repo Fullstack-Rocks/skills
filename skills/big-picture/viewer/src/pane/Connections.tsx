@@ -6,11 +6,13 @@ import { useGraph, type LoadedGraph } from '../store/graph'
 import { useView } from '../store/view'
 import { edgeColor, theme, typeColor } from '../theme'
 import type { GraphEdge } from '../types'
-import { readSource } from './source'
+import { readSource } from './code/source'
 
 // Edges grouped by kind, outgoing then incoming, named from this node's side (bp node's labels).
 const INVERSE: Record<string, string> = {
   calls: 'called by', 'handled-by': 'handles', contains: 'in', reads: 'read by', writes: 'written by',
+  'maps-to': 'mapped by', references: 'referenced by', 'selects-from': 'selected by', 'looks-up': 'looked up by',
+  through: 'looked up through', finds: 'found by lookup', defines: 'defined in',
 }
 const GROUP_MAX = 40
 
@@ -34,7 +36,7 @@ const Code = styled.code`
 type Group = { label: string; kind: string; members: [GraphEdge, string][] }
 
 /** The line of code where an edge happens, read live from the project. */
-function SiteLine({ file, line }: { file: string; line: number }) {
+export function SiteLine({ file, line }: { file: string; line: number }) {
   const live = useGraph((s) => s.live)
   const builtAt = useGraph((s) => s.graph?.data.builtAt ?? '')
   const [text, setText] = useState('')

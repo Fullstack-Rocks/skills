@@ -1,0 +1,7 @@
+# String literals, scanned for SQL that looks up a table through a JSON column (stages/lookups.py).
+id: bp-strings-typescript
+language: TypeScript
+rule:
+  any:
+    - kind: string
+    - kind: template_string
