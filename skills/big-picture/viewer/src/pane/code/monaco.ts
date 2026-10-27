@@ -2,7 +2,7 @@ import * as monaco from 'monaco-editor/editor/editor.api'
 import 'monaco-editor/basic-languages/monaco.contribution'
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker&inline'
 
-import { theme } from '../theme'
+import { theme } from '../../theme'
 
 // Monaco with its syntax colouring for every language it ships (no language services: the code is
 // read-only). The one worker it needs is inlined, so the single-file build stays offline.

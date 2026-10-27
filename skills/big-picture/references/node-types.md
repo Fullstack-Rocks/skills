@@ -101,6 +101,19 @@ metadata:
 
 The values are appended in source order to the innermost node with a line range around the match (here the model). A table's columns are the `fields` of the model that `maps-to` it.
 
+## Lookup rule: a match is a JSON lookup
+
+SQL with `->>`, `#>>`, `json_extract` or `jsonb_extract_path_text` is found without rules. A rule covers lookups an ORM writes in its own syntax:
+
+```yaml
+id: orm-meta-lookup
+language: Python
+rule:
+  pattern: $MODEL.meta[$KEY].astext == $OTHER.$COLUMN
+metadata:
+  lookup: { table: "{MODEL|snake|plural}", column: meta, path: "{KEY}", to_table: "{OTHER|snake|plural}", to_column: "{COLUMN}" }
+```
+
 Edge kinds in use: `contains`, `calls`, `handled-by`, `reads`, `writes`, `maps-to`. Name a new kind as a verb from the source's side (`publishes`, `guards`, `lookup`), and reuse an existing kind when the meaning matches.
 
 ## Fixtures

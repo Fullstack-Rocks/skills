@@ -43,9 +43,14 @@ Done when the fixtures pass, the hit count matches the hand count (or the differ
 ## View
 
 - **Live:** `python3 scripts/serve.py <project root>` serves the viewer at http://localhost:7478. The page rechecks the graph every 2 seconds, so a rebuild shows up without a reload, and the node pane reads source lines straight from the project. Run it in the background and give the developer the URL. To point at one node, append `#/n/<url-encoded node id>`.
+- **What the viewer shows:** the Map tab (the project birds-eye, folders and modules as frames; dive into any node), and the Database tab (tables, views and JSON lookups with their columns, keys and relations). Clicking a node opens its pane: a description, its connections with the code line of each, its health findings with how to fix them (and a brief to copy for an agent), its table structure, and its source. Clicking a line focuses that connection. Dragging a card pushes its neighbours and grows its frame; a selected frame's options bar re-arranges its contents.
 - **Share:** `python3 scripts/export.py <project root>` writes `.big-picture/out/big-picture.html`: one file with the graph inside, which opens from disk. It is a snapshot: it shows no source and doesn't follow rebuilds.
 
 The viewer ships prebuilt as `viewer/dist/index.html`. Node is needed only to change it: `npm ci && npm run build` in `viewer/`, then commit `dist/index.html`.
+
+## Check the build itself
+
+`python3 tests/check_fixture.py` builds `tests/fixture` (SQL DDL with every table kind, keys, constraints and indexes; JSON lookups in code and in a view; a repeated query) and checks what the stages must find. Run it after changing a stage.
 
 ## Graph format
 

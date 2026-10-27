@@ -1,0 +1,7 @@
+id: db-reads
+valid:
+  - fetch_one(table, 1)
+  - fetch_many("orders", 1)
+invalid:
+  - fetch_one("orders", order_id)
+  - fetch_one('customers', 3)

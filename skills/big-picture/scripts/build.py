@@ -1,7 +1,8 @@
 """Build the big-picture graph of a project into <root>/.big-picture/out/graph.json.
 
 Every node and edge comes from a parser: lizard (functions), SCIP indexers (calls), ast-grep (the
-project's rules in .big-picture/types and edges), and the call-depth and code-standards skills (health).
+project's rules in .big-picture/), SQL DDL and JSON lookups in SQL, and the call-depth and
+code-standards skills (health).
 A full rebuild every run.
 
 Usage: python3 build.py [ROOT]      (default: the current directory)
@@ -18,12 +19,15 @@ import time
 from pathlib import Path, PurePosixPath
 
 from graph import Graph
-from stages.calls import PYTHON, TYPESCRIPT, add_approx_calls, add_scip_calls, scip_indexes
-from stages.functions import add_functions
-from stages.health import add_health
+from stages.code.calls import PYTHON, TYPESCRIPT, add_approx_calls, add_scip_calls, scip_indexes
+from stages.code.functions import add_functions
+from stages.code.scip_index import read_index
+from stages.data.lookups import add_lookups
+from stages.data.schema import add_schema
+from stages.health.findings import add_fixes, add_health
+from stages.health.repeats import add_repeats
 from stages.inventory import add_inventory, code_files, list_files
 from stages.rules import add_rule_matches
-from stages.scip_index import read_index
 
 REQUIRED = ["ast-grep", "lizard"]
 
@@ -71,11 +75,16 @@ def main() -> None:
     unindexed = note_coverage(graph, code, set(index))
     ambiguous = add_approx_calls(graph, unindexed) if unindexed else 0
     matches = add_rule_matches(graph)
+    add_schema(graph, files)
+    lookups = add_lookups(graph, files, code)
+    add_repeats(graph, matches)
     add_health(graph, top_level(code), out)
+    add_fixes(graph)
     graph.write(out / "graph.json")
     coverage = ", ".join(f"{lang} {source}" for lang, source in graph.coverage.items())
     print(f"big-picture: {len(graph.nodes)} nodes, {len(graph.edges)} edges, {len(graph.findings)} findings, "
-          f"{matches} rule matches, calls: {coverage or 'none'}, {ambiguous} ambiguous call sites, "
+          f"{len(matches)} rule matches, {lookups} JSON lookup sites, {len(graph.repeats)} repeats, "
+          f"calls: {coverage or 'none'}, {ambiguous} ambiguous call sites, "
           f"{time.monotonic() - started:.1f}s -> {out / 'graph.json'}")
 
 

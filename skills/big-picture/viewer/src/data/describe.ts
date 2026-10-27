@@ -13,10 +13,9 @@ export function ends(graph: LoadedGraph, id: string, kind: string, direction: 'o
   return [...new Set((edges ?? []).filter((e) => e.kind === kind).map((e) => (direction === 'out' ? e.to : e.from)))]
 }
 
-/** A table's columns: the fields of the model that maps to it. */
-export function tableColumns(graph: LoadedGraph, table: GraphNode): { name: string; type: string }[] {
-  const model = ends(graph, table.id, 'maps-to', 'in')[0]
-  return graph.byId.get(model)?.fields ?? []
+/** A table's columns, from its DDL or, inferred, from the model mapped to it (the build fills them in). */
+export function tableColumns(_graph: LoadedGraph, table: GraphNode): { name: string; type: string }[] {
+  return table.columns ?? []
 }
 
 const descendants = (graph: LoadedGraph, id: string): string[] =>
@@ -31,6 +30,7 @@ export function subtitle(graph: LoadedGraph, node: GraphNode): string {
     case 'endpoint': return `→ ${names(graph, ends(graph, node.id, 'handled-by', 'out'))}`
     case 'table': return `${tableColumns(graph, node).length} columns · read by ${ends(graph, node.id, 'reads', 'in').length} · written by ${ends(graph, node.id, 'writes', 'in').length}`
     case 'model': return `${node.fields?.length ?? 0} fields → ${names(graph, ends(graph, node.id, 'maps-to', 'out')) || 'no table'}`
+    case 'lookup': return `${node.table}.${node.column} → ${node.path} = ${node.to_table}.${node.to_column}`
     case 'module': return [plural(count('function'), 'function'), count('endpoint') ? plural(count('endpoint'), 'endpoint') : ''].filter(Boolean).join(' · ')
     case 'folder': return `${plural(count('module'), 'module')} · ${plural(count('folder'), 'folder')}`
     default: return node.file ?? node.type
@@ -89,6 +89,7 @@ export function describe(graph: LoadedGraph, node: GraphNode, entries: string[])
     case 'model': return `A data model in ${node.file}, lines ${node.start}–${node.end}, with ${plural(node.fields?.length ?? 0, 'field')}. It maps to the table ${names(graph, ends(graph, node.id, 'maps-to', 'out')) || '(none found)'}.`
     case 'module':
     case 'folder': return describeContainer(graph, node)
-    default: return `A ${node.type} file at ${node.file}.`
+    case 'lookup': return `A lookup through a JSON column: it finds ${node.to_table} rows whose ${node.to_column} equals the ${node.path} path inside ${node.table}.${node.column}.`
+    default: return node.file ? `A ${node.type} file at ${node.file}.` : `A ${node.type}.`
   }
 }

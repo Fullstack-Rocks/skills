@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 from graph import Graph
-from stages.scip_index import Occurrence
+from stages.code.scip_index import Occurrence
 
 LIZARD_BATCH = 400  # files per lizard run, to stay under the command-line length limit
 

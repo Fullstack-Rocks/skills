@@ -1,0 +1,3 @@
+ruleDirs: [edges]
+testConfigs:
+  - testDir: rule-tests

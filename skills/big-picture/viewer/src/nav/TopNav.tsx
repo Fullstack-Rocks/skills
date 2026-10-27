@@ -1,6 +1,7 @@
 import styled from 'styled-components'
 
 import { useGraph } from '../store/graph'
+import { useView, type Tab } from '../store/view'
 import { theme } from '../theme'
 import { Logo } from './Logo'
 import { Search } from './Search'
@@ -20,6 +21,12 @@ const Product = styled.span`
   background: linear-gradient(90deg, ${theme.lime} 0%, ${theme.mint} 35%, ${theme.sky} 65%, ${theme.violet} 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 `
+const Tabs = styled.nav`
+  display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: ${theme.panel}; border: 1px solid ${theme.border};
+  button { border: 0; border-radius: 7px; padding: 5px 14px; background: none; color: ${theme.muted}; cursor: pointer; font-size: 13px; }
+  button[aria-pressed='true'] { background: ${theme.raised}; color: ${theme.lime}; }
+`
+const TABS: [Tab, string][] = [['map', 'Map'], ['database', 'Database']]
 const Status = styled.div`
   margin-left: auto; display: flex; align-items: center; gap: 8px; color: ${theme.muted}; font-size: 13px;
   i { width: 8px; height: 8px; border-radius: 50%; background: ${theme.mint}; }
@@ -34,9 +41,11 @@ function age(builtAt: string): string {
 export function TopNav() {
   const graph = useGraph((s) => s.graph)
   const live = useGraph((s) => s.live)
+  const { tab, setTab } = useView()
   return (
     <Bar>
       <Brand><Logo /><b>fullstack.rocks</b><Product>big picture</Product></Brand>
+      <Tabs>{TABS.map(([id, label]) => <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>)}</Tabs>
       <Search />
       {graph && (
         <Status title={`Rebuild: python3 <big-picture>/scripts/build.py ${graph.data.root}`}>

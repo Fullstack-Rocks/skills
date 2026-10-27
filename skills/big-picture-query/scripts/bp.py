@@ -3,6 +3,9 @@
   bp node <id or text>                       the node, its entry points, every edge, its health findings
   bp neighbors <id or text> [--depth 2] [--dir out|in|both] [--kinds calls,reads]
   bp find <text> [--type endpoint]           nodes whose id contains the text
+  bp health <id or text>                     every finding on it and inside it, with where and how to fix
+  bp similar <id or text>                    operations it repeats, and every other place they run
+  bp db                                      tables, views, keys, relations and JSON lookups
 
 Edges marked ~ were matched by name (approx), not by a type-aware index.
 Run from anywhere inside the project; the nearest .big-picture/ above the current folder is used.
@@ -18,7 +21,9 @@ from pathlib import Path
 
 from graph.load import load
 from graph.walk import entry_points
+from verbs.data import show_db
 from verbs.find import pick, show_find
+from verbs.health import show_health, show_similar
 from verbs.node import show_neighbors, show_node
 
 
@@ -34,6 +39,9 @@ def parse() -> argparse.Namespace:
     search = verbs.add_parser("find")
     search.add_argument("text")
     search.add_argument("--type")
+    verbs.add_parser("health").add_argument("target", nargs="?", default="folder:.")
+    verbs.add_parser("similar").add_argument("target", nargs="?", default="folder:.")
+    verbs.add_parser("db")
     return parser.parse_args()
 
 
@@ -49,6 +57,12 @@ def main() -> None:
             show_neighbors(graph, pick(graph, args.target), args.depth, args.dir, kinds)
         case "find":
             show_find(graph, args.text, args.type)
+        case "health":
+            show_health(graph, pick(graph, args.target))
+        case "similar":
+            show_similar(graph, pick(graph, args.target))
+        case "db":
+            show_db(graph)
 
 
 if __name__ == "__main__":

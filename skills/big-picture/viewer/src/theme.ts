@@ -19,11 +19,12 @@ export const theme = {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  endpoint: theme.lime, function: theme.mint, module: theme.sky, table: theme.violet, database: theme.violet, model: theme.amber,
+  endpoint: theme.lime, function: theme.mint, module: theme.sky, table: theme.violet, database: theme.violet, model: theme.amber, lookup: theme.coral,
   folder: theme.muted,
 }
 const EDGE_COLORS: Record<string, string> = {
   calls: '#94A3B8', 'handled-by': theme.lime, reads: theme.sky, writes: theme.violet, 'maps-to': theme.amber, reaches: theme.mint,
+  references: theme.violet, 'selects-from': theme.sky, 'looks-up': theme.coral, through: theme.coral, finds: theme.coral,
 }
 
 export function typeColor(type: string): string {

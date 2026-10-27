@@ -4,7 +4,8 @@ from graph.walk import edges, neighbors
 from verbs.find import location
 
 INVERSE = {"calls": "called by", "handled-by": "handles", "contains": "in", "reads": "read by",
-           "writes": "written by", "maps-to": "mapped by"}
+           "writes": "written by", "maps-to": "mapped by", "references": "referenced by", "selects-from": "selected by",
+           "looks-up": "looked up by", "through": "looked through by", "finds": "found by", "defines": "defined in"}
 GROUP_MAX = 40
 
 
@@ -34,17 +35,31 @@ def print_groups(graph: Graph, node_id: str, direction: str) -> None:
             print(f"   ... {len(members) - GROUP_MAX} more: bp neighbors {node_id!r} --dir {direction}")
 
 
-def print_fields(graph: Graph, node: dict) -> None:
-    """A model's fields, or a table's columns from the model that maps to it."""
-    source = node
-    if "fields" not in node:
-        models = [e["from"] for e in graph.incoming.get(node["id"], []) if e["kind"] == "maps-to"]
-        source = graph.nodes.get(models[0], {}) if models else {}
-    fields = source.get("fields", [])
-    if fields:
-        origin = "" if source is node else f" (from {source['id']})"
-        print(f"{'fields' if source is node else 'columns'} ({len(fields)}){origin}")
-        print("  " + ", ".join(f"{f['name']}: {f['type']}" for f in fields))
+def column_flags(column: dict) -> str:
+    flags = ["PK" if column.get("pk") else "", "" if column.get("nullable", True) else "NOT NULL",
+             "UNIQUE" if column.get("unique") and not column.get("pk") else "",
+             f"-> {column['references']}" if column.get("references") else "",
+             f"DEFAULT {column['default']}" if column.get("default") else "", f"CHECK ({column['check']})" if column.get("check") else ""]
+    return " ".join(f for f in flags if f)
+
+
+def print_fields(node: dict) -> None:
+    """A table's kind, columns, constraints and indexes, or a model's fields."""
+    if node.get("columns"):
+        origin = "declared in SQL" if node.get("declared") else "inferred from its model; keys by naming convention"
+        print(f"{node.get('kind', 'table')}, {origin}")
+        print(f"columns ({len(node['columns'])})")
+        for column in node["columns"]:
+            print(f"  {column['name']:<20} {column['type']:<16} {column_flags(column)}")
+    for constraint in node.get("constraints", []):
+        print(f"  constraint {constraint}")
+    for index in node.get("indexes", []):
+        print(f"  {'unique ' if index['unique'] else ''}index {index['name']} ({', '.join(index['columns'])})")
+    if node.get("fields"):
+        print(f"fields ({len(node['fields'])}): " + ", ".join(f"{f['name']}: {f['type']}" for f in node["fields"]))
+    if node.get("expression"):
+        print(f"lookup: {node['table']}.{node['column']} path {node['path']} = {node['to_table']}.{node['to_column']}")
+        print(f"  e.g. {node['expression']}")
 
 
 def print_health(graph: Graph, node_id: str) -> None:
@@ -63,7 +78,7 @@ def show_node(graph: Graph, node: dict, entries: list[str]) -> None:
     print("  " + " · ".join(d for d in details if d))
     if entries:
         print("entry points: " + ", ".join(entries))
-    print_fields(graph, node)
+    print_fields(node)
     print_groups(graph, node["id"], "out")
     print_groups(graph, node["id"], "in")
     print_health(graph, node["id"])

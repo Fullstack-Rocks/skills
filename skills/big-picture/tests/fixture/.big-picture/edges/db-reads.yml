@@ -1,0 +1,10 @@
+id: db-reads
+language: Python
+message: reads one row of a table through app.db.fetch_one
+rule:
+  pattern: fetch_one($TABLE, $$$REST)
+constraints:
+  TABLE: { kind: string }
+metadata:
+  edge: reads
+  to: "table:{TABLE}"

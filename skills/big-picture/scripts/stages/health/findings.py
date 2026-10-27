@@ -7,10 +7,29 @@ from pathlib import Path
 
 from graph import Graph
 
-SKILLS = Path(__file__).resolve().parents[3]
+SKILLS = Path(__file__).resolve().parents[4]
 CALL_DEPTH = SKILLS / "call-depth" / "scripts"
 CODE_STANDARDS = SKILLS / "code-standards" / "scripts"
 INSTALL = "npx skills add Fullstack-Rocks/skills --skill {}"
+# How to address each kind of finding, from the under-engineering and call-depth skills. Findings from a
+# linter or a code-standards rule carry their advice in their message.
+FIXES = {
+    "complexity": "Flatten it, re-measuring after each step: guard clauses and early returns, then a named "
+                  "function per branch, then separate functions instead of flag parameters.",
+    "function-length": "Split it so each function does one thing; the entrypoint keeps a short sequence of "
+                       "well-named calls and the work moves into the functions it calls.",
+    "file-length": "Split the file by responsibility, or extract the shared helper other files repeat.",
+    "folder-size": "Group the files into subfolders named after what they hold, 5-6 code files each, "
+                   "continuing the parent's name (payments/ -> payments/refunds/).",
+    "folder-name": "Rename the folder to 1-3 words naming what it holds.",
+    "dynamic-call": "Replace the runtime lookup with a direct call, or a match/switch on a typed value whose "
+                    "branches call directly, so go-to-definition reaches the code that runs.",
+    "dynamic-attr": "If the looked-up attribute gets called, make it a direct call or a typed match/switch.",
+    "lookup-call": "Replace the registry call (handlers[kind](...)) with a match/switch whose branches call "
+                   "each handler directly.",
+    "duplicate": "Extract the duplicated code into one function both places call.",
+}
+LINTER_FIX = "Follow the rule's message above; `code-standards` review marks the ones with a mechanical fix."
 
 
 def call_depth_lines(graph: Graph, code_paths: list[str]) -> list[str]:
@@ -49,6 +68,12 @@ def add_code_standards(graph: Graph, out: Path) -> None:
         node = graph.enclosing(finding["file"], finding["line"] or 0)
         graph.add_finding(finding["rule_id"], node, finding["file"], finding["line"], finding["message"],
                           finding["source"])
+
+
+def add_fixes(graph: Graph) -> None:
+    """Give every finding a `fix`: what to do about it."""
+    for finding in graph.findings.values():
+        finding.setdefault("fix", FIXES.get(finding["rule"], LINTER_FIX))
 
 
 def add_health(graph: Graph, code_paths: list[str], out: Path) -> None:
