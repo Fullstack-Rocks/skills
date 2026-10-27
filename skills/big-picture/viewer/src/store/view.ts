@@ -10,7 +10,7 @@ export const ROOT = 'folder:.'
 export type Mode = 'subgraph' | 'leaves'
 export type EdgeStyle = 'default' | 'smoothstep' | 'step' | 'straight'
 export type Direction = 'RIGHT' | 'DOWN' | 'LEFT' | 'UP'
-export type Tab = 'map' | 'database' | 'endpoints' | 'capsules' | 'health' | string // or a view's id (.big-picture/views)
+export type Tab = 'map' | 'systems' | 'database' | 'endpoints' | 'capsules' | 'health' | string // or a view's id (.big-picture/views)
 // A clicked connection: the graph edges it stands for (several when the view rolls them up).
 export type SelectedEdge = { id: string; source: string; target: string; label: string; members: GraphEdge[] }
 

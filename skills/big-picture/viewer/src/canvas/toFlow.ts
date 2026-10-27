@@ -2,6 +2,7 @@ import { MarkerType, type Edge } from '@xyflow/react'
 
 import { subtitle } from '../data/describe'
 import { DATABASE, type Placed } from '../data/layout'
+import { portsOf } from '../data/views'
 import type { View } from '../data/views'
 import type { LoadedGraph } from '../store/graph'
 import type { Direction, EdgeStyle } from '../store/view'
@@ -49,7 +50,7 @@ export function toFlowNodes(graph: LoadedGraph, placed: Placed[], view: View, fo
   return placed.map((p): FlowNode => {
     const node = graph.byId.get(p.id)
     if (p.group || !node) return groupNode(graph, p)
-    const data = { ...cardData(graph, p, { view, sides, focus, direction }), subtitle: subtitle(graph, node) }
+    const data = { ...cardData(graph, p, { view, sides, focus, direction }), subtitle: subtitle(graph, node), ports: portsOf(graph, p.id) }
     return { id: p.id, type: 'card', parentId: p.parent, position: { x: p.x, y: p.y }, data }
   })
 }

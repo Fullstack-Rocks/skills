@@ -74,7 +74,10 @@ function edgesAmong(graph: LoadedGraph, shown: Set<string>): ViewEdge[] {
 function subgraphView(graph: LoadedGraph, focus: string): View {
   const steps = [...neighbors(graph, focus, 3, 'out', notContains), ...neighbors(graph, focus, 2, 'in', notContains)]
   const shown = new Set([focus, ...steps.map((s) => s.id)])
-  return { nodes: [...shown], edges: edgesAmong(graph, shown), outside: new Set() }
+  // The walk crosses into other systems through their contracts; their side is drawn as outside.
+  const home = graph.byId.get(focus)?.system
+  const outside = new Set([...shown].filter((id) => home && graph.byId.get(id)?.system && graph.byId.get(id)!.system !== home))
+  return { nodes: [...shown], edges: edgesAmong(graph, shown), outside }
 }
 
 function leavesView(graph: LoadedGraph, focus: string): View {
@@ -127,6 +130,38 @@ function capsulesView(graph: LoadedGraph): View {
   return { nodes: [...groups.keys()], edges: rolled.edges.filter((e) => groups.has(e.source) && groups.has(e.target)), outside: new Set(), groups }
 }
 
+/** The other end of a connection, when it lies in another system or is a contract several systems share. */
+export function crossesTo(graph: LoadedGraph, id: string, other: string): boolean {
+  const [mine, theirs] = [graph.byId.get(id)?.system, graph.byId.get(other)?.system]
+  return Boolean(mine) && (theirs ? theirs !== mine : graph.shared.has(other))
+}
+
+export type Port = { id: string; kind: string; label: string }
+
+/** A card's connections into other systems or shared contracts: its ports, shown as badges, not long wires. */
+export function portsOf(graph: LoadedGraph, id: string): Port[] {
+  const out = (graph.outgoing.get(id) ?? []).map((e): [string, string] => [e.kind, e.to])
+  const into = (graph.incoming.get(id) ?? []).map((e): [string, string] => [e.kind, e.from])
+  return [...out, ...into].filter(([kind, other]) => notContains(kind) && crossesTo(graph, id, other))
+    .map(([kind, other]) => ({ id: other, kind, label: portLabel(graph, kind, other) }))
+}
+
+function portLabel(graph: LoadedGraph, kind: string, other: string): string {
+  const node = graph.byId.get(other)
+  const where = node?.system ? ' · ' + node.system : ''
+  return kind + ' ' + (node?.name ?? other) + where
+}
+
+/** Each system as a frame holding only its boundary code, with the contracts between the frames. */
+function systemsView(graph: LoadedGraph): View {
+  const boundary = graph.data.edges.filter((e) => notContains(e.kind)).flatMap((e) => [
+    ...(crossesTo(graph, e.from, e.to) ? [e.from] : []), ...(crossesTo(graph, e.to, e.from) ? [e.to] : []),
+  ])
+  const shown = new Set([...boundary, ...graph.shared])
+  const groups = new Map([...shown].flatMap((id) => (graph.byId.get(id)?.system ? [[id, `system:${graph.byId.get(id)!.system}`] as [string, string]] : [])))
+  return { nodes: [...shown], edges: edgesAmong(graph, shown), outside: new Set(), groups }
+}
+
 /** Every node with health findings of its own, in its folder and module frames (folders show theirs as frames). */
 function healthView(graph: LoadedGraph): View {
   const shown = new Set([...graph.findings.keys()].filter((id) => graph.byId.has(id) && graph.byId.get(id)!.type !== 'folder'))
@@ -137,6 +172,7 @@ export function visibleGraph(graph: LoadedGraph, focus: string, mode: Mode, tab:
   const lens = graph.data.views?.find((v) => v.id === tab)
   if (lens) return lensView(graph, lens)
   if (tab === 'capsules') return capsulesView(graph)
+  if (tab === 'systems') return systemsView(graph)
   if (tab === 'health') return healthView(graph)
   if (tab === 'database') return databaseView(graph)
   if (mode === 'leaves') return leavesView(graph, focus)

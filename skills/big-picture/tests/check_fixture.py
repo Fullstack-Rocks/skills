@@ -61,12 +61,26 @@ def check_lenses(nodes: dict, edges: set, views: list[dict]) -> dict[str, bool]:
     }
 
 
+def check_systems(nodes: dict, edges: set) -> dict[str, bool]:
+    """Systems from top-level code folders, and the contracts between them (topics, socket messages)."""
+    in_system = {n["id"]: n.get("system") for n in nodes.values()}
+    return {
+        "systems from code folders": {n for n in nodes if n.startswith("system:")} == {"system:app", "system:web", "system:worker"},
+        "event across systems": {("fn:app/events.py#announce_order", "publishes", "topic:order.created"),
+                                 ("fn:worker/handlers.py#send_receipt", "consumes", "topic:order.created")} <= edges,
+        "socket both ways": {("fn:web/live.ts#watchPrices", "sends", "message:subscribe"),
+                             ("fn:app/events.py#on_subscribe", "receives", "message:subscribe"),
+                             ("fn:app/events.py#push_price", "sends", "message:price.update")} <= edges,
+        "no call across languages": not any(k == "calls" and in_system.get(a) == "web" and in_system.get(b) == "app" for a, k, b in edges),
+    }
+
+
 def check(graph: dict) -> list[str]:
     nodes = {n["id"]: n for n in graph["nodes"]}
     edges = {(e["from"], e["kind"], e["to"]) for e in graph["edges"]}
     findings = {f["id"] for f in graph["findings"]}
     expected = (check_schema(nodes, edges) | check_lookups(nodes, edges, findings) | check_api(edges, findings)
-                | check_lenses(nodes, edges, graph.get("views", [])))
+                | check_lenses(nodes, edges, graph.get("views", [])) | check_systems(nodes, edges))
     return [name for name, ok in expected.items() if not ok]
 
 

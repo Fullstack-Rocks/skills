@@ -1,0 +1,6 @@
+id: socket-ts-on
+language: TypeScript
+message: listens for a socket message
+rule: { pattern: 'socket.on($MESSAGE, $HANDLER)' }
+constraints: { MESSAGE: { kind: string } }
+metadata: { edge: receives, to: "message:{MESSAGE}" }

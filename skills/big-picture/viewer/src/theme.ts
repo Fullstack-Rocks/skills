@@ -19,13 +19,14 @@ export const theme = {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  endpoint: theme.lime, function: theme.mint, module: theme.sky, table: theme.violet, database: theme.violet, model: theme.amber, lookup: theme.coral, operation: '#F9A8D4', 'api-model': theme.amber, capsule: '#FDE047',
+  endpoint: theme.lime, function: theme.mint, module: theme.sky, table: theme.violet, database: theme.violet, model: theme.amber, lookup: theme.coral, operation: '#F9A8D4', 'api-model': theme.amber, capsule: '#FDE047', system: theme.sky, topic: '#FB923C', message: '#2DD4BF',
   folder: theme.muted,
 }
 const EDGE_COLORS: Record<string, string> = {
   calls: '#94A3B8', 'handled-by': theme.lime, reads: theme.sky, writes: theme.violet, 'maps-to': theme.amber, reaches: theme.mint,
   references: theme.violet, 'selects-from': theme.sky, 'looks-up': theme.coral, through: theme.coral, finds: theme.coral,
-  'implemented-by': '#F9A8D4', accepts: theme.amber, returns: theme.amber, has: theme.amber,
+  'implemented-by': '#F9A8D4', accepts: theme.amber, returns: theme.amber, has: theme.amber, 'calls-api': '#F9A8D4',
+  publishes: '#FB923C', consumes: '#FB923C', sends: '#2DD4BF', receives: '#2DD4BF',
 }
 
 // Colours the project's view files give its own node types and connection kinds; a value may be a

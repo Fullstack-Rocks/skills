@@ -1,0 +1,3 @@
+id: socket-python
+valid: ['socket.emit(name, payload)', 'other.emit("price.update", payload)']
+invalid: ['socket.emit("price.update", {"sku": sku})', "socket.emit('hello', {})"]

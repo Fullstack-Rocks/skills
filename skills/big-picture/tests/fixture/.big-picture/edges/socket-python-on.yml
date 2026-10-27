@@ -1,0 +1,9 @@
+id: socket-python-on
+language: Python
+message: a handler for a socket message
+rule:
+  kind: function_definition
+  inside:
+    kind: decorated_definition
+    has: { kind: decorator, has: { pattern: socket.on($MESSAGE) } }
+metadata: { edge: receives, to: "message:{MESSAGE}" }

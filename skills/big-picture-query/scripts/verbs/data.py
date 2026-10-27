@@ -51,3 +51,37 @@ def show_capsules(graph: Graph) -> None:
     for capsule in capsules:
         members = [e["to"].split(":", 1)[1] for e in graph.outgoing.get(capsule["id"], []) if e["kind"] == "groups"]
         print(f"  {capsule['name']:<24} {capsule['id']:<52} {', '.join(sorted(members))}")
+
+
+def direct_links(graph: Graph) -> dict[tuple[str, str, str], int]:
+    """(system, system, kind) -> how many edges run straight from one system's code to another's."""
+    links: dict[tuple[str, str, str], int] = {}
+    for edge in [e for edges in graph.outgoing.values() for e in edges if e["kind"] != "contains"]:
+        a, b = graph.nodes.get(edge["from"], {}).get("system"), graph.nodes.get(edge["to"], {}).get("system")
+        if a and b and a != b:
+            links[(a, b, edge["kind"])] = links.get((a, b, edge["kind"]), 0) + 1
+    return links
+
+
+def shared_contracts(graph: Graph) -> dict[str, list[str]]:
+    """contract -> ["app publishes", "worker consumes"], for nodes in no system that two or more systems use."""
+    uses: dict[str, set[str]] = {}
+    for edge in [e for edges in graph.outgoing.values() for e in edges if e["kind"] != "contains"]:
+        system = graph.nodes.get(edge["from"], {}).get("system")
+        if system and not graph.nodes.get(edge["to"], {}).get("system"):
+            uses.setdefault(edge["to"], set()).add(f"{system} {edge['kind']}")
+    return {node: sorted(u) for node, u in uses.items() if len({x.split()[0] for x in u}) > 1}
+
+
+def show_systems(graph: Graph) -> None:
+    """The project's systems, how they call each other directly, and the contracts they share."""
+    systems = sorted(n["name"] for n in graph.nodes.values() if n["type"] == "system")
+    print(f"{len(systems)} systems: {', '.join(systems) or 'none (one system, or set them in .big-picture/systems.yml)'}")
+    direct, shared = direct_links(graph), shared_contracts(graph)
+    print("\ndirect links between systems")
+    for (a, b, kind), count in sorted(direct.items()):
+        print(f"  {a} -> {b}  {kind} x{count}")
+    print("\ncontracts several systems use (topics, messages, ...)")
+    for node, uses in sorted(shared.items()):
+        print(f"  {node:<36} {' · '.join(uses)}")
+    print("\nbp node <contract or endpoint> shows both sides with file:line.")

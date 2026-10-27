@@ -1,0 +1,3 @@
+id: event-publish
+valid: ['publish(topic, payload)', 'log("order.created")']
+invalid: ['publish("order.created", {"id": 1})', "publish('order.shipped', payload)"]

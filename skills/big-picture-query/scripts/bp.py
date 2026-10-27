@@ -9,6 +9,7 @@
   bp endpoint "<METHOD> <path>"              an API operation: parameters, models, handler, what it runs
   bp view [<id>]                             a view the project defines (cache, config, ...), or the list of them
   bp capsules                                groups of modules that work together
+  bp systems                                 the systems, how they call each other, the contracts they share
   bp spec <id or text> [--findings a,b]      write a fix spec for its health findings to .big-picture/specs/
 
 Edges marked ~ were matched by name (approx), not by a type-aware index.
@@ -26,7 +27,7 @@ from pathlib import Path
 from graph.load import Graph, load
 from graph.walk import entry_points
 from verbs.api import show_endpoint
-from verbs.data import show_capsules, show_db, show_view
+from verbs.data import show_capsules, show_db, show_systems, show_view
 from verbs.find import pick, show_find
 from verbs.health import show_health, show_similar
 from verbs.node import show_neighbors, show_node
@@ -51,6 +52,7 @@ def parse() -> argparse.Namespace:
     verbs.add_parser("endpoint").add_argument("target")
     verbs.add_parser("view").add_argument("id", nargs="?")
     verbs.add_parser("capsules")
+    verbs.add_parser("systems")
     spec = verbs.add_parser("spec")
     spec.add_argument("target")
     spec.add_argument("--findings", type=lambda value: value.split(","), help="comma-separated finding ids; default: every finding on it and inside it")
@@ -68,12 +70,14 @@ def show_listing(graph: Graph, args: argparse.Namespace) -> None:
             show_view(graph, args.id)
         case "capsules":
             show_capsules(graph)
+        case "systems":
+            show_systems(graph)
 
 
 def main() -> None:
     args = parse()
     graph = load(Path.cwd())
-    if args.verb in ("find", "db", "view", "capsules"):
+    if args.verb in ("find", "db", "view", "capsules", "systems"):
         show_listing(graph, args)
         return
     node = pick(graph, args.target)

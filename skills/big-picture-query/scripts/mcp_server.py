@@ -29,6 +29,7 @@ TOOLS = [
     ("bp_endpoint", "An API operation: parameters, models, handler and everything it runs.", TARGET, ["target"]),
     ("bp_view", "A view the project defines (cache, config, ...), or the list of views.", {"id": {"type": "string"}}, []),
     ("bp_capsules", "Groups of modules that work together.", {}, []),
+    ("bp_systems", "The systems, how they call each other, and the contracts (topics, messages) they share.", {}, []),
     ("bp_spec", "Write a fix spec for a part's health findings to .big-picture/specs/ and return its path.", TARGET, ["target"]),
 ]
 
@@ -41,7 +42,7 @@ def argv(tool: str, args: dict) -> list[str]:
             return ["neighbors", args["target"], *extra]
         case "bp_find":
             return ["find", args["text"], *(["--type", args["type"]] if args.get("type") else [])]
-        case "bp_db" | "bp_capsules":
+        case "bp_db" | "bp_capsules" | "bp_systems":
             return [tool.removeprefix("bp_")]
         case "bp_view":
             return ["view", *([args["id"]] if args.get("id") else [])]

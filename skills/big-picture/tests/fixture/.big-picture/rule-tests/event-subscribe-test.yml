@@ -1,0 +1,18 @@
+id: event-subscribe
+valid:
+  - |
+    def send_receipt(event):
+        pass
+  - |
+    @route("GET", "/x")
+    def handler(request):
+        pass
+invalid:
+  - |
+    @subscribe("order.created")
+    def send_receipt(event):
+        pass
+  - |
+    @subscribe('order.shipped')
+    def notify(event):
+        pass

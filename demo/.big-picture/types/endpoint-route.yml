@@ -16,3 +16,4 @@ metadata:
   id: "{METHOD} {PATH}"
   link: handled-by
   to: HANDLER
+  keys: ["http:{METHOD|upper} {PATH|route}"]   # what clients in other systems call it by

@@ -1,0 +1,18 @@
+id: socket-python-on
+valid:
+  - |
+    def on_subscribe(payload):
+        pass
+  - |
+    @subscribe("subscribe")
+    def other(payload):
+        pass
+invalid:
+  - |
+    @socket.on("subscribe")
+    def on_subscribe(payload):
+        pass
+  - |
+    @socket.on('ping')
+    def on_ping(payload):
+        pass

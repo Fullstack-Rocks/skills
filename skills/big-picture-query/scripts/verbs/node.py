@@ -6,7 +6,8 @@ from verbs.find import location
 INVERSE = {"calls": "called by", "handled-by": "handles", "contains": "in", "reads": "read by",
            "writes": "written by", "maps-to": "mapped by", "references": "referenced by", "selects-from": "selected by",
            "looks-up": "looked up by", "through": "looked through by", "finds": "found by", "defines": "defined in",
-           "groups": "in capsule", "implemented-by": "implements"}
+           "groups": "in capsule", "implemented-by": "implements", "calls-api": "called by (API)", "publishes": "published by",
+           "consumes": "consumed by", "sends": "sent by", "receives": "received by"}
 GROUP_MAX = 40
 
 
@@ -81,7 +82,8 @@ def print_doc(node: dict) -> None:
 
 def show_node(graph: Graph, node: dict, entries: list[str]) -> None:
     """entries: the node's entry points, from walk.entry_points."""
-    details = [node["type"], location(node), node.get("signature", ""), f"hash {node['hash']}" if node.get("hash") else ""]
+    details = [node["type"], f"system {node['system']}" if node.get("system") else "", location(node), node.get("signature", ""),
+               f"hash {node['hash']}" if node.get("hash") else ""]
     print(node["id"])
     print("  " + " · ".join(d for d in details if d))
     if entries:
