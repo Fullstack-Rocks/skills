@@ -2,10 +2,11 @@ import styled from 'styled-components'
 
 import { describe } from '../data/describe'
 import { entryPoints } from '../data/walk'
-import { useGraph } from '../store/graph'
-import { useView } from '../store/view'
+import { useGraph, type LoadedGraph } from '../store/graph'
+import { ROOT, useView } from '../store/view'
 import { theme, typeColor } from '../theme'
 import { Connections, NodeLink, Section } from './Connections'
+import { Note } from './code/Note'
 import { SourceView } from './code/SourceView'
 import { ApiPanel } from './ApiPanel'
 import { EdgePane } from './EdgePane'
@@ -62,20 +63,13 @@ function EntryList({ ids }: { ids: string[] }) {
   return <Section><h4>Entry points ({ids.length})</h4><ul>{ids.map((id) => <li key={id}><NodeLink id={id} /></li>)}</ul></Section>
 }
 
-export function NodePane() {
-  const graph = useGraph((s) => s.graph)
-  const selected = useView((s) => s.selected)
-  const selectedEdge = useView((s) => s.selectedEdge)
-  const node = selected ? graph?.byId.get(selected) : undefined
-  if (graph && selectedEdge) return <Pane><EdgePane edge={selectedEdge} /></Pane>
-  if (!graph || !node) {
-    return <Pane><Empty>Click a node to see what it is, what it touches and its code. Double-click to dive in.</Empty></Pane>
-  }
+function NodeDetails({ graph, node }: { graph: LoadedGraph; node: GraphNode }) {
   const entries = entryPoints(graph, node.id)
   return (
     <Pane>
       <NodeHeader node={node} root={graph.data.root} />
       <About>{describe(graph, node, entries)}</About>
+      <Note node={node} />
       <TablePreview node={node} />
       <ApiPanel node={node} />
       <EntryList ids={entries} />
@@ -84,4 +78,15 @@ export function NodePane() {
       {node.file && node.type !== 'folder' && <Section><h4>Source</h4><SourceView node={node} /></Section>}
     </Pane>
   )
+}
+
+export function NodePane() {
+  const graph = useGraph((s) => s.graph)
+  const { selected, selectedEdge, tab } = useView()
+  const node = selected ? graph?.byId.get(selected) : undefined
+  if (!graph) return <Pane />
+  if (selectedEdge) return <Pane><EdgePane edge={selectedEdge} /></Pane>
+  if (node) return <NodeDetails graph={graph} node={node} />
+  if (tab === 'health') return <Pane><HealthList graph={graph} id={ROOT} /></Pane>
+  return <Pane><Empty>Click a node to see what it is, what it touches and its code. Double-click to dive in.</Empty></Pane>
 }

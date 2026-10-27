@@ -8,6 +8,8 @@
   bp db                                      tables, views, keys, relations and JSON lookups
   bp endpoint "<METHOD> <path>"              an API operation: parameters, models, handler, what it runs
   bp view [<id>]                             a view the project defines (cache, config, ...), or the list of them
+  bp capsules                                groups of modules that work together
+  bp spec <id or text> [--findings a,b]      write a fix spec for its health findings to .big-picture/specs/
 
 Edges marked ~ were matched by name (approx), not by a type-aware index.
 Run from anywhere inside the project; the nearest .big-picture/ above the current folder is used.
@@ -21,13 +23,14 @@ if sys.version_info < (3, 11):
 import argparse
 from pathlib import Path
 
-from graph.load import load
+from graph.load import Graph, load
 from graph.walk import entry_points
 from verbs.api import show_endpoint
-from verbs.data import show_db, show_view
+from verbs.data import show_capsules, show_db, show_view
 from verbs.find import pick, show_find
 from verbs.health import show_health, show_similar
 from verbs.node import show_neighbors, show_node
+from verbs.spec import chosen_findings, write_spec
 
 
 def parse() -> argparse.Namespace:
@@ -38,7 +41,7 @@ def parse() -> argparse.Namespace:
     walk.add_argument("target")
     walk.add_argument("--depth", type=int, default=2)
     walk.add_argument("--dir", choices=["out", "in", "both"], default="both")
-    walk.add_argument("--kinds", help="comma-separated edge kinds, e.g. calls,reads")
+    walk.add_argument("--kinds", type=lambda value: set(value.split(",")), help="comma-separated edge kinds, e.g. calls,reads")
     search = verbs.add_parser("find")
     search.add_argument("text")
     search.add_argument("--type")
@@ -47,31 +50,47 @@ def parse() -> argparse.Namespace:
     verbs.add_parser("db")
     verbs.add_parser("endpoint").add_argument("target")
     verbs.add_parser("view").add_argument("id", nargs="?")
+    verbs.add_parser("capsules")
+    spec = verbs.add_parser("spec")
+    spec.add_argument("target")
+    spec.add_argument("--findings", type=lambda value: value.split(","), help="comma-separated finding ids; default: every finding on it and inside it")
     return parser.parse_args()
+
+
+def show_listing(graph: Graph, args: argparse.Namespace) -> None:
+    """The verbs that list the whole project rather than one node."""
+    match args.verb:
+        case "find":
+            show_find(graph, args.text, args.type)
+        case "db":
+            show_db(graph)
+        case "view":
+            show_view(graph, args.id)
+        case "capsules":
+            show_capsules(graph)
 
 
 def main() -> None:
     args = parse()
     graph = load(Path.cwd())
+    if args.verb in ("find", "db", "view", "capsules"):
+        show_listing(graph, args)
+        return
+    node = pick(graph, args.target)
     match args.verb:
         case "node":
-            node = pick(graph, args.target)
             show_node(graph, node, entry_points(graph, node["id"]))
         case "neighbors":
-            kinds = set(args.kinds.split(",")) if args.kinds else None
-            show_neighbors(graph, pick(graph, args.target), args.depth, args.dir, kinds)
-        case "find":
-            show_find(graph, args.text, args.type)
+            show_neighbors(graph, node, args.depth, args.dir, args.kinds)
         case "health":
-            show_health(graph, pick(graph, args.target))
+            show_health(graph, node)
         case "similar":
-            show_similar(graph, pick(graph, args.target))
-        case "db":
-            show_db(graph)
+            show_similar(graph, node)
         case "endpoint":
-            show_endpoint(graph, pick(graph, args.target))
-        case "view":
-            show_view(graph, args.id)
+            show_endpoint(graph, node)
+        case "spec":
+            findings = chosen_findings(graph, node, args.findings)
+            write_spec(graph, node, findings, sorted({e for f in findings for e in entry_points(graph, f["node"])}), graph.root)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ reloads it after a rebuild. Python standard library only; listens on localhost.
 Answers three things and 404s everything else:
   /             the viewer (viewer/dist/index.html)
   /graph.json   <root>/.big-picture/out/graph.json
-  /src/<path>   a project file, only when the graph names it as a node's file
+  /src/<path>   a project file, only when the graph names it as a node's file, or a note in .big-picture/docs
   POST /proxy   the viewer's Try it: forwards one request to a localhost URL and returns the response
 
 Usage: python3 serve.py [ROOT] [--port 7478]
@@ -76,7 +76,8 @@ class Handler(SimpleHTTPRequestHandler):
         if route == "/graph.json":
             return str(self.served.graph)
         source = route.removeprefix("/src/")
-        if route.startswith("/src/") and self.served.allowed(source):
+        note = source.startswith(".big-picture/docs/") and source.endswith(".md") and ".." not in source
+        if route.startswith("/src/") and (note or self.served.allowed(source)):
             return str(self.served.root / source)
         return str(self.served.root / ".big-picture" / "out" / "not-served")
 

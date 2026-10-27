@@ -2,6 +2,7 @@ import { useState } from 'react'
 import styled from 'styled-components'
 
 import type { LoadedGraph } from '../store/graph'
+import { ROOT } from '../store/view'
 import { healthColor, theme } from '../theme'
 import type { Finding } from '../types'
 import { NodeLink, Section } from './Connections'
@@ -20,6 +21,7 @@ const Copy = styled.button`
 `
 
 export function findingsInside(graph: LoadedGraph, id: string): Finding[] {
+  if (id === ROOT) return graph.data.findings
   const ids = [id]
   for (let i = 0; i < ids.length; i++) ids.push(...(graph.children.get(ids[i]) ?? []))
   return ids.flatMap((n) => graph.findings.get(n) ?? [])
