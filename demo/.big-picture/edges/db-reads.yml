@@ -1,0 +1,12 @@
+id: db-reads
+language: Python
+message: reads a table through app.db.Database
+rule:
+  any:
+    - pattern: $DB.fetch_one($TABLE, $$$REST)
+    - pattern: $DB.fetch_many($TABLE, $$$REST)
+constraints:
+  TABLE: { kind: string }
+metadata:
+  edge: reads
+  to: "table:{TABLE}"

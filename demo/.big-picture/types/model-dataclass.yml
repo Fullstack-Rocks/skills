@@ -1,0 +1,21 @@
+id: model-dataclass
+language: Python
+message: a data model (a dataclass); its table is the snake_case plural of its name
+rule:
+  kind: decorated_definition
+  all:
+    - has:
+        kind: decorator
+        regex: ^@dataclass
+    - has:
+        field: definition
+        kind: class_definition
+        has:
+          field: name
+          pattern: $NAME
+metadata:
+  node: model
+  id: "{NAME}"
+  links:
+    - kind: maps-to
+      to: "table:{NAME|snake|plural}"

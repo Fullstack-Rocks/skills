@@ -1,0 +1,8 @@
+# Call sites for the approx calls fallback, used only for files no SCIP index covers.
+id: bp-calls-tsx
+language: Tsx
+rule:
+  kind: call_expression
+  has:
+    field: function
+    pattern: $CALLEE

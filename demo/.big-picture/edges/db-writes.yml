@@ -1,0 +1,10 @@
+id: db-writes
+language: Python
+message: writes a table through app.db.Database
+rule:
+  pattern: $DB.insert($TABLE, $$$REST)
+constraints:
+  TABLE: { kind: string }
+metadata:
+  edge: writes
+  to: "table:{TABLE}"

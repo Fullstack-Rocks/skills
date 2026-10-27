@@ -1,0 +1,18 @@
+id: model-dataclass
+valid:
+  - |
+    class Order:
+        id: int
+  - |
+    @cache
+    class Order:
+        id: int
+invalid:
+  - |
+    @dataclass
+    class Order:
+        id: int
+  - |
+    @dataclass(frozen=True)
+    class OrderItem:
+        order_id: int

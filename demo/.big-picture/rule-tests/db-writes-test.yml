@@ -1,0 +1,7 @@
+id: db-writes
+valid:
+  - db.insert(table, data)
+  - db.fetch_one("orders", 1)
+invalid:
+  - db.insert("orders", data)
+  - "get_db().insert('invoices', {'total_cents': 1})"
