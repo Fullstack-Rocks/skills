@@ -382,6 +382,17 @@ Hallway check, three rounds, colleague convinced. Answers: search box and node-i
   - `.big-picture/views/` files add viewer tabs and `bp view` listings, with brand colours and gradients per type and kind.
   - The fixture carries a Cache lens (Redis, Valkey) and a Config lens (`.env` keys).
 
+### Phase 5 and 6 as built (2026-10-27)
+
+- **Notes:** agents write `.big-picture/docs/<slug>.md` with the node's hash. The pane shows a note live, before any rebuild, and the build marks it stale when the code changes. `bp node` prints the note. Fanning out note writing goes through `delegate`, as an instruction in the skill.
+- **Capsules:** label propagation over modules and tables, with hubs (shared helpers) left out. Capsules are named and pinned in `capsules.yml`. Agents get `bp capsules`; the viewer gets a Capsules tab.
+- **Health:** the Health tab shows every node with findings. `bp spec <part>` writes a fix spec with findings, fixes, callers that could break, entry points to test, an order, done-when checks and open questions.
+- **MCP:** `big-picture-query/scripts/mcp_server.py` (standard-library stdio JSON-RPC) offers every `bp` verb as a tool, by running `bp.py`.
+- **Limits exceeded, with reasons:**
+  - `viewer/src/data/describe.ts` `subtitle` (complexity about 16): a flat switch from node type to a one-line summary. Splitting it would push its helpers past depth 3.
+  - `Graph.add_edge`, `Graph.add_finding` (7 parameters each): every parameter is a field of the stored record.
+  - Measurement artifact: lizard misreads part of `viewer/src/pane/ApiPanel.tsx` as one long function; its real functions are short.
+
 ## Decisions for you
 
 1. ~~**Live preview**~~ **Decided 2026-10-27:** Python stdlib `serve.py` for live preview, plus `export.py` for static sharing. No Claude Code pane and no MCP App panel: the viewer lives in the browser only.

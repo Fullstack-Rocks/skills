@@ -5,7 +5,8 @@ from verbs.find import location
 
 INVERSE = {"calls": "called by", "handled-by": "handles", "contains": "in", "reads": "read by",
            "writes": "written by", "maps-to": "mapped by", "references": "referenced by", "selects-from": "selected by",
-           "looks-up": "looked up by", "through": "looked through by", "finds": "found by", "defines": "defined in"}
+           "looks-up": "looked up by", "through": "looked through by", "finds": "found by", "defines": "defined in",
+           "groups": "in capsule", "implemented-by": "implements"}
 GROUP_MAX = 40
 
 
@@ -71,13 +72,21 @@ def print_health(graph: Graph, node_id: str) -> None:
         print(f"  {finding['rule']:<24} {finding['detail'][:90]}  {file}:{line or ''}")
 
 
+def print_doc(node: dict) -> None:
+    """The note an agent wrote about this node (.big-picture/docs), flagged when the code changed since."""
+    if node.get("docText"):
+        print(f"note ({node['doc']}{', STALE: the code changed since it was written' if node.get('docStale') else ''})")
+        print("  " + node["docText"].replace("\n", "\n  "))
+
+
 def show_node(graph: Graph, node: dict, entries: list[str]) -> None:
     """entries: the node's entry points, from walk.entry_points."""
-    details = [node["type"], location(node), node.get("signature", "")]
+    details = [node["type"], location(node), node.get("signature", ""), f"hash {node['hash']}" if node.get("hash") else ""]
     print(node["id"])
     print("  " + " · ".join(d for d in details if d))
     if entries:
         print("entry points: " + ", ".join(entries))
+    print_doc(node)
     print_fields(node)
     print_groups(graph, node["id"], "out")
     print_groups(graph, node["id"], "in")

@@ -40,6 +40,31 @@ Done when the build prints no warning you haven't reported, and every route styl
 
 Done when the fixtures pass, the hit count matches the hand count (or the difference is explained), and `bp node` shows the new nodes connected.
 
+## Explain nodes
+
+Write a note for each node a reader needs explained: `.big-picture/docs/<slug>.md`, where the slug is the node id with every run of characters other than letters, digits, `.`, `_` and `-` turned into `_` (`fn:app/db.py#get_db` -> `fn_app_db.py_get_db.md`).
+
+```markdown
+---
+node: fn:app/db.py#get_db
+source_hash: <the hash `bp node` prints for it>
+---
+What it is for, how to call it (a short example), what it touches, and what to watch out for.
+```
+
+The viewer shows a note as soon as it is written, without a rebuild; the next build marks it stale when the code under it changes, so rewrite stale notes. For many notes at once, when the developer wants it, fan the writing out per capsule with the `delegate` skill: one delegate per capsule, each given `bp capsules` and `bp node` output.
+
+Done when every node you were asked to explain has a note whose hash matches.
+
+## Name capsules
+
+The build groups modules that work together into capsules (`bp capsules`), leaving out shared modules every capsule uses (listed under `coverage` in the build line). Name them, and pin a module that landed in the wrong one, in `.big-picture/capsules.yml`:
+
+```yaml
+names: { app/services/order_service.py: Orders }               # key: the capsule id after capsule:
+pins:  { app/models/order.py: app/services/order_service.py }   # module: a module in the capsule it belongs to
+```
+
 ## Add a lens
 
 When you find a subsystem the graph doesn't show yet (a cache, message queues, Docker services, nginx routes, config files whose keys change behaviour, `.env` keys, feature flags), give it a **lens**: its own nodes, connections and tab, written as files only.
@@ -54,7 +79,7 @@ Done when the lens's tab shows every part you found, each connected to the code 
 ## View
 
 - **Live:** `python3 scripts/serve.py <project root>` serves the viewer at http://localhost:7478. The page rechecks the graph every 2 seconds, so a rebuild shows up without a reload, and the node pane reads source lines straight from the project. Run it in the background and give the developer the URL. To point at one node, append `#/n/<url-encoded node id>`.
-- **What the viewer shows:** the Map tab (the project birds-eye, folders and modules as frames; dive into any node), and the Database tab (tables, views and JSON lookups with their columns, keys and relations). Clicking a node opens its pane: a description, its connections with the code line of each, its health findings with how to fix them (and a brief to copy for an agent), its table structure, and its source. Clicking a line focuses that connection. Dragging a card pushes its neighbours and grows its frame; a selected frame's options bar re-arranges its contents.
+- **What the viewer shows:** the Map tab (the project birds-eye, folders and modules as frames; dive into any node), the Capsules tab, the Database tab (tables, views and JSON lookups with their columns, keys and relations), the Endpoints tab (OpenAPI operations beside the code that implements them, with Try it), the Health tab (everything with findings), and one tab per lens. Clicking a node opens its pane: a description, its connections with the code line of each, its health findings with how to fix them (and a brief to copy for an agent), its table structure, and its source. Clicking a line focuses that connection. Dragging a card pushes its neighbours and grows its frame; a selected frame's options bar re-arranges its contents.
 - **Share:** `python3 scripts/export.py <project root>` writes `.big-picture/out/big-picture.html`: one file with the graph inside, which opens from disk. It is a snapshot: it shows no source and doesn't follow rebuilds.
 
 The viewer ships prebuilt as `viewer/dist/index.html`. Node is needed only to change it: `npm ci && npm run build` in `viewer/`, then commit `dist/index.html`.

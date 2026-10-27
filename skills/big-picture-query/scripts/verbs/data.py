@@ -42,3 +42,12 @@ def view_line(graph: Graph, node: dict, kinds: list[str] | None) -> str:
     """A view's node with the connections into it that the view follows (none: nothing uses it)."""
     links = [f"{e['kind']} <- {e['from']}" for e in graph.incoming.get(node["id"], []) if not kinds or e["kind"] in kinds]
     return f"  {node['id']:<40} {'; '.join(links) or '(nothing uses it)'}"
+
+
+def show_capsules(graph: Graph) -> None:
+    """Groups of modules (and tables) that work together, as the build found them."""
+    capsules = sorted((n for n in graph.nodes.values() if n["type"] == "capsule"), key=lambda n: -n.get("members", 0))
+    print(f"{len(capsules)} capsules (name them in .big-picture/capsules.yml)")
+    for capsule in capsules:
+        members = [e["to"].split(":", 1)[1] for e in graph.outgoing.get(capsule["id"], []) if e["kind"] == "groups"]
+        print(f"  {capsule['name']:<24} {capsule['id']:<52} {', '.join(sorted(members))}")

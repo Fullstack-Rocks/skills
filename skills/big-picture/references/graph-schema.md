@@ -8,7 +8,7 @@ Written by `scripts/build.py` to `<root>/.big-picture/out/graph.json`; read by `
   "builtAt": "2026-10-27T18:00:00+00:00",
   "root": "/abs/path/to/project",
   "coverage": { "python": "scip", "typescript": "approx" },
-  "nodes": [], "edges": [], "findings": [], "repeats": []
+  "nodes": [], "edges": [], "findings": [], "repeats": [], "views": []
 }
 ```
 
@@ -52,6 +52,13 @@ A `lookup` node is a join or filter through a JSON column (`stages/data/lookups.
 { "id": "lookup:orders.meta.customer_ref→customers.ref", "type": "lookup", "table": "orders", "column": "meta",
   "path": "customer_ref", "to_table": "customers", "to_column": "ref", "expression": "c.ref = o.meta->>'customer_ref'" }
 ```
+
+### Notes, hashes and capsules
+
+- Every node with source lines has `hash`: 12 hex characters of a SHA-1 of its lines (a module's whole file).
+- A node with a note in `.big-picture/docs` has `doc` (its path), `docText` (the note without front matter) and `docStale` (its `source_hash` differs from `hash`).
+- `capsule:<central member path>` nodes (`name`, `members`) have a `groups` edge to each member module or table.
+- `views`: `{id, title, types, edges, neighbors, colors}` from `.big-picture/views`, one viewer tab each.
 
 ## Edge
 

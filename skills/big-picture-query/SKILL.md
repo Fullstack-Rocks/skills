@@ -22,16 +22,25 @@ Run `python3 scripts/bp.py <verb>` from anywhere inside the project:
 | What is wrong here, and how do I fix it? | `bp health <id or name>` (findings on it and inside it, with where and how) |
 | Does this repeat work done elsewhere? | `bp similar <id or name>` |
 | What does the database look like? | `bp db`, then `bp node table:<name>` for a table's columns, keys, constraints and indexes |
+| What does this API operation take, return and run? | `bp endpoint "POST /orders"` |
+| Which modules belong together? | `bp capsules` |
+| What does the project's cache, config, ... look like? | `bp view`, then `bp view <id>` |
+| Fix the health of this part. | `bp spec <id or name>`: writes a fix spec to `.big-picture/specs/`; complete its open questions, then implement it in order |
 
 Names work as well as ids: `bp node order_service.get_order`, `bp node table:orders`, `bp node "GET /orders/{id}"`. An ambiguous name prints the candidates; pick an id from them.
 
 ## Read the answer
 
+- A node's **note** (written by an agent) prints first; one marked STALE describes code that has changed since.
 - `bp node` prints the node's **entry points** (endpoints, jobs and CLIs that reach it), its outgoing edges by kind, its incoming edges by kind (`called by`, `read by`, `handles`, `in`), and its **health** findings with the rule that raised them.
 - Each edge shows where it happens (`file:line`, `+n` more sites). Open those lines when you need the code itself.
 - To fix health findings, run `bp health <part>` and work from its list: each rule's line says how, each finding says where. Rebuild after fixing and run it again.
 - An edge marked `~` was matched by name because no type-aware index covered that file. Confirm it in the code before relying on it.
 - A missing edge may be a convention the graph hasn't been taught. When you find one (a route style, a data-access call), tell the developer and offer to teach it with the `big-picture` skill.
+
+## Without a shell
+
+`scripts/mcp_server.py` serves every verb as an MCP tool (`bp_node`, `bp_neighbors`, `bp_find`, `bp_health`, `bp_similar`, `bp_db`, `bp_endpoint`, `bp_view`, `bp_capsules`, `bp_spec`), running `bp.py` itself so the answers match: `claude mcp add big-picture -- python3 <skill>/scripts/mcp_server.py --root <project>`.
 
 ## Keep it current
 

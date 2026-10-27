@@ -14,8 +14,9 @@ import { leaves, neighbors } from './walk'
 //  - the Database tab: every table, view and JSON lookup, with how they reference each other
 // layout.ts groups the nodes by folder and module. Each shown edge keeps the graph edges it stands for.
 export type ViewEdge = { id: string; source: string; target: string; kind: string; label: string; approx: boolean; members: GraphEdge[] }
-// heights: taller cards that list a table's columns (Database tab); flat: no folder or module frames.
-export type View = { nodes: string[]; edges: ViewEdge[]; outside: Set<string>; heights?: Map<string, number>; flat?: boolean }
+// heights: taller cards that list a table's columns (Database tab); flat: no folder or module frames;
+// groups: frames other than folders and modules (a member's capsule).
+export type View = { nodes: string[]; edges: ViewEdge[]; outside: Set<string>; heights?: Map<string, number>; flat?: boolean; groups?: Map<string, string> }
 
 const notContains = (kind: string) => kind !== 'contains'
 const CODE_INSIDE_MODULES = new Set(['function', 'endpoint'])
@@ -119,9 +120,24 @@ function lensView(graph: LoadedGraph, lens: Lens): View {
   return { nodes: [...shown], edges: edgesAmong(graph, shown).filter((e) => follows(e.kind)), outside: new Set() }
 }
 
+/** Every capsule as a frame around its modules and tables, with what connects them rolled up. */
+function capsulesView(graph: LoadedGraph): View {
+  const groups = new Map(graph.data.edges.filter((e) => e.kind === 'groups').map((e) => [e.to, e.from]))
+  const rolled = rollUp(graph, new Set(groups.keys()), (id) => id)
+  return { nodes: [...groups.keys()], edges: rolled.edges.filter((e) => groups.has(e.source) && groups.has(e.target)), outside: new Set(), groups }
+}
+
+/** Every node with health findings of its own, in its folder and module frames (folders show theirs as frames). */
+function healthView(graph: LoadedGraph): View {
+  const shown = new Set([...graph.findings.keys()].filter((id) => graph.byId.has(id) && graph.byId.get(id)!.type !== 'folder'))
+  return { nodes: [...shown], edges: edgesAmong(graph, shown), outside: new Set() }
+}
+
 export function visibleGraph(graph: LoadedGraph, focus: string, mode: Mode, tab: Tab): View {
   const lens = graph.data.views?.find((v) => v.id === tab)
   if (lens) return lensView(graph, lens)
+  if (tab === 'capsules') return capsulesView(graph)
+  if (tab === 'health') return healthView(graph)
   if (tab === 'database') return databaseView(graph)
   if (mode === 'leaves') return leavesView(graph, focus)
   return tab === 'endpoints' ? endpointsView(graph, focus) : mapView(graph, focus)

@@ -19,7 +19,7 @@ export const theme = {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  endpoint: theme.lime, function: theme.mint, module: theme.sky, table: theme.violet, database: theme.violet, model: theme.amber, lookup: theme.coral, operation: '#F9A8D4', 'api-model': theme.amber,
+  endpoint: theme.lime, function: theme.mint, module: theme.sky, table: theme.violet, database: theme.violet, model: theme.amber, lookup: theme.coral, operation: '#F9A8D4', 'api-model': theme.amber, capsule: '#FDE047',
   folder: theme.muted,
 }
 const EDGE_COLORS: Record<string, string> = {

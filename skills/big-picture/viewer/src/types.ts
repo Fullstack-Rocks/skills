@@ -32,6 +32,12 @@ export type GraphNode = {
   request?: string | null
   responses?: Record<string, string | null>
   parameters?: { name: string; in: string; required: boolean }[]
+  // notes and capsules
+  hash?: string
+  doc?: string
+  docText?: string
+  docStale?: boolean
+  members?: number
 }
 
 export type Column = {

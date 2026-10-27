@@ -30,7 +30,9 @@ from stages.health.repeats import add_repeats
 from stages.inventory import add_inventory, code_files, list_files
 from stages.patterns import scan_patterns
 from stages.rules import add_rule_matches
-from stages.views import add_views
+from stages.knowledge.capsules import add_capsules
+from stages.knowledge.docs import add_docs
+from stages.knowledge.views import add_views
 
 REQUIRED = ["ast-grep", "lizard"]
 
@@ -85,10 +87,13 @@ def main() -> None:
     add_health(graph, top_level(code), out)
     add_fixes(graph)
     add_views(graph)
+    capsules = add_capsules(graph)
+    docs = add_docs(graph)
     graph.write(out / "graph.json")
     coverage = ", ".join(f"{lang} {source}" for lang, source in graph.coverage.items())
     print(f"big-picture: {len(graph.nodes)} nodes, {len(graph.edges)} edges, {len(graph.findings)} findings, "
           f"{len(matches)} rule matches, {lookups} JSON lookup sites, {operations} API operations, {len(graph.repeats)} repeats, "
+          f"{capsules} capsules, {docs} node docs, "
           f"calls: {coverage or 'none'}, {ambiguous} ambiguous call sites, "
           f"{time.monotonic() - started:.1f}s -> {out / 'graph.json'}")
 

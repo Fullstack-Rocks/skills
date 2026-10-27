@@ -20,6 +20,7 @@ class Graph:
     repeats: list[dict] = field(default_factory=list)
     views: list[dict] = field(default_factory=list)
     built_at: str = ""
+    root: Path = Path(".")
 
 
 def find_project(start: Path) -> Path | None:
@@ -36,7 +37,7 @@ def build(root: Path) -> None:
 
 def index(data: dict) -> Graph:
     graph = Graph({n["id"]: n for n in data["nodes"]}, built_at=data["builtAt"], repeats=data.get("repeats", []),
-                  views=data.get("views", []))
+                  views=data.get("views", []), root=Path(data["root"]))
     for edge in data["edges"]:
         graph.outgoing.setdefault(edge["from"], []).append(edge)
         graph.incoming.setdefault(edge["to"], []).append(edge)

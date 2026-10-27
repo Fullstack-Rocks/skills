@@ -1,0 +1,3 @@
+names:
+  app/services/order_service.py: Orders
+  app/services/invoice_service.py: Invoices

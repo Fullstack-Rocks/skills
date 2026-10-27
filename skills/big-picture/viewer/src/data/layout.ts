@@ -45,7 +45,7 @@ function elkTree(graph: LoadedGraph, view: View): Tree {
   for (const id of view.nodes) {
     // The node and the groups above it that don't exist yet, outermost first.
     const chain = [id]
-    const group = (node: string) => (view.flat ? undefined : groupOf(graph, node))
+    const group = (node: string) => (view.groups ? view.groups.get(node) : view.flat ? undefined : groupOf(graph, node))
     for (let up = group(id); up && !made.has(up); up = group(up)) chain.unshift(up)
     let holder = group(chain[0]) ?? 'root'
     for (const member of chain) {
