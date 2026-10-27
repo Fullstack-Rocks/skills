@@ -1,0 +1,3 @@
+id: socket-ts-emit
+valid: ['socket.emit(name, payload)', 'bus.emit("subscribe", payload)']
+invalid: ['socket.emit("subscribe", { sku })', "socket.emit('ping', {})"]

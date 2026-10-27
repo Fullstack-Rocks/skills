@@ -53,6 +53,12 @@ A `lookup` node is a join or filter through a JSON column (`stages/data/lookups.
   "path": "customer_ref", "to_table": "customers", "to_column": "ref", "expression": "c.ref = o.meta->>'customer_ref'" }
 ```
 
+### Systems and keys
+
+- `system:<name>` nodes (`file`: the system's folder); every node with a file has `system`: the system holding it, or null.
+- `keys`: names other systems reach a node by (`http:GET /orders/{}`), from type rules and OpenAPI operations.
+- A node in no system with edges from two or more systems is a contract between them (a topic, a socket message).
+
 ### Notes, hashes and capsules
 
 - Every node with source lines has `hash`: 12 hex characters of a SHA-1 of its lines (a module's whole file).

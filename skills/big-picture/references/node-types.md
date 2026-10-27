@@ -20,6 +20,8 @@ testConfigs:
   - testDir: rule-tests
 ```
 
+Filters: `lower`, `upper`, `snake`, `plural`, and `route`, which turns any URL template into one form (`` `/orders/${id}?x=1` ``, `/orders/:id`, `/orders/<id>`, `/orders/{id}` all become `/orders/{}`).
+
 Each rule is an ordinary ast-grep rule (`id`, `language`, `rule`, optional `constraints`, `message`). Its `metadata` says what a match means. In templates, `{NAME}` is the text of capture `$NAME` with string quotes stripped, and filters transform it: `{NAME|snake|plural}` turns `OrderItem` into `order_items` (`lower`, `snake`, `plural`).
 
 The build applies type rules first, then edge and property rules (so they can land inside the nodes type rules made), then type rules' `links`.
@@ -61,6 +63,28 @@ metadata:
     - kind: maps-to
       to: "table:{NAME|snake|plural}"   # Order -> table:orders, only if the code accesses that table
 ```
+
+### Keys: how another system finds a node
+
+A type rule's `keys` give its nodes names other systems use; an edge rule whose `to` starts with `~` links to every node with that key, in any system. Unmatched, it is an `unresolved-contract` finding on the caller.
+
+```yaml
+# serving side, in the endpoint type rule's metadata
+keys: ["http:{METHOD|upper} {PATH|route}"]
+```
+
+```yaml
+id: api-client-call
+language: TypeScript
+rule:
+  any:
+    - pattern: apiClient.$VERB<$$$T>($PATH)
+    - pattern: apiClient.$VERB<$$$T>($PATH, $$$REST)
+constraints: { VERB: { regex: "^(get|post|put|patch|delete)$" } }
+metadata: { edge: calls-api, to: "~http:{VERB|upper} {PATH|route}" }
+```
+
+When both sides spell the same literal (an event topic, a socket message), skip keys: both edge rules target the same id (`topic:{TOPIC}`), and that node is the contract.
 
 ## Edge rule: a match is an edge
 

@@ -38,6 +38,9 @@ export type GraphNode = {
   docText?: string
   docStale?: boolean
   members?: number
+  // systems: the deployable unit a node belongs to, and the keys other systems reach it by
+  system?: string | null
+  keys?: string[]
 }
 
 export type Column = {

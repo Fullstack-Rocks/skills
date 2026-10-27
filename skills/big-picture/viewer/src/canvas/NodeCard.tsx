@@ -2,7 +2,10 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import styled from 'styled-components'
 
 import { NODE_HEIGHT, NODE_WIDTH } from '../data/layout'
-import type { Direction } from '../store/view'
+import { containersOf } from '../data/walk'
+import type { Port } from '../data/views'
+import { useGraph } from '../store/graph'
+import { useView, type Direction } from '../store/view'
 import { edgeColor, healthColor, theme, typeColor, typeFill } from '../theme'
 import type { Column, GraphNode } from '../types'
 
@@ -12,6 +15,7 @@ export type CardData = {
   node: GraphNode; subtitle: string; health: number; focused: boolean; selected: boolean; outside: boolean
   inKinds: string[]; outKinds: string[]; direction: Direction
   columns?: Column[]; height?: number; dimmed?: boolean // Database tab rows; dimmed while a connection is focused
+  ports?: Port[] // connections into other systems: badges under the card instead of long wires
 }
 export type CardNode = Node<CardData, 'card'>
 
@@ -22,7 +26,7 @@ const SIDES: Record<Direction, [Position, Position]> = {
 
 const Card = styled.div<{ $accent: string; $selected: boolean; $focused: boolean; $outside: boolean; $lookup: boolean }>`
   width: ${NODE_WIDTH}px; padding: 9px 14px; border-radius: ${(p) => (p.$lookup ? '4px 22px' : '10px')}; cursor: grab;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s; position: relative;
   background: ${(p) => (p.$focused ? theme.raised : theme.panel)};
   border: 1px ${(p) => (p.$outside ? 'dashed' : 'solid')} ${(p) => (p.$selected ? p.$accent : theme.border)};
   box-shadow: ${(p) => (p.$selected ? `0 0 0 3px ${p.$accent}33` : '0 1px 0 #00000040')};
@@ -57,6 +61,29 @@ function typeStyle(type: string): React.CSSProperties {
   return { background: fill, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', fontWeight: 700 }
 }
 
+const PORTS_SHOWN = 2
+const PortRow = styled.div`
+  position: absolute; left: 6px; right: 6px; top: calc(100% + 3px); display: flex; gap: 4px; overflow: hidden;
+  button { max-width: 100%; padding: 1px 7px; border-radius: 999px; border: 1px solid currentColor; background: ${theme.bg};
+    font: 10px ${theme.mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+`
+
+/** Badges for a card's connections into other systems; clicking one goes to the other side. */
+function Ports({ ports }: { ports: Port[] }) {
+  const graph = useGraph((s) => s.graph)
+  const reveal = useView((s) => s.reveal)
+  if (!ports.length || !graph) return null
+  const go = (e: React.MouseEvent, id: string) => { e.stopPropagation(); reveal(id, containersOf(graph, id)) }
+  return (
+    <PortRow>
+      {ports.slice(0, PORTS_SHOWN).map((p) => (
+        <button key={`${p.kind}-${p.id}`} style={{ color: edgeColor(p.kind) }} title={p.label} onClick={(e) => go(e, p.id)}>⇄ {p.label}</button>
+      ))}
+      {ports.length > PORTS_SHOWN && <button style={{ color: theme.muted }} title={ports.slice(PORTS_SHOWN).map((p) => p.label).join('\n')}>+{ports.length - PORTS_SHOWN}</button>}
+    </PortRow>
+  )
+}
+
 function ColumnRows({ columns }: { columns: Column[] }) {
   return (
     <Rows>
@@ -81,7 +108,7 @@ function Handles({ kinds, type, position }: { kinds: string[]; type: 'source' | 
 }
 
 export function NodeCard({ data }: NodeProps<CardNode>) {
-  const { node, subtitle, health, focused, selected, outside, inKinds, outKinds, direction, columns, height, dimmed } = data
+  const { node, subtitle, health, focused, selected, outside, inKinds, outKinds, direction, columns, height, dimmed, ports } = data
   const accent = typeColor(node.type)
   const [inSide, outSide] = SIDES[direction]
   return (
@@ -93,6 +120,7 @@ export function NodeCard({ data }: NodeProps<CardNode>) {
       <Name>{node.name === node.file ? node.name.split('/').pop() : node.name}</Name>
       <Sub>{subtitle}</Sub>
       {columns && <ColumnRows columns={columns} />}
+      {ports && <Ports ports={ports} />}
       <Handles kinds={outKinds} type="source" position={outSide} />
     </Card>
   )

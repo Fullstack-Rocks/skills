@@ -26,7 +26,7 @@ const Tabs = styled.nav`
   button { border: 0; border-radius: 7px; padding: 5px 14px; background: none; color: ${theme.muted}; cursor: pointer; font-size: 13px; }
   button[aria-pressed='true'] { background: ${theme.raised}; color: ${theme.lime}; }
 `
-const TABS: [Tab, string][] = [['map', 'Map'], ['capsules', 'Capsules'], ['database', 'Database'], ['endpoints', 'Endpoints'], ['health', 'Health']]
+const TABS: [Tab, string][] = [['map', 'Map'], ['systems', 'Systems'], ['capsules', 'Capsules'], ['database', 'Database'], ['endpoints', 'Endpoints'], ['health', 'Health']]
 const Status = styled.div`
   margin-left: auto; display: flex; align-items: center; gap: 8px; color: ${theme.muted}; font-size: 13px;
   i { width: 8px; height: 8px; border-radius: 50%; background: ${theme.mint}; }

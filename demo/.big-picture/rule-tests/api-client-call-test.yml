@@ -1,0 +1,7 @@
+id: api-client-call
+valid:
+  - fetch(`/orders/${id}`)
+  - otherClient.get("/orders")
+invalid:
+  - apiClient.get<Order>(`/orders/${id}`)
+  - apiClient.post<Order>("/orders", input)

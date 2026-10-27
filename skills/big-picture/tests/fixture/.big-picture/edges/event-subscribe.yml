@@ -1,0 +1,9 @@
+id: event-subscribe
+language: Python
+message: a handler subscribed to a topic
+rule:
+  kind: function_definition
+  inside:
+    kind: decorated_definition
+    has: { kind: decorator, has: { pattern: subscribe($TOPIC) } }
+metadata: { edge: consumes, to: "topic:{TOPIC}" }

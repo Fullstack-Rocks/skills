@@ -13,6 +13,7 @@ export type LoadedGraph = {
   children: Map<string, string[]>
   findings: Map<string, Finding[]>
   health: Map<string, number> // findings on the node and everything it contains
+  shared: Set<string> // contracts: nodes in no system that two or more systems use (a topic, a socket message)
 }
 
 type GraphState = {
@@ -37,11 +38,20 @@ function totalHealth(graph: LoadedGraph, id: string): number {
   return total
 }
 
+/** Remember which systems use a node that belongs to none (the contract between them). */
+function noteUser(graph: LoadedGraph, users: Map<string, Set<string>>, edge: GraphEdge): void {
+  const [a, b] = [graph.byId.get(edge.from)?.system, graph.byId.get(edge.to)?.system]
+  if (edge.kind === 'contains' || Boolean(a) === Boolean(b)) return
+  const [contract, system] = a ? [edge.to, a] : [edge.from, b!]
+  users.set(contract, (users.get(contract) ?? new Set()).add(system))
+}
+
 export function indexGraph(data: GraphData): LoadedGraph {
   const graph: LoadedGraph = {
     data, byId: new Map(data.nodes.map((n) => [n.id, n])), outgoing: new Map(), incoming: new Map(),
-    parent: new Map(), children: new Map(), findings: new Map(), health: new Map(),
+    parent: new Map(), children: new Map(), findings: new Map(), health: new Map(), shared: new Set(),
   }
+  const users = new Map<string, Set<string>>()
   for (const edge of data.edges) {
     push(graph.outgoing, edge.from, edge)
     push(graph.incoming, edge.to, edge)
@@ -49,7 +59,9 @@ export function indexGraph(data: GraphData): LoadedGraph {
       graph.parent.set(edge.to, edge.from)
       push(graph.children, edge.from, edge.to)
     }
+    noteUser(graph, users, edge)
   }
+  for (const [id, systems] of users) if (systems.size > 1) graph.shared.add(id)
   for (const finding of data.findings) push(graph.findings, finding.node, finding)
   for (const node of data.nodes) if (!graph.parent.has(node.id)) totalHealth(graph, node.id)
   return graph

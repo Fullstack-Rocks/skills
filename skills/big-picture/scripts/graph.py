@@ -21,6 +21,7 @@ class Graph:
         self.views: list[dict] = []  # extra viewer tabs defined in .big-picture/views (stages/views.py)
         self.code_by_file: dict[str, list[dict]] = {}
         self.file_node: dict[str, str] = {}  # a file's own node (module, infra, config, ...), set by the inventory
+        self.pending: list[tuple[str, str, str, str, tuple[str, int]]] = []  # (from, ~key, kind, via, site), linked by contracts.py
 
     def add_node(self, node_id: str, node_type: str, name: str, **fields: object) -> str:
         node = self.nodes.setdefault(node_id, {"id": node_id, "type": node_type, "name": name})

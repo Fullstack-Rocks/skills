@@ -393,6 +393,17 @@ Hallway check, three rounds, colleague convinced. Answers: search box and node-i
   - `Graph.add_edge`, `Graph.add_finding` (7 parameters each): every parameter is a field of the stored record.
   - Measurement artifact: lizard misreads part of `viewer/src/pane/ApiPanel.tsx` as one long function; its real functions are short.
 
+### Systems and contracts (2026-10-27)
+
+The core knows no protocol. Systems come from manifests or top-level code folders, with `systems.yml` to override.
+- **Shared literal (events, socket messages):** both sides target the same id, and that node becomes the contract.
+- **Different spellings (HTTP routes vs. client templates, `operationId`s):** a type rule gives `keys`, the caller's edge rule targets `~key`, and the `route` and `upper` filters normalize them. An unmatched key is an `unresolved-contract` finding.
+- **Viewer:** a Systems tab (system frames with boundary code and the contracts between), port badges on cards instead of long wires, and subgraphs that cross into other systems with the remote side drawn as outside.
+- **Agents:** `bp systems`, and the `bp_systems` MCP tool.
+- **Demo:** its 16 `apiClient` calls link to the backend endpoints.
+- **Fixture:** an event (`app` → `worker`) and socket messages (`app` ↔ `web`), all written as rules.
+- **Fix found along the way:** name-matched calls never cross languages now.
+
 ## Decisions for you
 
 1. ~~**Live preview**~~ **Decided 2026-10-27:** Python stdlib `serve.py` for live preview, plus `export.py` for static sharing. No Claude Code pane and no MCP App panel: the viewer lives in the browser only.

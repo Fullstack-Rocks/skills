@@ -65,6 +65,17 @@ names: { app/services/order_service.py: Orders }               # key: the capsul
 pins:  { app/models/order.py: app/services/order_service.py }   # module: a module in the capsule it belongs to
 ```
 
+## Connect systems
+
+Systems are the deployable units (a backend, a frontend, a worker): folders with their own manifest, or each top-level code folder when one manifest covers the project. Set them yourself in `.big-picture/systems.yml` (`systems: {api: services/api, web: apps/web}`) when that guess is wrong. Nothing about how systems talk is built in; teach each channel you find as rules:
+
+1. **Find both sides.** For each way the systems talk (HTTP through a generated or hand-written client, a queue or event bus, a socket, RPC), find the code that serves or publishes and the code that calls or consumes.
+2. **Shared names become a shared node.** When both sides spell the same literal (a topic `order.created`, a socket message `price.update`), give both sides an edge rule to the same id: `to: "topic:{TOPIC}"`. That node is the contract.
+3. **Names that differ become keys.** When the two sides spell it differently (a route `/orders/{id}` against a client's `` `/orders/${id}` ``, or a generated client's `getOrderTotal()` against an `operationId`), give the serving side `keys` in its type rule (`keys: ["http:{METHOD|upper} {PATH|route}"]`) and point the calling side's edge rule at `~` plus the same key (`to: "~http:{VERB|upper} {PATH|route}"`). OpenAPI operations carry `http:` keys already.
+4. Rebuild, then check `bp systems`: every channel you found should be listed, and the build line's unresolved-contracts count should be 0. Each unresolved one is a finding naming the caller.
+
+Done when `bp systems` lists every channel between the systems, and the Systems tab shows them.
+
 ## Add a lens
 
 When you find a subsystem the graph doesn't show yet (a cache, message queues, Docker services, nginx routes, config files whose keys change behaviour, `.env` keys, feature flags), give it a **lens**: its own nodes, connections and tab, written as files only.

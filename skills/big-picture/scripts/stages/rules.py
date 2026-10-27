@@ -6,8 +6,10 @@ A rule's `metadata` says what a match means (references/node-types.md):
   edge rule:      edge: reads, to: "table:{TABLE}"
   property rule:  property: fields, value: {name: "{FIELD}", type: "{TYPE}"}
   lookup rule:    lookup: {table: ..., column: ..., path: ..., to_table: ..., to_column: ...}
-`{NAME}` is the text of that capture, with string quotes stripped; `|lower`, `|snake` and `|plural`
-transform it. Type rules run first, so edges and properties can land inside the nodes they make.
+`{NAME}` is the text of that capture, with string quotes stripped; `|lower`, `|upper`, `|snake`,
+`|plural` and `|route` transform it. Type rules run first, so edges and properties can land inside the
+nodes they make. A type rule's `keys` name its node for other systems (`http:GET /orders/{}`); an edge
+rule whose `to` starts with `~` links to every node with that key, wherever it is (stages/knowledge/contracts.py).
 """
 import json
 import re
@@ -17,6 +19,7 @@ from graph import Graph
 from stages.data.lookups import add_lookup
 
 PLACEHOLDER = re.compile(r"\{(\w+)((?:\|\w+)*)\}")
+ROUTE_PARAMETER = re.compile(r"\$\{[^}]*\}|\{[^}]*\}|:\w+|<[^>]*>")
 
 
 def transform(text: str, name: str) -> str:
@@ -27,6 +30,10 @@ def transform(text: str, name: str) -> str:
             return re.sub(r"(?<!^)(?=[A-Z])", "_", text).lower()
         case "plural":
             return text[:-1] + "ies" if text.endswith("y") else text + ("es" if text.endswith("s") else "s")
+        case "upper":
+            return text.upper()
+        case "route":  # `/orders/${id}?x=1`, `/orders/:id`, `/orders/<id>` -> /orders/{}
+            return ROUTE_PARAMETER.sub("{}", text.split("?")[0]).rstrip("/") or "/"
     raise ValueError(f"unknown template filter |{name}")
 
 
@@ -53,6 +60,9 @@ def add_type_match(graph: Graph, match: dict, meta: dict, line: int) -> None:
                              file=match["file"], start=line, end=match["range"]["end"]["line"] + 1)
     if match["file"] in graph.file_node:  # the file's own node holds it: a module, or infra, config, ...
         graph.add_edge(graph.file_node[match["file"]], node_id, "contains", match["ruleId"])
+    if meta.get("keys"):
+        keys = graph.nodes[node_id].setdefault("keys", [])
+        keys.extend(k for k in meta["keys"] if k not in keys)
     if "link" in meta:
         target_line = match["metaVariables"]["single"][meta["to"]]["range"]["start"]["line"] + 1
         graph.add_edge(node_id, graph.enclosing(match["file"], target_line), meta["link"], match["ruleId"],
@@ -60,7 +70,11 @@ def add_type_match(graph: Graph, match: dict, meta: dict, line: int) -> None:
 
 
 def add_edge_match(graph: Graph, match: dict, meta: dict, line: int) -> None:
-    """An edge from the code around the match to the node the rule names, created if new."""
+    """An edge from the code around the match to the node the rule names, created if new; a `~key`
+    target waits for the contracts stage, which links it to whichever nodes carry that key."""
+    if meta["to"].startswith("~"):
+        graph.pending.append((graph.enclosing(match["file"], line), meta["to"][1:], meta["edge"], match["ruleId"], (match["file"], line)))
+        return
     target_type, target_name = meta["to"].split(":", 1)
     graph.add_node(meta["to"], target_type, target_name)
     graph.add_edge(graph.enclosing(match["file"], line), meta["to"], meta["edge"], match["ruleId"],

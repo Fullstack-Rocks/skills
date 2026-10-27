@@ -31,7 +31,9 @@ from stages.inventory import add_inventory, code_files, list_files
 from stages.patterns import scan_patterns
 from stages.rules import add_rule_matches
 from stages.knowledge.capsules import add_capsules
+from stages.knowledge.contracts import add_contracts
 from stages.knowledge.docs import add_docs
+from stages.knowledge.systems import add_systems
 from stages.knowledge.views import add_views
 
 REQUIRED = ["ast-grep", "lizard"]
@@ -83,6 +85,8 @@ def main() -> None:
     add_schema(graph, files)
     lookups = add_lookups(graph, files, code)
     operations = add_openapi(graph, files)
+    unresolved = add_contracts(graph)
+    systems = add_systems(graph, files)
     add_repeats(graph, matches)
     add_health(graph, top_level(code), out)
     add_fixes(graph)
@@ -93,7 +97,7 @@ def main() -> None:
     coverage = ", ".join(f"{lang} {source}" for lang, source in graph.coverage.items())
     print(f"big-picture: {len(graph.nodes)} nodes, {len(graph.edges)} edges, {len(graph.findings)} findings, "
           f"{len(matches)} rule matches, {lookups} JSON lookup sites, {operations} API operations, {len(graph.repeats)} repeats, "
-          f"{capsules} capsules, {docs} node docs, "
+          f"{capsules} capsules, {docs} node docs, {systems} systems, {unresolved} unresolved contracts, "
           f"calls: {coverage or 'none'}, {ambiguous} ambiguous call sites, "
           f"{time.monotonic() - started:.1f}s -> {out / 'graph.json'}")
 

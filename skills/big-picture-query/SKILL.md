@@ -24,6 +24,7 @@ Run `python3 scripts/bp.py <verb>` from anywhere inside the project:
 | What does the database look like? | `bp db`, then `bp node table:<name>` for a table's columns, keys, constraints and indexes |
 | What does this API operation take, return and run? | `bp endpoint "POST /orders"` |
 | Which modules belong together? | `bp capsules` |
+| How do the systems talk to each other? | `bp systems`, then `bp node` on an endpoint, topic or message for both sides |
 | What does the project's cache, config, ... look like? | `bp view`, then `bp view <id>` |
 | Fix the health of this part. | `bp spec <id or name>`: writes a fix spec to `.big-picture/specs/`; complete its open questions, then implement it in order |
 

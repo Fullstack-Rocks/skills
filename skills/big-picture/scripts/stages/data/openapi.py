@@ -69,8 +69,8 @@ def add_operations(graph: Graph, operations: list[tuple[str, str, dict]], file: 
     """Operation nodes linked to their models; returns their route keys."""
     keys = set()
     for method, path, details in operations:
-        node = graph.add_node(f"operation:{method.upper()} {path}", "operation", f"{method.upper()} {path}",
-                              file=file, method=method.upper(), path=path, servers=servers, **details)
+        node = graph.add_node(f"operation:{method.upper()} {path}", "operation", f"{method.upper()} {path}", file=file,
+                              method=method.upper(), path=path, servers=servers, keys=[f"http:{path_key(method, path)}"], **details)
         graph.add_edge(f"schema:{file}", node, "defines", "openapi")
         for model, kind in [(details["request"], "accepts"), *[(m, "returns") for m in details["responses"].values()]]:
             if model:

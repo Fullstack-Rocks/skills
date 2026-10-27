@@ -65,8 +65,15 @@ def call_sites(root: Path, files: list[str]) -> list[dict]:
     return sites
 
 
+def language(file: str) -> str:
+    """Files that can call each other by name: Python with Python, the JS family together."""
+    suffix = PurePosixPath(file).suffix
+    return "python" if suffix in PYTHON else "javascript" if suffix in TYPESCRIPT else suffix
+
+
 def resolve(callee: str, by_name: dict[str, list[dict]]) -> dict | None:
-    """order_service.get_order -> the one get_order, or the one in order_service.*; None if unsure."""
+    """order_service.get_order -> the one get_order, or the one in order_service.*; None if unsure.
+    by_name holds only functions in the caller's language."""
     parts = callee.split(".")
     candidates = by_name.get(parts[-1], [])
     if len(candidates) > 1 and len(parts) > 1:
@@ -77,12 +84,12 @@ def resolve(callee: str, by_name: dict[str, list[dict]]) -> dict | None:
 def add_approx_calls(graph: Graph, files: list[str]) -> int:
     """Calls edges for files no index covered; returns how many call sites matched more than one
     project function and stayed unresolved (calls into libraries aren't counted)."""
-    by_name: dict[str, list[dict]] = {}
-    for node in graph.nodes.values():
-        if node["type"] == "function":
-            by_name.setdefault(node["name"].split(".")[-1], []).append(node)
+    by_language: dict[str, dict[str, list[dict]]] = {}
+    for node in [n for n in graph.nodes.values() if n["type"] == "function"]:
+        by_language.setdefault(language(node["file"]), {}).setdefault(node["name"].split(".")[-1], []).append(node)
     unresolved = 0
     for site in call_sites(graph.root, files):
+        by_name = by_language.get(language(site["file"]), {})
         target = resolve(site["callee"], by_name)
         caller = graph.enclosing(site["file"], site["line"])
         if target is None:

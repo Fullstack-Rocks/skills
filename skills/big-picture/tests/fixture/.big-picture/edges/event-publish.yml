@@ -1,0 +1,6 @@
+id: event-publish
+language: Python
+message: publishes an event on a topic
+rule: { pattern: 'publish($TOPIC, $$$REST)' }
+constraints: { TOPIC: { kind: string } }
+metadata: { edge: publishes, to: "topic:{TOPIC}" }
