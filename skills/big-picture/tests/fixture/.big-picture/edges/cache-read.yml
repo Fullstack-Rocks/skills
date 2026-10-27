@@ -1,0 +1,5 @@
+id: cache-read
+language: Python
+message: reads the Redis cache through app.cache.client
+rule: { pattern: client.get($$$ARGS) }
+metadata: { edge: reads-cache, to: "redis:redis" }

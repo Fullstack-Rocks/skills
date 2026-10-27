@@ -40,10 +40,33 @@ def check_lookups(nodes: dict, edges: set, findings: set) -> dict[str, bool]:
     }
 
 
+def check_api(edges: set, findings: set) -> dict[str, bool]:
+    return {
+        "operation matched across parameter names": ("operation:GET /orders/{id}/total", "implemented-by", "endpoint:GET /orders/{order_id}/total") in edges,
+        "operation models": ("operation:PUT /customers/{ref}", "accepts", "api-model:CustomerUpdate") in edges
+        and ("api-model:Order", "has", "api-model:CustomerUpdate") in edges,
+        "operation without handler": "operation-without-handler:operation:PUT /customers/{ref}" in findings,
+        "endpoint not in spec": "endpoint-not-in-spec:endpoint:POST /imports" in findings,
+    }
+
+
+def check_lenses(nodes: dict, edges: set, views: list[dict]) -> dict[str, bool]:
+    """Pattern rules over .env and compose files, and views defined by files."""
+    return {
+        "env keys from a pattern rule": {"env-key:REDIS_URL", "env-key:CACHE_TTL_SECONDS", "env-key:DATABASE_URL"} <= set(nodes),
+        "compose services by image": "redis:redis" in nodes and "valkey:valkey" in nodes and "redis:postgres" not in nodes,
+        "code reads env and cache": {("module:app/cache.py", "reads-env", "env-key:REDIS_URL"),
+                                     ("fn:app/cache.py#cached_total", "writes-cache", "redis:redis")} <= edges,
+        "views from files": [v["id"] for v in views] == ["cache", "config"] and views[0]["colors"]["redis"] == "#DC382D",
+    }
+
+
 def check(graph: dict) -> list[str]:
     nodes = {n["id"]: n for n in graph["nodes"]}
     edges = {(e["from"], e["kind"], e["to"]) for e in graph["edges"]}
-    expected = check_schema(nodes, edges) | check_lookups(nodes, edges, {f["id"] for f in graph["findings"]})
+    findings = {f["id"] for f in graph["findings"]}
+    expected = (check_schema(nodes, edges) | check_lookups(nodes, edges, findings) | check_api(edges, findings)
+                | check_lenses(nodes, edges, graph.get("views", [])))
     return [name for name, ok in expected.items() if not ok]
 
 

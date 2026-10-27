@@ -3,7 +3,7 @@ import styled from 'styled-components'
 
 import { NODE_HEIGHT, NODE_WIDTH } from '../data/layout'
 import type { Direction } from '../store/view'
-import { edgeColor, healthColor, theme, typeColor } from '../theme'
+import { edgeColor, healthColor, theme, typeColor, typeFill } from '../theme'
 import type { Column, GraphNode } from '../types'
 
 // A node: type, name, a detail line and its health dot. Each kind of connection gets its own
@@ -50,6 +50,13 @@ const Rows = styled.ul`
   li i { font-style: normal; font-size: 10px; padding: 0 4px; border-radius: 3px; }
 `
 
+/** A type label in its colour, or its gradient painted through the text. */
+function typeStyle(type: string): React.CSSProperties {
+  const fill = typeFill(type)
+  if (!fill.includes('gradient')) return { color: fill }
+  return { background: fill, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', fontWeight: 700 }
+}
+
 function ColumnRows({ columns }: { columns: Column[] }) {
   return (
     <Rows>
@@ -81,9 +88,9 @@ export function NodeCard({ data }: NodeProps<CardNode>) {
     <Card $accent={accent} $selected={selected} $focused={focused} $outside={outside} $lookup={node.type === 'lookup'} title={node.id}
       style={{ height: height ?? NODE_HEIGHT, opacity: dimmed ? 0.18 : undefined }}>
       <Handles kinds={inKinds} type="target" position={inSide} />
-      <Type style={{ color: accent }}>{node.type}{outside ? ' · outside' : ''}</Type>
+      <Type style={typeStyle(node.type)}>{node.type}{outside ? ' · outside' : ''}</Type>
       <Dot style={{ color: healthColor(health) }} title={`${health} health findings`}>{health || ''}</Dot>
-      <Name>{node.name.split('/').pop()}</Name>
+      <Name>{node.name === node.file ? node.name.split('/').pop() : node.name}</Name>
       <Sub>{subtitle}</Sub>
       {columns && <ColumnRows columns={columns} />}
       <Handles kinds={outKinds} type="source" position={outSide} />

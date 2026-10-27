@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 
+import { setCustomColors } from '../theme'
 import type { Finding, GraphData, GraphEdge, GraphNode } from '../types'
 
 // What was loaded, with the indexes every view needs, built once per load.
@@ -58,6 +59,9 @@ export const useGraph = create<GraphState>((set) => ({
   graph: null,
   live: false,
   error: null,
-  setGraph: (data, live) => set({ graph: indexGraph(data), live, error: null }),
+  setGraph: (data, live) => {
+    setCustomColors(Object.assign({}, ...(data.views ?? []).map((v) => v.colors)))
+    set({ graph: indexGraph(data), live, error: null })
+  },
   setError: (error) => set({ error }),
 }))

@@ -40,6 +40,17 @@ Done when the build prints no warning you haven't reported, and every route styl
 
 Done when the fixtures pass, the hit count matches the hand count (or the difference is explained), and `bp node` shows the new nodes connected.
 
+## Add a lens
+
+When you find a subsystem the graph doesn't show yet (a cache, message queues, Docker services, nginx routes, config files whose keys change behaviour, `.env` keys, feature flags), give it a **lens**: its own nodes, connections and tab, written as files only.
+
+1. Teach its parts as rules (**Teach a convention**). Use an ast-grep rule where ast-grep parses the file; for files it can't parse (`.env`, nginx, INI, Dockerfiles), write a **pattern rule**, `.big-picture/patterns/<id>.yml`, a regex with named groups and the same metadata. Capture names and keys, never secret values. The format is in [`references/node-types.md`](references/node-types.md).
+2. Write `.big-picture/views/<id>.yml`: `title`, the node `types` it shows, the `edges` kinds it follows, `neighbors: true` to include the code on the other end, and `colors` for each type and kind.
+3. Colour from the technology's own brand: look up its logo colours (Redis `#DC382D`, Valkey a gradient `linear-gradient(135deg, #4F46E5, #A855F7)`, nginx `#009639`, Docker `#2496ED`, dotenv `#ECD53F`). A gradient is fine where the brand uses one.
+4. Rebuild, then check with `bp view <id>` and the new tab.
+
+Done when the lens's tab shows every part you found, each connected to the code that uses it, and its fixtures pass.
+
 ## View
 
 - **Live:** `python3 scripts/serve.py <project root>` serves the viewer at http://localhost:7478. The page rechecks the graph every 2 seconds, so a rebuild shows up without a reload, and the node pane reads source lines straight from the project. Run it in the background and give the developer the URL. To point at one node, append `#/n/<url-encoded node id>`.

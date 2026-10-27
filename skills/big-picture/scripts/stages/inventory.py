@@ -24,6 +24,7 @@ KNOWLEDGE = [
     ("schema", "openapi*.yaml"), ("schema", "openapi*.yml"), ("schema", "openapi*.json"), ("schema", "swagger*"),
     ("infra", "Dockerfile*"), ("infra", "docker-compose*.yml"), ("infra", "compose*.yml"), ("infra", "*.tf"),
     ("infra", ".github/workflows/*.yml"), ("infra", "Procfile"), ("infra", "fly.toml"), ("infra", "vercel.json"),
+    ("infra", "nginx*.conf"), ("config", ".env*"), ("config", "*.ini"), ("config", "*.cfg"), ("config", "*.conf"),
     ("doc", "*.md"),
 ]
 
@@ -61,12 +62,12 @@ def add_folder(graph: Graph, path: str) -> str:
 
 def add_inventory(graph: Graph, files: list[str]) -> None:
     for path in code_files(files):
-        graph.add_node(f"module:{path}", "module", path, file=path)
+        graph.file_node[path] = graph.add_node(f"module:{path}", "module", path, file=path)
         graph.add_edge(add_folder(graph, path), f"module:{path}", "contains", "inventory")
     for path in files:
         kind = knowledge_type(path)
         if kind is None:
             continue
         node_id = f"rule:{PurePosixPath(path).stem}" if kind == "rule" else f"{kind}:{path}"
-        graph.add_node(node_id, kind, path, file=path)
+        graph.file_node.setdefault(path, graph.add_node(node_id, kind, path, file=path))
         graph.add_edge(add_folder(graph, path), node_id, "contains", "inventory")

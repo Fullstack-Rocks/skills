@@ -15,8 +15,8 @@ const Crumbs = styled.nav`
 
 export function Breadcrumb() {
   const graph = useGraph((s) => s.graph)
-  const { trail, focus, mode, back } = useView()
-  const label = (id: string) => (id === ROOT ? 'Project' : graph?.byId.get(id)?.name ?? id)
+  const { trail, focus, mode, back, tab } = useView()
+  const label = (id: string) => (id === ROOT ? (tab === 'endpoints' ? 'Endpoints' : 'Project') : graph?.byId.get(id)?.name ?? id)
   return (
     <Crumbs>
       {trail.map((id, i) => (

@@ -5,6 +5,7 @@ Answers three things and 404s everything else:
   /             the viewer (viewer/dist/index.html)
   /graph.json   <root>/.big-picture/out/graph.json
   /src/<path>   a project file, only when the graph names it as a node's file
+  POST /proxy   the viewer's Try it: forwards one request to a localhost URL and returns the response
 
 Usage: python3 serve.py [ROOT] [--port 7478]
 """
@@ -17,6 +18,9 @@ if sys.version_info < (3, 11):
 import argparse
 import json
 import subprocess
+import time
+import urllib.error
+import urllib.request
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -24,6 +28,24 @@ from urllib.parse import unquote, urlparse
 
 VIEWER = Path(__file__).resolve().parent.parent / "viewer" / "dist" / "index.html"
 BUILD = Path(__file__).resolve().parent / "build.py"
+
+
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def forward(call: dict) -> dict:
+    """One HTTP request, timed; an error status comes back as a response, not an exception."""
+    request = urllib.request.Request(call["url"], method=call["method"], headers=call.get("headers", {}),
+                                     data=call["body"].encode() if call.get("body") else None)
+    started = time.monotonic()
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            status, headers, body = response.status, dict(response.headers), response.read()
+    except urllib.error.HTTPError as error:
+        status, headers, body = error.code, dict(error.headers), error.read()
+    except (urllib.error.URLError, TimeoutError) as error:
+        return {"status": 0, "headers": {}, "body": str(error), "ms": round((time.monotonic() - started) * 1000)}
+    return {"status": status, "headers": headers, "body": body.decode(errors="replace"), "ms": round((time.monotonic() - started) * 1000)}
 
 
 class Served:
@@ -57,6 +79,25 @@ class Handler(SimpleHTTPRequestHandler):
         if route.startswith("/src/") and self.served.allowed(source):
             return str(self.served.root / source)
         return str(self.served.root / ".big-picture" / "out" / "not-served")
+
+    def do_POST(self) -> None:
+        """Try it: {method, url, headers, body} -> {status, headers, body, ms}, for localhost URLs only."""
+        if urlparse(self.path).path != "/proxy":
+            self.send_error(404)
+            return
+        call = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
+        if urlparse(call["url"]).hostname not in LOCAL_HOSTS:
+            self.send_error(403, "Try it only calls localhost")
+            return
+        self.send_json(forward(call))
+
+    def send_json(self, data: dict) -> None:
+        body = json.dumps(data).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def end_headers(self) -> None:
         self.send_header("Cache-Control", "no-cache")

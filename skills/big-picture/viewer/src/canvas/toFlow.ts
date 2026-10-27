@@ -7,13 +7,14 @@ import type { LoadedGraph } from '../store/graph'
 import type { Direction, EdgeStyle } from '../store/view'
 import { edgeColor, theme } from '../theme'
 import type { CardNode } from './NodeCard'
-import type { GroupNode } from './GroupCard'
+import type { GroupNode } from './frames/GroupCard'
 
 export type FlowNode = CardNode | GroupNode
 
 function groupNode(graph: LoadedGraph, p: Placed): GroupNode {
   const node = graph.byId.get(p.id)
-  const data = { label: node?.name ?? 'Database', type: node?.type ?? 'database', health: graph.health.get(p.id) ?? 0, selected: false }
+  const database = p.id === DATABASE
+  const data = { label: node?.name ?? (database ? 'Database' : p.id), type: node?.type ?? (database ? 'database' : 'group'), health: graph.health.get(p.id) ?? 0, selected: false }
   return { id: p.id, type: 'group', parentId: p.parent, position: { x: p.x, y: p.y }, width: p.width, height: p.height, data, selectable: p.id !== DATABASE }
 }
 

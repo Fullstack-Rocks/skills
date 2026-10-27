@@ -1,6 +1,6 @@
 import type { LoadedGraph } from '../store/graph'
 import { ROOT, type Mode, type Tab } from '../store/view'
-import type { GraphEdge } from '../types'
+import type { GraphEdge, Lens } from '../types'
 import { leaves, neighbors } from './walk'
 
 // The nodes and edges the canvas shows for a focus:
@@ -93,9 +93,41 @@ function databaseView(graph: LoadedGraph): View {
   return { nodes: [...shown], edges, outside: new Set(), heights, flat: true }
 }
 
+const API_KINDS = new Set(['implemented-by', 'handled-by', 'calls', 'reads', 'writes', 'looks-up', 'accepts', 'returns', 'has'])
+const API_TYPES = new Set(['operation', 'endpoint'])
+
+/** Every operation and endpoint, joined where the document and the code agree; or, focused on one,
+ *  everything it runs and the models it takes and returns. */
+function endpointsView(graph: LoadedGraph, focus: string): View {
+  if (API_TYPES.has(graph.byId.get(focus)?.type ?? '')) {
+    const shown = new Set([focus, ...neighbors(graph, focus, 7, 'out', (kind) => API_KINDS.has(kind)).map((s) => s.id)])
+    return { nodes: [...shown], edges: edgesAmong(graph, shown), outside: new Set() }
+  }
+  const shown = new Set(graph.data.nodes.filter((n) => API_TYPES.has(n.type)).map((n) => n.id))
+  return { nodes: [...shown], edges: edgesAmong(graph, shown), outside: new Set(), flat: true }
+}
+
+/** A view defined by a file: its node types, plus (with neighbors) whatever its connection kinds reach. */
+function lensView(graph: LoadedGraph, lens: Lens): View {
+  const types = new Set(lens.types)
+  const follows = (kind: string) => (lens.edges ? lens.edges.includes(kind) : notContains(kind))
+  const core = graph.data.nodes.filter((n) => types.has(n.type)).map((n) => n.id)
+  const reached = lens.neighbors
+    ? core.flatMap((id) => [...neighbors(graph, id, 1, 'in', follows), ...neighbors(graph, id, 1, 'out', follows)].map((s) => s.id))
+    : []
+  const shown = new Set([...core, ...reached])
+  return { nodes: [...shown], edges: edgesAmong(graph, shown).filter((e) => follows(e.kind)), outside: new Set() }
+}
+
 export function visibleGraph(graph: LoadedGraph, focus: string, mode: Mode, tab: Tab): View {
+  const lens = graph.data.views?.find((v) => v.id === tab)
+  if (lens) return lensView(graph, lens)
   if (tab === 'database') return databaseView(graph)
   if (mode === 'leaves') return leavesView(graph, focus)
+  return tab === 'endpoints' ? endpointsView(graph, focus) : mapView(graph, focus)
+}
+
+function mapView(graph: LoadedGraph, focus: string): View {
   const type = graph.byId.get(focus)?.type
   if (focus !== ROOT && type !== 'folder' && type !== 'module') return subgraphView(graph, focus)
   const units = new Set(unitsUnder(graph, focus))

@@ -6,6 +6,8 @@
   bp health <id or text>                     every finding on it and inside it, with where and how to fix
   bp similar <id or text>                    operations it repeats, and every other place they run
   bp db                                      tables, views, keys, relations and JSON lookups
+  bp endpoint "<METHOD> <path>"              an API operation: parameters, models, handler, what it runs
+  bp view [<id>]                             a view the project defines (cache, config, ...), or the list of them
 
 Edges marked ~ were matched by name (approx), not by a type-aware index.
 Run from anywhere inside the project; the nearest .big-picture/ above the current folder is used.
@@ -21,7 +23,8 @@ from pathlib import Path
 
 from graph.load import load
 from graph.walk import entry_points
-from verbs.data import show_db
+from verbs.api import show_endpoint
+from verbs.data import show_db, show_view
 from verbs.find import pick, show_find
 from verbs.health import show_health, show_similar
 from verbs.node import show_neighbors, show_node
@@ -42,6 +45,8 @@ def parse() -> argparse.Namespace:
     verbs.add_parser("health").add_argument("target", nargs="?", default="folder:.")
     verbs.add_parser("similar").add_argument("target", nargs="?", default="folder:.")
     verbs.add_parser("db")
+    verbs.add_parser("endpoint").add_argument("target")
+    verbs.add_parser("view").add_argument("id", nargs="?")
     return parser.parse_args()
 
 
@@ -63,6 +68,10 @@ def main() -> None:
             show_similar(graph, pick(graph, args.target))
         case "db":
             show_db(graph)
+        case "endpoint":
+            show_endpoint(graph, pick(graph, args.target))
+        case "view":
+            show_view(graph, args.id)
 
 
 if __name__ == "__main__":

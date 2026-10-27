@@ -18,6 +18,7 @@ class Graph:
     findings: dict[str, list[dict]] = field(default_factory=dict)
     children: dict[str, list[str]] = field(default_factory=dict)
     repeats: list[dict] = field(default_factory=list)
+    views: list[dict] = field(default_factory=list)
     built_at: str = ""
 
 
@@ -34,7 +35,8 @@ def build(root: Path) -> None:
 
 
 def index(data: dict) -> Graph:
-    graph = Graph({n["id"]: n for n in data["nodes"]}, built_at=data["builtAt"], repeats=data.get("repeats", []))
+    graph = Graph({n["id"]: n for n in data["nodes"]}, built_at=data["builtAt"], repeats=data.get("repeats", []),
+                  views=data.get("views", []))
     for edge in data["edges"]:
         graph.outgoing.setdefault(edge["from"], []).append(edge)
         graph.incoming.setdefault(edge["to"], []).append(edge)

@@ -19,20 +19,39 @@ export const theme = {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  endpoint: theme.lime, function: theme.mint, module: theme.sky, table: theme.violet, database: theme.violet, model: theme.amber, lookup: theme.coral,
+  endpoint: theme.lime, function: theme.mint, module: theme.sky, table: theme.violet, database: theme.violet, model: theme.amber, lookup: theme.coral, operation: '#F9A8D4', 'api-model': theme.amber,
   folder: theme.muted,
 }
 const EDGE_COLORS: Record<string, string> = {
   calls: '#94A3B8', 'handled-by': theme.lime, reads: theme.sky, writes: theme.violet, 'maps-to': theme.amber, reaches: theme.mint,
   references: theme.violet, 'selects-from': theme.sky, 'looks-up': theme.coral, through: theme.coral, finds: theme.coral,
+  'implemented-by': '#F9A8D4', accepts: theme.amber, returns: theme.amber, has: theme.amber,
+}
+
+// Colours the project's view files give its own node types and connection kinds; a value may be a
+// CSS gradient (Valkey's blue to purple), whose first colour stands in where one colour is needed.
+const custom = new Map<string, string>()
+
+export function setCustomColors(colors: Record<string, string>): void {
+  custom.clear()
+  for (const [name, value] of Object.entries(colors)) custom.set(name, value)
+}
+
+function solid(value: string | undefined): string | undefined {
+  return value?.match(/#[0-9a-fA-F]{3,8}/)?.[0]
 }
 
 export function typeColor(type: string): string {
-  return TYPE_COLORS[type] ?? '#9CA3AF'
+  return solid(custom.get(type)) ?? TYPE_COLORS[type] ?? '#9CA3AF'
+}
+
+/** The type's full colour: a gradient when its view gives one. */
+export function typeFill(type: string): string {
+  return custom.get(type) ?? typeColor(type)
 }
 
 export function edgeColor(kind: string): string {
-  return EDGE_COLORS[kind] ?? '#5B6472'
+  return solid(custom.get(kind)) ?? EDGE_COLORS[kind] ?? '#5B6472'
 }
 
 /** Mint when clean, amber for one or two findings, coral from three. */

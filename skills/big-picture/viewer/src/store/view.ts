@@ -10,7 +10,7 @@ export const ROOT = 'folder:.'
 export type Mode = 'subgraph' | 'leaves'
 export type EdgeStyle = 'default' | 'smoothstep' | 'step' | 'straight'
 export type Direction = 'RIGHT' | 'DOWN' | 'LEFT' | 'UP'
-export type Tab = 'map' | 'database'
+export type Tab = 'map' | 'database' | 'endpoints' | string // or a view's id (.big-picture/views)
 // A clicked connection: the graph edges it stands for (several when the view rolls them up).
 export type SelectedEdge = { id: string; source: string; target: string; label: string; members: GraphEdge[] }
 
@@ -57,7 +57,7 @@ export const useView = create<ViewState>((set, get) => ({
   tab: 'map',
   select: (id) => set({ selected: id, selectedEdge: null }),
   selectEdge: (edge) => set({ selectedEdge: edge, selected: null }),
-  setTab: (tab) => set({ tab, selectedEdge: null }),
+  setTab: (tab) => set({ tab, selectedEdge: null, focus: ROOT, mode: 'subgraph', trail: [] }),
   dive: (id, mode = 'subgraph') =>
     set((s) => (s.focus === id && s.mode === mode ? s : { focus: id, mode, trail: [...s.trail, s.focus] })),
   back: (index) => set((s) => ({ focus: s.trail[index], mode: 'subgraph', trail: s.trail.slice(0, index) })),
