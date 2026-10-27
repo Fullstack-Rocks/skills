@@ -1,0 +1,10 @@
+# ast-grep config for code-standards. Run ast-grep from the project root with `-c .code-standards/sgconfig.yml`.
+ruleDirs:
+  - rules
+testConfigs:
+  - testDir: rule-tests
+# Every other extension uses ast-grep's built-in mapping (.py -> Python, .go -> Go, ...).
+# Here the whole JS/TS family is parsed as Tsx so one rule covers all of it.
+# Old-style `<T>value` casts in .ts files don't parse as Tsx; use `value as T`.
+languageGlobs:
+  tsx: ["*.ts", "*.mts", "*.cts", "*.js", "*.jsx", "*.mjs", "*.cjs"]
