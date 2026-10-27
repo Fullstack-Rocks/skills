@@ -1,0 +1,21 @@
+id: model-field
+valid:
+  - |
+    class Plain:
+        id: int
+  - |
+    @dataclass
+    class Order:
+        def label(self) -> str:
+            name: str = "x"
+            return name
+invalid:
+  - |
+    @dataclass
+    class Order:
+        id: int
+  - |
+    @dataclass
+    class Customer:
+        email: str
+        tier: str = "basic"

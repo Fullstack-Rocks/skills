@@ -1,0 +1,18 @@
+id: endpoint-route
+valid:
+  - |
+    def show_order(request):
+        return request
+  - |
+    @other("GET", "/orders")
+    def list_orders(request):
+        return request
+invalid:
+  - |
+    @route("GET", "/orders/{id}")
+    def show_order(request: Request) -> Response:
+        return Response.json({})
+  - |
+    @route("POST", "/orders")
+    def create_order(request):
+        return request

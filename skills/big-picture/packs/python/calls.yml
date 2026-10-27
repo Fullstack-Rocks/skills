@@ -1,0 +1,8 @@
+# Call sites for the approx calls fallback, used only for files no SCIP index covers.
+id: bp-calls-python
+language: Python
+rule:
+  kind: call
+  has:
+    field: function
+    pattern: $CALLEE
