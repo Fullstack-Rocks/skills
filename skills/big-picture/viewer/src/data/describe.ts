@@ -22,17 +22,21 @@ const descendants = (graph: LoadedGraph, id: string): string[] =>
   (graph.children.get(id) ?? []).flatMap((child) => [child, ...descendants(graph, child)])
 
 /** One short line under a card's name. */
+function childCount(graph: LoadedGraph, id: string, type: string): number {
+  return (graph.children.get(id) ?? []).filter((k) => graph.byId.get(k)?.type === type).length
+}
+
 export function subtitle(graph: LoadedGraph, node: GraphNode): string {
-  const kids = graph.children.get(node.id) ?? []
-  const count = (type: string) => kids.filter((k) => graph.byId.get(k)?.type === type).length
   switch (node.type) {
     case 'function': return `${node.file?.split('/').pop()} · L${node.start}–${node.end} · cx ${node.complexity}`
     case 'endpoint': return `→ ${names(graph, ends(graph, node.id, 'handled-by', 'out'))}`
     case 'table': return `${tableColumns(graph, node).length} columns · read by ${ends(graph, node.id, 'reads', 'in').length} · written by ${ends(graph, node.id, 'writes', 'in').length}`
     case 'model': return `${node.fields?.length ?? 0} fields → ${names(graph, ends(graph, node.id, 'maps-to', 'out')) || 'no table'}`
     case 'lookup': return `${node.table}.${node.column} → ${node.path} = ${node.to_table}.${node.to_column}`
-    case 'module': return [plural(count('function'), 'function'), count('endpoint') ? plural(count('endpoint'), 'endpoint') : ''].filter(Boolean).join(' · ')
-    case 'folder': return `${plural(count('module'), 'module')} · ${plural(count('folder'), 'folder')}`
+    case 'operation': return node.summary || node.operationId || 'API operation'
+    case 'api-model': return `${node.fields?.length ?? 0} fields`
+    case 'module': return [plural(childCount(graph, node.id, 'function'), 'function'), childCount(graph, node.id, 'endpoint') ? plural(childCount(graph, node.id, 'endpoint'), 'endpoint') : ''].filter(Boolean).join(' · ')
+    case 'folder': return `${plural(childCount(graph, node.id, 'module'), 'module')} · ${plural(childCount(graph, node.id, 'folder'), 'folder')}`
     default: return node.file ?? node.type
   }
 }
@@ -89,6 +93,8 @@ export function describe(graph: LoadedGraph, node: GraphNode, entries: string[])
     case 'model': return `A data model in ${node.file}, lines ${node.start}–${node.end}, with ${plural(node.fields?.length ?? 0, 'field')}. It maps to the table ${names(graph, ends(graph, node.id, 'maps-to', 'out')) || '(none found)'}.`
     case 'module':
     case 'folder': return describeContainer(graph, node)
+    case 'operation': return `An API operation from ${node.file}: ${node.summary || node.name}. ${ends(graph, node.id, 'implemented-by', 'out').length ? `The code implements it in ${names(graph, ends(graph, node.id, 'implemented-by', 'out'))}.` : 'No code endpoint implements it.'}`
+    case 'api-model': return `A model from the OpenAPI document ${node.file}, with ${plural(node.fields?.length ?? 0, 'field')}.`
     case 'lookup': return `A lookup through a JSON column: it finds ${node.to_table} rows whose ${node.to_column} equals the ${node.path} path inside ${node.table}.${node.column}.`
     default: return node.file ? `A ${node.type} file at ${node.file}.` : `A ${node.type}.`
   }

@@ -1,5 +1,5 @@
-import { NODE_HEIGHT, NODE_WIDTH } from '../data/layout'
-import type { FlowNode } from './toFlow'
+import { NODE_HEIGHT, NODE_WIDTH } from '../../data/layout'
+import type { FlowNode } from '../toFlow'
 
 // Dragging keeps the map tidy: a moved card pushes the cards it would overlap on the same level (and
 // they push theirs), and every frame grows, in the direction its contents moved, to keep them inside.
@@ -11,7 +11,8 @@ const HEADER = 48 // room for a frame's label
 type Box = { x: number; y: number; w: number; h: number }
 
 function box(n: FlowNode): Box {
-  return { x: n.position.x, y: n.position.y, w: n.measured?.width ?? n.width ?? NODE_WIDTH, h: n.measured?.height ?? n.height ?? NODE_HEIGHT }
+  // A frame's set size wins over React Flow's last measurement, which lags one render behind a resize.
+  return { x: n.position.x, y: n.position.y, w: n.width ?? n.measured?.width ?? NODE_WIDTH, h: n.height ?? n.measured?.height ?? NODE_HEIGHT }
 }
 
 function overlaps(a: Box, b: Box): boolean {
@@ -79,6 +80,36 @@ export function arrange(nodes: FlowNode[], frameId: string, columns: number): Fl
     byId.set(n.id, { ...n, position: { x, y } } as FlowNode)
   })
   fitFrames(byId, frameId)
+  pushSiblings(byId, frameId, 1, 1)
+  fitFrames(byId)
+  return nodes.map((n) => byId.get(n.id)!)
+}
+
+/** The smallest a frame may be: its contents' right and bottom edges plus padding. */
+export function contentSize(nodes: FlowNode[], frameId: string): { width: number; height: number } {
+  const inside = nodes.filter((n) => n.parentId === frameId).map(box)
+  return {
+    width: Math.max(...inside.map((b) => b.x + b.w), 0) + PAD,
+    height: Math.max(...inside.map((b) => b.y + b.h), HEADER) + PAD,
+  }
+}
+
+/** Shrink (or grow) a frame to exactly fit its contents. */
+export function fitToContents(nodes: FlowNode[], frameId: string): FlowNode[] {
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  fitFrames(byId, frameId)
+  return nodes.map((n) => byId.get(n.id)!)
+}
+
+/** Put a frame and everything inside it back where the automatic layout placed them. */
+export function resetFrame(nodes: FlowNode[], laidOut: FlowNode[], frameId: string): FlowNode[] {
+  const original = new Map(laidOut.map((n) => [n.id, n]))
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const inside = (n: FlowNode): boolean => n.id === frameId || (!!n.parentId && inside(byId.get(n.parentId)!))
+  for (const n of nodes.filter(inside)) {
+    const first = original.get(n.id)
+    if (first) byId.set(n.id, { ...n, position: first.position, width: first.width, height: first.height } as FlowNode)
+  }
   pushSiblings(byId, frameId, 1, 1)
   fitFrames(byId)
   return nodes.map((n) => byId.get(n.id)!)

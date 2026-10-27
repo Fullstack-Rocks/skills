@@ -23,11 +23,14 @@ from stages.code.calls import PYTHON, TYPESCRIPT, add_approx_calls, add_scip_cal
 from stages.code.functions import add_functions
 from stages.code.scip_index import read_index
 from stages.data.lookups import add_lookups
+from stages.data.openapi import add_openapi
 from stages.data.schema import add_schema
 from stages.health.findings import add_fixes, add_health
 from stages.health.repeats import add_repeats
 from stages.inventory import add_inventory, code_files, list_files
+from stages.patterns import scan_patterns
 from stages.rules import add_rule_matches
+from stages.views import add_views
 
 REQUIRED = ["ast-grep", "lizard"]
 
@@ -74,16 +77,18 @@ def main() -> None:
     add_scip_calls(graph, index, by_symbol)
     unindexed = note_coverage(graph, code, set(index))
     ambiguous = add_approx_calls(graph, unindexed) if unindexed else 0
-    matches = add_rule_matches(graph)
+    matches = add_rule_matches(graph, scan_patterns(root, files))
     add_schema(graph, files)
     lookups = add_lookups(graph, files, code)
+    operations = add_openapi(graph, files)
     add_repeats(graph, matches)
     add_health(graph, top_level(code), out)
     add_fixes(graph)
+    add_views(graph)
     graph.write(out / "graph.json")
     coverage = ", ".join(f"{lang} {source}" for lang, source in graph.coverage.items())
     print(f"big-picture: {len(graph.nodes)} nodes, {len(graph.edges)} edges, {len(graph.findings)} findings, "
-          f"{len(matches)} rule matches, {lookups} JSON lookup sites, {len(graph.repeats)} repeats, "
+          f"{len(matches)} rule matches, {lookups} JSON lookup sites, {operations} API operations, {len(graph.repeats)} repeats, "
           f"calls: {coverage or 'none'}, {ambiguous} ambiguous call sites, "
           f"{time.monotonic() - started:.1f}s -> {out / 'graph.json'}")
 

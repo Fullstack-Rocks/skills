@@ -1,0 +1,9 @@
+title: Cache
+types: [redis, valkey]
+edges: [reads-cache, writes-cache]
+neighbors: true
+colors:
+  redis: "#DC382D"
+  valkey: "linear-gradient(135deg, #4F46E5, #A855F7)"
+  reads-cache: "#DC382D"
+  writes-cache: "#F97316"

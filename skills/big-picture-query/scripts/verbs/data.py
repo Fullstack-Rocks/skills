@@ -25,3 +25,20 @@ def show_db(graph: Graph) -> None:
         sites = [e["from"] for e in graph.incoming.get(lookup["id"], []) if e["kind"] == "looks-up"]
         print(f"  {lookup['name']}  ({len(sites)} places: {', '.join(sites)})")
     print("\n~ marks a relation inferred by naming convention; bp node table:<name> shows a table in full.")
+
+
+def show_view(graph: Graph, view_id: str | None) -> None:
+    """A view the project defined in .big-picture/views: its nodes by type and the connections it follows."""
+    view = next((v for v in graph.views if v["id"] == view_id), None)
+    if view is None:
+        print("views: " + (", ".join(f"{v['id']} ({v['title']})" for v in graph.views) or "none; the big-picture skill adds them"))
+        return
+    print(f"{view['title']}: types {', '.join(view['types'])}; connections {', '.join(view['edges'] or ['all'])}")
+    for node in sorted((n for n in graph.nodes.values() if n["type"] in view["types"]), key=lambda n: n["id"]):
+        print(view_line(graph, node, view["edges"]))
+
+
+def view_line(graph: Graph, node: dict, kinds: list[str] | None) -> str:
+    """A view's node with the connections into it that the view follows (none: nothing uses it)."""
+    links = [f"{e['kind']} <- {e['from']}" for e in graph.incoming.get(node["id"], []) if not kinds or e["kind"] in kinds]
+    return f"  {node['id']:<40} {'; '.join(links) or '(nothing uses it)'}"

@@ -1,0 +1,8 @@
+id: cache-write
+language: Python
+message: writes the Redis cache through app.cache.client
+rule:
+  any:
+    - pattern: client.set($$$ARGS)
+    - pattern: client.setex($$$ARGS)
+metadata: { edge: writes-cache, to: "redis:redis" }

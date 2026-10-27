@@ -1,0 +1,7 @@
+id: env-read
+valid:
+  - os.getenv(name)
+  - settings.getenv("X")
+invalid:
+  - os.getenv("REDIS_URL")
+  - os.environ["CACHE_TTL_SECONDS"]

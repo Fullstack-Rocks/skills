@@ -17,8 +17,10 @@ class Graph:
         self.edges: dict[tuple[str, str, str], dict] = {}
         self.findings: dict[str, dict] = {}
         self.coverage: dict[str, str] = {}
-        self.repeats: list[dict] = []  # operations and shapes found in several places (stages/repeats.py)
+        self.repeats: list[dict] = []  # operations and shapes found in several places (stages/health/repeats.py)
+        self.views: list[dict] = []  # extra viewer tabs defined in .big-picture/views (stages/views.py)
         self.code_by_file: dict[str, list[dict]] = {}
+        self.file_node: dict[str, str] = {}  # a file's own node (module, infra, config, ...), set by the inventory
 
     def add_node(self, node_id: str, node_type: str, name: str, **fields: object) -> str:
         node = self.nodes.setdefault(node_id, {"id": node_id, "type": node_type, "name": name})
@@ -58,5 +60,6 @@ class Graph:
             "edges": sorted(self.edges.values(), key=lambda e: (e["from"], e["kind"], e["to"])),
             "findings": sorted(self.findings.values(), key=lambda f: f["id"]),
             "repeats": self.repeats,
+            "views": self.views,
         }
         path.write_text(json.dumps(data, indent=1) + "\n")

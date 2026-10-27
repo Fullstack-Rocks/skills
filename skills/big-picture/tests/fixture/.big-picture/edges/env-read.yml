@@ -1,0 +1,12 @@
+id: env-read
+language: Python
+message: reads an environment variable
+rule:
+  any:
+    - pattern: os.getenv($KEY)
+    - pattern: os.getenv($KEY, $DEFAULT)
+    - pattern: os.environ[$KEY]
+    - pattern: os.environ.get($KEY, $$$REST)
+constraints:
+  KEY: { kind: string }
+metadata: { edge: reads-env, to: "env-key:{KEY}" }

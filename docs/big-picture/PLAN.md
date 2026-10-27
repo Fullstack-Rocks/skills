@@ -371,6 +371,17 @@ Hallway check, three rounds, colleague convinced. Answers: search box and node-i
 - **Brand:** the logo is white, and "big picture" is set in the brand gradient.
 - **Size:** the viewer file is now 5.5 MB (1.5 MB gzipped), mostly Monaco. The DOMPurify that Monaco depends on is pinned to 3.4.17 for security advisories.
 
+### Phase 3 and 4 as built (2026-10-27)
+
+- **Phase 3, data:** SQL DDL gives tables, views, materialized views and temporary tables with keys, constraints and indexes. Tables no DDL declares are inferred from their models and marked so. JSON lookups in SQL become lookup nodes.
+- **Phase 3, health:** repeated operations are health findings, while repeated shapes across tables are recorded as information only. Every finding has a fix, and agents get `bp health`, `bp similar` and `bp db`.
+- **Phase 3, viewer:** the Database tab, connection focus, dragging that pushes cards and grows frames, and frame options (Arrange with Reset, Fit, Open).
+- **Phase 4:** OpenAPI JSON or YAML gives operation and api-model nodes. Operations are matched to code endpoints across parameter names, and both kinds of mismatch are findings. Agents get `bp endpoint`; the viewer gets an Endpoints tab, model trees and a Try it panel through `serve.py`'s localhost-only proxy.
+- **Lenses (asked for during phase 4):**
+  - `.big-picture/patterns/` holds regex rules for files ast-grep can't parse.
+  - `.big-picture/views/` files add viewer tabs and `bp view` listings, with brand colours and gradients per type and kind.
+  - The fixture carries a Cache lens (Redis, Valkey) and a Config lens (`.env` keys).
+
 ## Decisions for you
 
 1. ~~**Live preview**~~ **Decided 2026-10-27:** Python stdlib `serve.py` for live preview, plus `export.py` for static sharing. No Claude Code pane and no MCP App panel: the viewer lives in the browser only.

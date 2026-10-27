@@ -116,6 +116,41 @@ metadata:
 
 Edge kinds in use: `contains`, `calls`, `handled-by`, `reads`, `writes`, `maps-to`. Name a new kind as a verb from the source's side (`publishes`, `guards`, `lookup`), and reuse an existing kind when the meaning matches.
 
+## Pattern rule: regex over files ast-grep can't parse
+
+`.big-picture/patterns/<id>.yml`. Named groups are the captures; `metadata` is any of the kinds above.
+
+```yaml
+id: env-file-key
+files: [".env.example", "**/.env.example"]    # globs against the path or the file name
+regex: '^(?P<KEY>[A-Z][A-Z0-9_]*)='            # multiline; capture names, never secret values
+metadata: { node: env-key, id: "{KEY}" }
+```
+
+```yaml
+id: compose-redis
+files: ["docker-compose.yml", "compose.yml"]
+regex: '^  (?P<NAME>[\w-]+):\n    image: redis\b'
+metadata: { node: redis, id: "{NAME}" }
+```
+
+Nodes a type or pattern rule makes sit inside their file's node (a module, or `infra:`, `config:` ...). Test a pattern by rebuilding and checking `bp find <type>`; ast-grep's fixtures don't run regexes.
+
+## View: a tab of its own
+
+`.big-picture/views/<id>.yml` adds a tab to the viewer and a `bp view <id>` listing; nothing in the viewer's code changes.
+
+```yaml
+title: Cache
+types: [redis, valkey]                # the nodes the tab shows
+edges: [reads-cache, writes-cache]    # the connections it follows; leave out for all
+neighbors: true                       # also the code on the other end of those connections
+colors:                               # per type and per kind, from the technology's brand
+  redis: "#DC382D"
+  valkey: "linear-gradient(135deg, #4F46E5, #A855F7)"
+  reads-cache: "#DC382D"
+```
+
 ## Fixtures
 
 ```yaml

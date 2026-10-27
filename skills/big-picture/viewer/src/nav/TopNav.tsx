@@ -26,7 +26,7 @@ const Tabs = styled.nav`
   button { border: 0; border-radius: 7px; padding: 5px 14px; background: none; color: ${theme.muted}; cursor: pointer; font-size: 13px; }
   button[aria-pressed='true'] { background: ${theme.raised}; color: ${theme.lime}; }
 `
-const TABS: [Tab, string][] = [['map', 'Map'], ['database', 'Database']]
+const TABS: [Tab, string][] = [['map', 'Map'], ['database', 'Database'], ['endpoints', 'Endpoints']]
 const Status = styled.div`
   margin-left: auto; display: flex; align-items: center; gap: 8px; color: ${theme.muted}; font-size: 13px;
   i { width: 8px; height: 8px; border-radius: 50%; background: ${theme.mint}; }
@@ -45,7 +45,11 @@ export function TopNav() {
   return (
     <Bar>
       <Brand><Logo /><b>fullstack.rocks</b><Product>big picture</Product></Brand>
-      <Tabs>{TABS.map(([id, label]) => <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>)}</Tabs>
+      <Tabs>
+        {[...TABS, ...(graph?.data.views ?? []).map((v): [Tab, string] => [v.id, v.title])].map(([id, label]) => (
+          <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+        ))}
+      </Tabs>
       <Search />
       {graph && (
         <Status title={`Rebuild: python3 <big-picture>/scripts/build.py ${graph.data.root}`}>

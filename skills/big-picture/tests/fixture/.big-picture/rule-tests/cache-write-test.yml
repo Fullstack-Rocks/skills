@@ -1,0 +1,7 @@
+id: cache-write
+valid:
+  - client.get("x")
+  - other.setex("x", 1, 2)
+invalid:
+  - client.setex(key, 60, value)
+  - client.set("x", 1)

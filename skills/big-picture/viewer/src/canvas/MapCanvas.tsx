@@ -1,4 +1,4 @@
-import { applyNodeChanges, Background, Controls, ReactFlow, useNodesState, useReactFlow, type Edge, type NodeChange } from '@xyflow/react'
+import { Background, Controls, ReactFlow, useNodesState, useReactFlow, type Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useEffect, useMemo, useState } from 'react'
 import styled from 'styled-components'
@@ -10,10 +10,11 @@ import { useGraph } from '../store/graph'
 import { useView } from '../store/view'
 import { theme } from '../theme'
 import type { GraphEdge } from '../types'
-import { GroupCard } from './GroupCard'
+import { GroupCard } from './frames/GroupCard'
 import { Toolbar } from './Toolbar'
 import { NodeCard } from './NodeCard'
-import { arrange, settle } from './settle'
+import { contentSize } from './frames/settle'
+import { useFrames } from './frames/useFrames'
 import { highlightEdges, toFlowEdges, toFlowNodes, type FlowNode } from './toFlow'
 
 const NODE_TYPES = { card: NodeCard, group: GroupCard }
@@ -25,6 +26,8 @@ const Area = styled.main`
   .react-flow__controls button { background: ${theme.panel}; border-color: ${theme.border}; fill: ${theme.text}; }
 `
 const Status = styled.div`position: absolute; inset: 0; display: grid; place-items: center; color: ${theme.muted};`
+
+const minimum = ({ width, height }: { width: number; height: number }) => ({ minWidth: width, minHeight: height })
 
 /** Zooms to a clicked connection's two ends. */
 function FocusEdge() {
@@ -45,19 +48,12 @@ export function MapCanvas() {
     [baseEdges, nodes, selected, selectedEdge, edgeStyle])
   // A focused connection dims every card but its two ends.
   const ends = selectedEdge
+  const { laidOut, onNodesChange, act } = useFrames(setNodes)
+  // Cards dim around a focused connection; frames get their options and the smallest size they may take.
   const shown = useMemo(() => nodes.map((n): FlowNode => (n.type === 'card'
     ? (ends ? { ...n, data: { ...n.data, dimmed: n.id !== ends.source && n.id !== ends.target } } : n)
-    : { ...n, data: { ...n.data, onArrange: (id: string, columns: number) => setNodes((all) => arrange(all, id, columns)) } })),
-  [nodes, ends, setNodes])
-
-  // Dragging pushes overlapping cards on the same level and grows the frames around them.
-  const onNodesChange = (changes: NodeChange<FlowNode>[]) => setNodes((current) => {
-    const next = applyNodeChanges(changes, current)
-    const drag = changes.find((c) => c.type === 'position' && c.dragging && c.position)
-    if (!drag || drag.type !== 'position') return next
-    const before = current.find((n) => n.id === drag.id)!.position
-    return settle(next, drag.id, drag.position!.x - before.x, drag.position!.y - before.y)
-  })
+    : { ...n, data: { ...n.data, act, ...minimum(contentSize(nodes, n.id)) } })),
+  [nodes, ends, act])
   const [layoutId, setLayoutId] = useState(0) // remounts the flow after each layout so it fits the view
 
   useEffect(() => {
@@ -66,12 +62,13 @@ export function MapCanvas() {
     const view = visibleGraph(graph, focus, mode, tab)
     void elkLayout(graph, view, direction).then((placed) => {
       if (!current) return
-      setNodes(toFlowNodes(graph, placed, view, focus, direction))
+      laidOut.current = toFlowNodes(graph, placed, view, focus, direction)
+      setNodes(laidOut.current)
       setEdges(toFlowEdges(view, useView.getState().edgeStyle))
       setLayoutId((n) => n + 1)
     })
     return () => { current = false }
-  }, [graph, focus, mode, direction, tab, setNodes])
+  }, [graph, focus, mode, direction, tab, setNodes, laidOut])
 
   // Selection only restyles; it keeps positions the person dragged.
   useEffect(() => {
@@ -80,14 +77,14 @@ export function MapCanvas() {
 
   return (
     <Area>
-      {tab === 'map' && <Breadcrumb />}
+      {tab !== 'database' && <Breadcrumb />}
       <Toolbar />
       {layoutId === 0 && <Status>Laying out the graph…</Status>}
       <ReactFlow key={layoutId} nodes={shown} edges={edges} nodeTypes={NODE_TYPES} onNodesChange={onNodesChange}
         onEdgeClick={(_, e) => selectEdge({ id: e.id, source: e.source, target: e.target, label: String(e.label), members: (e.data?.members ?? []) as GraphEdge[] })}
         fitView fitViewOptions={{ maxZoom: 1, padding: 0.08 }} minZoom={0.05} zoomOnDoubleClick={false}
         nodesConnectable={false} proOptions={{ hideAttribution: true }}
-        onNodeClick={(_, n) => select(n.id)} onNodeDoubleClick={(_, n) => tab === 'map' && n.id !== focus && dive(n.id)}
+        onNodeClick={(_, n) => select(n.id)} onNodeDoubleClick={(_, n) => tab !== 'database' && n.id !== focus && dive(n.id)}
         onPaneClick={() => select(null)}>
         <Background color={theme.border} gap={20} />
         <FocusEdge />

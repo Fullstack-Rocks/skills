@@ -51,7 +51,8 @@ def add_type_match(graph: Graph, match: dict, meta: dict, line: int) -> None:
     """A new node of the rule's type, linked to the function a capture names (its handler)."""
     node_id = graph.add_node(f"{meta['node']}:{meta['id']}", meta["node"], meta["id"],
                              file=match["file"], start=line, end=match["range"]["end"]["line"] + 1)
-    graph.add_edge(f"module:{match['file']}", node_id, "contains", match["ruleId"])
+    if match["file"] in graph.file_node:  # the file's own node holds it: a module, or infra, config, ...
+        graph.add_edge(graph.file_node[match["file"]], node_id, "contains", match["ruleId"])
     if "link" in meta:
         target_line = match["metaVariables"]["single"][meta["to"]]["range"]["start"]["line"] + 1
         graph.add_edge(node_id, graph.enclosing(match["file"], target_line), meta["link"], match["ruleId"],
@@ -89,11 +90,11 @@ def scan_rules(graph: Graph) -> list[dict]:
     return json.loads(result.stdout or "[]")
 
 
-def add_rule_matches(graph: Graph) -> list[tuple[dict, dict, int]]:
-    """Run every project rule: nodes first, then edges, properties and lookups, then the nodes' own links.
-    Returns the matches, for the repeated-operation stage."""
+def add_rule_matches(graph: Graph, pattern_matches: list[dict]) -> list[tuple[dict, dict, int]]:
+    """Run every project rule, ast-grep's and the pattern rules' (patterns.py): nodes first, then edges,
+    properties and lookups, then the nodes' own links. Returns the matches, for the repeated-operation stage."""
     matches = [(m, render_meta(m.get("metadata", {}), m["metaVariables"]["single"]), m["range"]["start"]["line"] + 1)
-               for m in scan_rules(graph)]
+               for m in [*scan_rules(graph), *pattern_matches]]
     kind = {key: [m for m in matches if key in m[1]] for key in ("node", "edge", "property", "lookup")}
     for match, meta, line in kind["node"]:
         add_type_match(graph, match, meta, line)

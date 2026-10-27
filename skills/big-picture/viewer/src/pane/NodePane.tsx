@@ -7,6 +7,7 @@ import { useView } from '../store/view'
 import { theme, typeColor } from '../theme'
 import { Connections, NodeLink, Section } from './Connections'
 import { SourceView } from './code/SourceView'
+import { ApiPanel } from './ApiPanel'
 import { EdgePane } from './EdgePane'
 import { HealthList } from './Health'
 import { TablePreview } from './TablePreview'
@@ -76,6 +77,7 @@ export function NodePane() {
       <NodeHeader node={node} root={graph.data.root} />
       <About>{describe(graph, node, entries)}</About>
       <TablePreview node={node} />
+      <ApiPanel node={node} />
       <EntryList ids={entries} />
       <HealthList graph={graph} id={node.id} />
       <Connections id={node.id} />

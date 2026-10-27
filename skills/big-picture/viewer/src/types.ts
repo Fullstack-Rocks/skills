@@ -10,7 +10,7 @@ export type GraphNode = {
   signature?: string
   complexity?: number
   lines?: number
-  fields?: { name: string; type: string }[] // a model's fields, from a project property rule
+  fields?: { name: string; type: string; required?: boolean; ref?: string }[] // a model's fields (project rule or OpenAPI)
   // tables: what they are and their structure, from SQL DDL or inferred from a model
   kind?: string
   declared?: boolean
@@ -24,6 +24,14 @@ export type GraphNode = {
   to_table?: string
   to_column?: string
   expression?: string
+  // OpenAPI operations
+  method?: string // and `path`, shared with lookups: the operation's URL path
+  summary?: string
+  operationId?: string
+  servers?: string[]
+  request?: string | null
+  responses?: Record<string, string | null>
+  parameters?: { name: string; in: string; required: boolean }[]
 }
 
 export type Column = {
@@ -59,7 +67,11 @@ export type GraphData = {
   edges: GraphEdge[]
   findings: Finding[]
   repeats?: { kind: 'operation' | 'shape'; key: string; sites: [string, number, string][] }[]
+  views?: Lens[]
 }
+
+// An extra tab defined by a file in .big-picture/views (big-picture's stages/views.py).
+export type Lens = { id: string; title: string; types: string[]; edges?: string[] | null; neighbors: boolean; colors: Record<string, string> }
 
 declare global {
   interface Window {
