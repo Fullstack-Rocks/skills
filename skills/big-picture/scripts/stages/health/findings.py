@@ -48,8 +48,10 @@ def add_call_depth(graph: Graph, code_paths: list[str]) -> None:
         if kind in ("OK", "SCANNED", "COVERED", "NO_RULES", "MISSING_TOOL", "MISSING_PATH", ""):
             continue
         path, _, line = location.rpartition(":") if location[-1:].isdigit() else (location, "", "")
-        relative = str(Path(path).resolve().relative_to(graph.root))
+        relative = str((graph.root / path).resolve().relative_to(graph.root))
         node = f"folder:{relative}" if kind.startswith("FOLDER") else graph.enclosing(relative, int(line or 0))
+        if node not in graph.nodes:  # ignored or minified: call-depth walks whole folders, the inventory doesn't
+            continue
         graph.add_finding(kind.lower().replace("_", "-"), node, relative, int(line) if line else None,
                           detail, "call-depth")
 

@@ -1,8 +1,11 @@
 """Stage 3: calls edges. A SCIP index gives exact edges for the languages it covers; the other code
 files fall back to ast-grep call sites resolved by name and module, marked approx."""
 import json
+import os
 import shutil
 import subprocess
+import tomllib
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path, PurePosixPath
 
 from graph import Graph
@@ -13,32 +16,56 @@ PYTHON = {".py", ".pyi"}
 TYPESCRIPT = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 
 
-def run_indexer(root: Path, out: Path, language: str) -> Path | None:
-    """Index root with the language's SCIP indexer; None when it is missing or fails."""
-    index = out / f"{language}.scip"
-    if language == "python":
-        command = ["scip-python", "index", "--project-name", root.name, "--output", str(index), "--quiet"]
-    else:
-        command = ["scip-typescript", "index", "--output", str(index)]
-    if not shutil.which(command[0]):
-        print(f"calls: {command[0]} not installed, {language} calls are approx (python3 scripts/install_tools.py)")
-        return None
-    result = subprocess.run(command, cwd=root, capture_output=True, text=True, check=False)
-    if result.returncode != 0 or not index.exists():
-        print(f"calls: {command[0]} failed, {language} calls are approx\n{result.stderr.strip()[-600:]}")
-        return None
-    return index
+def project_dirs(code: list[str], marker_names: set[str], files: list[str]) -> list[str]:
+    """Folders holding one of the marker files (pyproject.toml, tsconfig.json) and code; innermost only."""
+    marked = sorted({str(PurePosixPath(f).parent) for f in files if PurePosixPath(f).name in marker_names})
+    with_code = [d for d in marked if any(c.startswith(d + "/") or d == "." for c in code)]
+    return [d for d in with_code if not any(o != d and o.startswith(d + "/") for o in with_code)]
 
 
-def scip_indexes(root: Path, out: Path, code: list[str]) -> list[Path]:
-    """Index files from every SCIP indexer the project's languages need and that ran."""
-    suffixes = {PurePosixPath(f).suffix for f in code}
-    indexes = []
-    if suffixes & PYTHON:
-        indexes.append(run_indexer(root, out, "python"))
-    if suffixes & TYPESCRIPT and (root / "tsconfig.json").exists():
-        indexes.append(run_indexer(root, out, "typescript"))
-    return [i for i in indexes if i]
+def python_project(root: Path, folder: str, out: Path) -> tuple[str, Path | None]:
+    """scip-python for one project folder, named and versioned from its pyproject so other projects'
+    references to it match; inside the project's own .venv when it has one."""
+    where = root / folder
+    meta = tomllib.loads((where / "pyproject.toml").read_text()) if (where / "pyproject.toml").exists() else {}
+    project = meta.get("project") or meta.get("tool", {}).get("poetry", {})
+    index = out / f"python-{folder.replace('/', '_')}.scip"
+    command = ["scip-python", "index", "--project-name", project.get("name", where.name), "--output", str(index), "--quiet"]
+    if project.get("version"):
+        command += ["--project-version", project["version"]]
+    venv = where / ".venv"
+    env = {**os.environ, "VIRTUAL_ENV": str(venv), "PATH": f"{venv / 'bin'}:{os.environ['PATH']}"} if venv.is_dir() else None
+    result = subprocess.run(command, cwd=where, env=env, capture_output=True, text=True, check=False)
+    return folder, index if result.returncode == 0 and index.exists() else None
+
+
+def typescript_projects(root: Path, group: str, projects: list[str], out: Path) -> tuple[str, Path | None]:
+    """One scip-typescript run over every tsconfig project in a folder."""
+    index = out / f"typescript-{group.replace('/', '_') or 'root'}.scip"
+    relative = [str(PurePosixPath(p).relative_to(group)) if group != "." else p for p in projects]
+    result = subprocess.run(["scip-typescript", "index", "--output", str(index), *relative], cwd=root / group,
+                            capture_output=True, text=True, check=False)
+    return group, index if result.returncode == 0 and index.exists() else None
+
+
+def scip_indexes(root: Path, out: Path, code: list[str], files: list[str], include: list[str]) -> list[tuple[str, Path]]:
+    """(folder its paths are relative to, index file) from every SCIP indexer that ran: one per Python
+    project, one per included folder for its TypeScript projects. Missing indexers leave files approx."""
+    python = [f for f in code if PurePosixPath(f).suffix in PYTHON]
+    typescript = [f for f in code if PurePosixPath(f).suffix in TYPESCRIPT]
+    jobs = []
+    if python and shutil.which("scip-python"):
+        jobs += [(python_project, (root, d, out)) for d in project_dirs(python, {"pyproject.toml", "setup.py"}, files) or ["."]]
+    if typescript and shutil.which("scip-typescript"):
+        projects = project_dirs(typescript, {"tsconfig.json"}, files)
+        for group in include or ["."]:
+            mine = [p for p in projects if group == "." or p == group or p.startswith(group + "/")]
+            jobs += [(typescript_projects, (root, group, mine, out))] if mine else []
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        done = list(pool.map(lambda job: job[0](*job[1]), jobs))
+    for folder, index in done:
+        print(f"calls: SCIP {'indexed' if index else 'failed for'} {folder}")
+    return [(folder, index) for folder, index in done if index]
 
 
 def add_scip_calls(graph: Graph, index: dict[str, list[Occurrence]], by_symbol: dict[str, str]) -> None:

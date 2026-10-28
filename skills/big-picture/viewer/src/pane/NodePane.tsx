@@ -15,7 +15,7 @@ import { TablePreview } from './TablePreview'
 import type { GraphNode } from '../types'
 
 const Pane = styled.aside`
-  min-height: 0; min-width: 0; overflow: auto; background: ${theme.panel};
+  min-height: 0; min-width: 0; overflow: hidden auto; overflow-wrap: anywhere; background: ${theme.panel};
   padding: 18px; display: flex; flex-direction: column; gap: 18px;
 `
 const Title = styled.h2`margin: 0; font-size: 19px; font-weight: 600; word-break: break-word;`

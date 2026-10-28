@@ -15,6 +15,7 @@ export type GraphNode = {
   kind?: string
   declared?: boolean
   columns?: Column[]
+  schema?: string // the database schema a table is declared in (crm, tasks, ...)
   constraints?: string[]
   indexes?: { name: string; unique: boolean; columns: string[] }[]
   // JSON lookups

@@ -21,8 +21,9 @@ def lizard_rows(root: Path, files: list[str]) -> list[list[str]]:
 
 
 def qualified_name(symbol: str) -> str | None:
-    """`... app.http`/Request#json(). -> Request.json; None when the symbol isn't a function."""
-    if not symbol.endswith(")."):
+    """`... app.http`/Request#json(). -> Request.json, and a term `.../sdk.gen.ts`/getUser. -> getUser
+    (a const holding an arrow function); None for locals and anything else."""
+    if symbol.startswith("local ") or not symbol.endswith("."):
         return None
     descriptors = symbol.split(" ", 4)[-1].rsplit("/", 1)[-1]
     return descriptors.replace("().", ".").replace("#", ".").rstrip(".")
@@ -34,7 +35,8 @@ def definition_names(index: dict[str, list[Occurrence]]) -> dict[tuple[str, int]
     for path, occurrences in index.items():
         for occ in occurrences:
             name = qualified_name(occ.symbol) if occ.is_definition else None
-            if name and "(" not in name:  # parameters look like f().(x)
+            # parameters look like f().(x); a method beats a term defined on the same line
+            if name and "(" not in name and ((path, occ.line) not in names or occ.symbol.endswith(").")):
                 names[(path, occ.line)] = (name, occ.symbol)
     return names
 

@@ -81,6 +81,15 @@ class Handler(SimpleHTTPRequestHandler):
             return str(self.served.root / source)
         return str(self.served.root / ".big-picture" / "out" / "not-served")
 
+    def do_GET(self) -> None:
+        """A note not written yet is an empty answer, not an error: the pane asks for it every few seconds."""
+        source = unquote(urlparse(self.path).path).removeprefix("/src/")
+        if source.startswith(".big-picture/docs/") and ".." not in source and not (self.served.root / source).exists():
+            self.send_response(204)
+            self.end_headers()
+            return
+        super().do_GET()
+
     def do_POST(self) -> None:
         """Try it: {method, url, headers, body} -> {status, headers, body, ms}, for localhost URLs only."""
         if urlparse(self.path).path != "/proxy":

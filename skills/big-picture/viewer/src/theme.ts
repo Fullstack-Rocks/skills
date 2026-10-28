@@ -63,7 +63,8 @@ export function healthColor(findings: number): string {
 
 export const GlobalStyle = createGlobalStyle`
   *, *::before, *::after { box-sizing: border-box; }
-  html, body, #root { height: 100%; margin: 0; }
+  /* an app, not a page: clip (not hidden) so focusing a control can never scroll the whole app sideways */
+  html, body, #root { height: 100%; margin: 0; overflow: clip; }
   body { background: ${theme.bg}; color: ${theme.text}; font: 14px/1.45 ${theme.sans}; -webkit-font-smoothing: antialiased; }
   button, input { font: inherit; color: inherit; }
   a { color: inherit; }

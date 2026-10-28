@@ -86,6 +86,23 @@ metadata: { edge: calls-api, to: "~http:{VERB|upper} {PATH|route}" }
 
 When both sides spell the same literal (an event topic, a socket message), skip keys: both edge rules target the same id (`topic:{TOPIC}`), and that node is the contract.
 
+A key often needs facts the match itself can't see. These fill in after every rule has run:
+
+- `{@file}`: the matched file's path, usually cut down with `|match:<regex>` to its first group. `{@file|match:routes/(\w+)/}` names the app a FastAPI route lives in; `{@file|match:generated/(\w+)/}` names the backend a generated SDK calls.
+- `{@<property>}`: the first value of a property rule's property on the matched file's module, such as a router's prefix.
+- `{@<property>:{CAPTURE}}`: the entry of that property whose `name` is the capture's text, for files with several (each `APIRouter` and its own prefix). The property rule then stores `value: { name: "{ROUTER}", value: "{PREFIX}" }`.
+
+```yaml
+# properties/router-prefix.yml
+rule: { pattern: $ROUTER = APIRouter($$$A, prefix=$PREFIX, $$$B) }
+constraints: { PREFIX: { kind: string } }
+metadata: { property: route_prefix, value: { name: "{ROUTER}", value: "{PREFIX}" } }
+# types/fastapi-route.yml, matching @$ROUTER.$METHOD($PATH)
+keys: ["http:{@file|match:routes/(\\w+)/}:{METHOD|upper} {@route_prefix:{ROUTER}}{PATH}"]
+```
+
+Keys compare after their path (from the first `/`) is normalised like `|route`, so `/{call_id}/x/` and `` `/${id}/x` `` meet. Each unresolved contract left after teaching is a real gap to report: a prefix held in a constant, a router another app mounts.
+
 ## Edge rule: a match is an edge
 
 ```yaml

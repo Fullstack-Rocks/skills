@@ -44,10 +44,11 @@ class Graph:
         finding["sites"].append([file, line])
 
     def enclosing(self, file: str, line: int) -> str:
-        """The innermost node with a line range (function, endpoint, model, ...) holding this line, else the module."""
+        """The innermost node with a line range (function, endpoint, model, ...) holding this line, else the
+        file's own node (its module, or the infra or config node of a file that isn't code)."""
         holders = [n for n in self.code_by_file.get(file, []) if n["start"] <= line <= n["end"]]
         if not holders:
-            return f"module:{file}"
+            return self.file_node.get(file, f"module:{file}")
         return min(holders, key=lambda n: n["end"] - n["start"])["id"]
 
     def write(self, path: Path) -> None:

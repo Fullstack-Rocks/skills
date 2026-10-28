@@ -8,6 +8,8 @@ from graph import Graph
 CODE_EXTENSIONS = {".py", ".pyi", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".go", ".rs", ".java",
                    ".kt", ".rb", ".php", ".cs", ".swift", ".scala", ".lua", ".c", ".h", ".cc", ".cpp", ".hpp"}
 SKIPPED_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".big-picture"}
+MINIFIED_LINE = 5000  # a JavaScript file with a longer line is built output (a bundle), not source
+BUNDLED = {".js", ".mjs", ".cjs"}  # what bundlers emit; generated TypeScript has long lines too, and is source
 
 # First match wins. Patterns match from the right of the path, like PurePosixPath.match.
 KNOWLEDGE = [
@@ -29,15 +31,27 @@ KNOWLEDGE = [
 ]
 
 
-def list_files(root: Path) -> list[str]:
-    """Paths relative to root: git's view (tracked + untracked, minus ignored) when root is in a repo."""
+def folder_files(folder: Path) -> list[str]:
+    """Paths relative to folder: git's view (tracked + untracked, minus ignored) when it is in a repo."""
     result = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"],
-                            cwd=root, capture_output=True, text=True, check=False)
+                            cwd=folder, capture_output=True, text=True, check=False)
     if result.returncode == 0:
-        paths = result.stdout.splitlines()
-    else:
-        paths = [str(p.relative_to(root)) for p in root.rglob("*") if p.is_file()]
-    return sorted(p for p in paths if not SKIPPED_DIRS & set(PurePosixPath(p).parts[:-1]))
+        return result.stdout.splitlines()
+    return [str(p.relative_to(folder)) for p in folder.rglob("*") if p.is_file()]
+
+
+def minified(path: Path) -> bool:
+    """A committed bundle: indexing its one huge line per call site would take gigabytes."""
+    with path.open(errors="replace") as handle:
+        return any(len(line) > MINIFIED_LINE for line in handle)
+
+
+def list_files(root: Path, include: list[str]) -> list[str]:
+    """Paths relative to root, from each included folder (.big-picture/config.yml) or the whole root,
+    without skipped folders and minified JavaScript."""
+    paths = [f"{folder}/{p}" for folder in include for p in folder_files(root / folder)] if include else folder_files(root)
+    kept = [p for p in paths if not SKIPPED_DIRS & set(PurePosixPath(p).parts[:-1]) and (root / p).is_file()]
+    return sorted(p for p in kept if PurePosixPath(p).suffix not in BUNDLED or not minified(root / p))
 
 
 def code_files(files: list[str]) -> list[str]:

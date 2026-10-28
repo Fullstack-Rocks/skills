@@ -404,6 +404,62 @@ The core knows no protocol. Systems come from manifests or top-level code folder
 - **Fixture:** an event (`app` → `worker`) and socket messages (`app` ↔ `web`), all written as rules.
 - **Fix found along the way:** name-matched calls never cross languages now.
 
+### Large repo: gemel_finance (2026-10-27)
+
+**Size.** Backend (FastAPI, 56 Python projects), epfini-fe (Nx, React and Expo) and AWS_Infrastructure (SST), in a root full of worktree copies.
+
+**Result.** About 42k nodes and 74k edges. A full build takes about 4.5 minutes, nearly all of it SCIP, and peaks at 4.4 GB. The rest of the build takes about a minute at 1 GB.
+
+**What it needed:**
+
+- **Scope.** `.big-picture/config.yml` `include:` limits the build to the project's folders. Each folder is listed with its own git (each is its own repo), and project rules scan only those folders.
+- **Per-project SCIP.**
+  - One scip-python run per `pyproject.toml`, inside its `.venv`, named and versioned so cross-project references match.
+  - One scip-typescript run per included folder.
+  - Index documents outside the inventory (`node_modules` typings) are dropped.
+- **Minified JavaScript is left out.** Committed bundles under `Backend/.docker/nginx/html` have 260k-character lines. ast-grep repeats that line in every match, which took more than 12 GB and crashed the machine. Any `.js`/`.mjs`/`.cjs` file with a line over 5,000 characters is now treated as built output. Generated TypeScript also has long lines, but it is source, so the check stays on JavaScript.
+- **call-depth paths** are resolved against the project root, not the build's working directory. Its findings on files outside the inventory are dropped.
+- **Arrow-const functions** (`export const getX = <T>(…) => …`) take their name from the SCIP term defined on their line. lizard named all 515 SDK functions `boolean`.
+- **Late placeholders** fill keys after every rule has run:
+  - `{@file|match:<regex>}`
+  - `{@prop}`
+  - `{@prop:{CAPTURE}}`, a named entry for files that declare several routers
+  - Keys are compared after their path is normalised.
+- **Viewer.**
+  - Capsules and systems no longer flood the Map root (377 capsules).
+  - Capsule membership (`groups`) is structure, not a drawn connection.
+  - Past `MAX_UNITS` boundary nodes, the Systems tab lifts each node to its module and rolls up only the crossings (964 cards become 106).
+  - Past `MAX_UNITS` members, the Capsules tab shows one card per capsule with rolled-up links between them (2,785 members become 415 cards). Diving into a capsule shows its members.
+  - A layout group with more than 150 members is packed instead of layered. ELK's layered layout runs on the page's main thread, and on 415 capsules with 735 edges it froze the browser.
+- **Rules taught (in gemel_finance's `.big-picture/`):**
+  - FastAPI routes keyed `http:<routes folder>:<METHOD> <router prefix><path>`
+  - router prefixes by router name
+  - generated SDK calls keyed by their `generated/<app>` folder
+  - the `public` SDK served by `routes/api`
+
+**Contracts.** 481 of 515 SDK calls reach their endpoint. The 35 left are real gaps for an agent to teach:
+- prefixes held in constants (`prefix=CRM_ONBOARDING_PREFIX`)
+- routers one app mounts from another app's folder (`routes/review/call_router.py` under `/calls`)
+
+**Database (second pass).** The schema is SQLAlchemy models, migrated by alembic.
+- Offline `alembic upgrade head --sql` stops at a migration that queries the live database.
+- `schema_commands` in `config.yml` run a command whose output is DDL. The skill's `sqlalchemy_ddl.py` prints it for any declarative base, using the project's own Python, with nothing connected or written.
+- Result: 259 of 260 tables with 3,010 columns, 438 foreign keys and 419 indexes, framed by Postgres schema in the Database tab.
+- A model-to-table rule links each model module to its tables.
+
+**Subsystems (second pass).** The skill now makes surveying a build step, as lenses taught in gemel's `.big-picture/`:
+- **Services:** Compose services by kind (built services, third-party containers, traefik, valkey, postgres, floci), with `depends_on` links (an ast-grep YAML rule) and the traefik gateway's routes to each AI agent.
+- **Cache:** the 59 modules that import the `cache` package, linked to Valkey.
+- **AWS:** the SST resources.
+- The agents' own `depends_on` comes from the `x-ai-agent` anchor, so it attaches to the compose file rather than to each agent.
+
+**Viewer fixes (second pass):**
+- The app shell clips with `overflow: clip`. Focusing "Open subgraph" used to scroll `#root` sideways and push the canvas off-screen.
+- The breadcrumb stops short of the toolbar and keeps its end in view.
+- A missing note is a 204, not a 404 every two seconds.
+- The zoom floor is 0.02, so large views fit.
+- A match in a non-code file attaches to that file's own node.
+
 ## Decisions for you
 
 1. ~~**Live preview**~~ **Decided 2026-10-27:** Python stdlib `serve.py` for live preview, plus `export.py` for static sharing. No Claude Code pane and no MCP App panel: the viewer lives in the browser only.
