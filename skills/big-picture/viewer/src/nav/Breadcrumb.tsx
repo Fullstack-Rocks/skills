@@ -6,6 +6,9 @@ import { theme } from '../theme'
 
 const Crumbs = styled.nav`
   position: absolute; top: 12px; left: 12px; z-index: 5; display: flex; gap: 6px; align-items: center;
+  /* stops short of the toolbar on the right; a long trail keeps its end in view, clipping the root side */
+  max-width: calc(100% - 400px); overflow: hidden; justify-content: flex-end; white-space: nowrap;
+  & > * { flex: none; }
   padding: 6px 10px; border-radius: 8px; background: ${theme.panel}; border: 1px solid ${theme.border}; font-size: 13px;
   button { background: none; border: 0; padding: 0; color: ${theme.muted}; cursor: pointer; }
   button:hover { color: ${theme.text}; }

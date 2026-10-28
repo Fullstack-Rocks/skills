@@ -1,8 +1,11 @@
-"""Stage 6: what each table is. SQL DDL (*.sql) declares tables, views, materialized views and
+"""Stage 6: what each table is. SQL DDL (*.sql, and the output of each `schema_commands` entry in
+.big-picture/config.yml, such as an ORM's DDL printer) declares tables, views, materialized views and
 temporary tables with their columns, keys, constraints and indexes. A table no DDL declares takes its
 columns from the model mapped to it, with keys inferred by naming convention and marked inferred."""
+import os
 import re
-from pathlib import PurePosixPath
+import subprocess
+from pathlib import Path, PurePosixPath
 
 from graph import Graph
 
@@ -18,6 +21,12 @@ CHECK = re.compile(r"check\s*\((.*)\)", re.I | re.S)
 TYPE_END = re.compile(r"\s(?:primary|not|null|unique|default|references|check|constraint|generated|collate)\b", re.I)
 TABLE_CONSTRAINT = re.compile(r"(constraint|primary|foreign|unique|check)\b", re.I)
 FROM_JOIN = re.compile(r"\b(?:from|join)\s+([\w.\"]+)", re.I)
+
+
+def schema_of(name: str) -> str | None:
+    """crm."Orders" -> crm: the schema a qualified name declares, or None."""
+    parts = name.strip().split(".")
+    return parts[-2].strip("\"`").lower() if len(parts) > 1 else None
 
 
 def bare(name: str) -> str:
@@ -102,7 +111,7 @@ def create_kind(create: re.Match) -> str:
 def parse_create(statement: str, create: re.Match) -> dict:
     """A CREATE TABLE / VIEW / MATERIALIZED VIEW statement as its name, kind, columns, constraints or base tables."""
     kind = create_kind(create)
-    parsed = {"name": bare(create["name"]), "kind": kind, "lines": statement.count("\n")}
+    parsed = {"name": bare(create["name"]), "schema": schema_of(create["name"]), "kind": kind, "lines": statement.count("\n")}
     if "view" in kind:
         return parsed | {"bases": sorted({bare(t) for t in FROM_JOIN.findall(statement[create.end():])})}
     items = split_top_level(table_body(statement, create.end()))
@@ -116,7 +125,7 @@ def put_table(graph: Graph, parsed: dict, site: tuple[str, int]) -> None:
     """A parsed CREATE statement onto its table node, linked to the file that defines it and, for a view, its bases."""
     file, line = site
     table_id = graph.add_node(f"table:{parsed['name']}", "table", parsed["name"], file=file, start=line,
-                              end=line + parsed["lines"], kind=parsed["kind"], declared=True,
+                              end=line + parsed["lines"], kind=parsed["kind"], schema=parsed["schema"], declared=True,
                               columns=parsed.get("columns"), constraints=parsed.get("constraints"))
     holder = f"schema:{file}" if f"schema:{file}" in graph.nodes else f"migration:{file}"
     graph.add_edge(holder, table_id, "defines", "schema", site=site)
@@ -163,6 +172,23 @@ def add_references(graph: Graph, table: dict) -> None:
             declared = bool(table.get("declared"))
             graph.add_edge(table["id"], target, "references", "schema" if declared else "naming convention",
                            "exact" if declared else "approx", site=(table.get("file", ""), table.get("start", 0)) if declared else None)
+
+
+def generated_schema(graph: Graph, commands: list[str], scripts: Path) -> list[str]:
+    """Run each schema command from the project root ({scripts} is big-picture's scripts folder) and keep
+    its DDL as .big-picture/out/schema-<n>.sql, a schema node; returns those paths for add_schema."""
+    paths = []
+    for number, command in enumerate(commands, 1):
+        result = subprocess.run(command.replace("{scripts}", str(scripts)), shell=True, cwd=graph.root, capture_output=True,
+                                text=True, check=False, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+        if result.returncode != 0:
+            print(f"schema: command {number} failed: {(result.stderr.strip().splitlines() or ['no output'])[-1]}")
+            continue
+        path = f".big-picture/out/schema-{number}.sql"
+        (graph.root / path).write_text(result.stdout)
+        graph.add_node(f"schema:{path}", "schema", f"schema from command {number}", file=path, command=command)
+        paths.append(path)
+    return paths
 
 
 def add_schema(graph: Graph, files: list[str]) -> None:

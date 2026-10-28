@@ -24,9 +24,10 @@ from stages.code.functions import add_functions
 from stages.code.scip_index import read_index
 from stages.data.lookups import add_lookups
 from stages.data.openapi import add_openapi
-from stages.data.schema import add_schema
+from stages.data.schema import add_schema, generated_schema
 from stages.health.findings import add_fixes, add_health
 from stages.health.repeats import add_repeats
+from stages.files import load_data
 from stages.inventory import add_inventory, code_files, list_files
 from stages.patterns import scan_patterns
 from stages.rules import add_rule_matches
@@ -62,6 +63,27 @@ def note_coverage(graph: Graph, code: list[str], indexed: set[str]) -> list[str]
     return [f for f in code if f not in indexed]
 
 
+def project_config(root: Path) -> dict:
+    """.big-picture/config.yml: `include` (the project's folders; none means the whole root) and
+    `schema_commands` (commands printing SQL DDL, for schemas held in ORM code)."""
+    path = root / ".big-picture" / "config.yml"
+    return (load_data(path) if path.exists() else None) or {}
+
+
+def included(config: dict) -> list[str]:
+    return [folder.strip("/") for folder in config.get("include", [])]
+
+
+def read_indexes(root: Path, out: Path, code: list[str], files: list[str], include: list[str]) -> dict:
+    """Occurrences by root-relative path from every SCIP index, for listed code only (an index can
+    reach into node_modules typings)."""
+    index, listed = {}, set(code)
+    for folder, scip_file in scip_indexes(root, out, code, files, include):
+        documents = {(path if folder == "." else f"{folder}/{path}"): occurrences for path, occurrences in read_index(scip_file).items()}
+        index |= {path: occurrences for path, occurrences in documents.items() if path in listed}
+    return index
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("root", nargs="?", default=".")
@@ -71,18 +93,18 @@ def main() -> None:
         sys.exit(f"missing {', '.join(missing)}: run call-depth's scripts/install_tools.py {' '.join(missing)}")
     started, out = time.monotonic(), prepare_out(root / ".big-picture")
     graph = Graph(root)
-    files = list_files(root)
+    config = project_config(root)
+    include = included(config)
+    files = list_files(root, include)
     code = code_files(files)
     add_inventory(graph, files)
-    index = {}
-    for scip_file in scip_indexes(root, out, code):
-        index |= read_index(scip_file)
+    index = read_indexes(root, out, code, files, include)
     by_symbol = add_functions(graph, code, index)
     add_scip_calls(graph, index, by_symbol)
     unindexed = note_coverage(graph, code, set(index))
     ambiguous = add_approx_calls(graph, unindexed) if unindexed else 0
-    matches = add_rule_matches(graph, scan_patterns(root, files))
-    add_schema(graph, files)
+    matches = add_rule_matches(graph, include, scan_patterns(root, files))
+    add_schema(graph, files + generated_schema(graph, config.get("schema_commands", []), Path(__file__).parent))
     lookups = add_lookups(graph, files, code)
     operations = add_openapi(graph, files)
     unresolved = add_contracts(graph)

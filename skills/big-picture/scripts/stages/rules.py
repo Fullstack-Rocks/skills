@@ -7,7 +7,8 @@ A rule's `metadata` says what a match means (references/node-types.md):
   property rule:  property: fields, value: {name: "{FIELD}", type: "{TYPE}"}
   lookup rule:    lookup: {table: ..., column: ..., path: ..., to_table: ..., to_column: ...}
 `{NAME}` is the text of that capture, with string quotes stripped; `|lower`, `|upper`, `|snake`,
-`|plural` and `|route` transform it. Type rules run first, so edges and properties can land inside the
+`|plural`, `|route` and `|match:<regex>` (its first group) transform it. `{@file}` and `{@<property>}`
+(a property of the file's node, from a property rule) are filled in later, by the contracts stage. Type rules run first, so edges and properties can land inside the
 nodes they make. A type rule's `keys` name its node for other systems (`http:GET /orders/{}`); an edge
 rule whose `to` starts with `~` links to every node with that key, wherever it is (stages/knowledge/contracts.py).
 """
@@ -18,11 +19,14 @@ import subprocess
 from graph import Graph
 from stages.data.lookups import add_lookup
 
-PLACEHOLDER = re.compile(r"\{(\w+)((?:\|\w+)*)\}")
+PLACEHOLDER = re.compile(r"\{(\w+)((?:\|[^|}]+)*)\}")
 ROUTE_PARAMETER = re.compile(r"\$\{[^}]*\}|\{[^}]*\}|:\w+|<[^>]*>")
 
 
 def transform(text: str, name: str) -> str:
+    if name.startswith("match:"):  # |match:routes/(\w+)/ -> the first group, or nothing
+        found = re.search(name.removeprefix("match:"), text)
+        return found[1] if found else ""
     match name:
         case "lower":
             return text.lower()
@@ -94,21 +98,22 @@ def add_type_links(graph: Graph, match: dict, meta: dict) -> None:
                            site=(match["file"], match["range"]["start"]["line"] + 1))
 
 
-def scan_rules(graph: Graph) -> list[dict]:
-    """Every project rule match, with its rule's metadata; none when the project has no rules."""
+def scan_rules(graph: Graph, include: list[str]) -> list[dict]:
+    """Every project rule match in the included folders (all when none), with its rule's metadata;
+    none when the project has no rules."""
     config = graph.root / ".big-picture" / "sgconfig.yml"
     if not config.exists():
         return []
-    result = subprocess.run(["ast-grep", "scan", "-c", str(config), "--json=compact", "--include-metadata"],
+    result = subprocess.run(["ast-grep", "scan", "-c", str(config), "--json=compact", "--include-metadata", *include],
                             cwd=graph.root, capture_output=True, text=True, check=False, stdin=subprocess.DEVNULL)
     return json.loads(result.stdout or "[]")
 
 
-def add_rule_matches(graph: Graph, pattern_matches: list[dict]) -> list[tuple[dict, dict, int]]:
+def add_rule_matches(graph: Graph, include: list[str], pattern_matches: list[dict]) -> list[tuple[dict, dict, int]]:
     """Run every project rule, ast-grep's and the pattern rules' (patterns.py): nodes first, then edges,
     properties and lookups, then the nodes' own links. Returns the matches, for the repeated-operation stage."""
     matches = [(m, render_meta(m.get("metadata", {}), m["metaVariables"]["single"]), m["range"]["start"]["line"] + 1)
-               for m in [*scan_rules(graph), *pattern_matches]]
+               for m in [*scan_rules(graph, include), *pattern_matches]]
     kind = {key: [m for m in matches if key in m[1]] for key in ("node", "edge", "property", "lookup")}
     for match, meta, line in kind["node"]:
         add_type_match(graph, match, meta, line)

@@ -11,7 +11,7 @@ const PANE_KEY = 'big-picture.pane-width'
 const PANE_MIN = 320
 const PANE_DEFAULT = 460
 
-const Shell = styled.div`display: grid; grid-template-rows: auto 1fr; height: 100%;`
+const Shell = styled.div`display: grid; grid-template-rows: auto 1fr; height: 100%; overflow: clip;`
 const Workspace = styled.div`display: grid; min-height: 0; background: ${theme.bg};`
 const Splitter = styled.div`
   cursor: col-resize; background: ${theme.border}; touch-action: none;
@@ -53,7 +53,7 @@ export function App() {
         {error && <Message>{error}</Message>}
         {!error && !graph && <Message>Loading the graph…</Message>}
         {graph && (
-          <Workspace id="workspace" style={{ gridTemplateColumns: `1fr 5px ${paneWidth}px` }}>
+          <Workspace id="workspace" style={{ gridTemplateColumns: `minmax(0, 1fr) 5px ${paneWidth}px` }}>
             <MapCanvas />
             <Splitter onPointerDown={(e) => startResize(e, setPaneWidth)} title="Drag to resize" />
             <NodePane />

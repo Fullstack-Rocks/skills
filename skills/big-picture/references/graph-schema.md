@@ -33,18 +33,18 @@ Paths are relative to `root`. Lines are 1-based.
 
 ### Tables, views and lookups
 
-A `table` node also carries what it is, from SQL DDL (`*.sql`, `stages/data/schema.py`) or, when no DDL declares it, from the model that `maps-to` it:
+A `table` node also carries what it is, from SQL DDL (`*.sql`, or the output of a `schema_commands` entry in `.big-picture/config.yml`, saved as `.big-picture/out/schema-<n>.sql` under a `schema` node; `stages/data/schema.py`) or, when no DDL declares it, from the model that `maps-to` it:
 
 ```json
 { "id": "table:orders", "type": "table", "kind": "table | view | materialized view | temporary table",
-  "declared": true, "file": "db/schema.sql", "start": 9, "end": 16,
+  "declared": true, "schema": "crm", "file": "db/schema.sql", "start": 9, "end": 16,
   "columns": [{ "name": "customer_id", "type": "integer", "pk": false, "nullable": true, "unique": false,
                 "references": "customers.id", "default": "...", "check": "...", "inferred": false }],
   "constraints": ["CONSTRAINT orders_status_check CHECK (status IN ('new', 'paid'))"],
   "indexes": [{ "name": "orders_customer_idx", "unique": false, "columns": ["customer_id"] }] }
 ```
 
-`declared: false` with `inferred: true` columns means the model's fields, with `id` as the key and `<x>_id` referencing `<x>s` by naming convention.
+`schema` is the database schema a qualified name declares (`crm.orders`); the Database tab frames tables by it. `declared: false` with `inferred: true` columns means the model's fields, with `id` as the key and `<x>_id` referencing `<x>s` by naming convention.
 
 A `lookup` node is a join or filter through a JSON column (`stages/data/lookups.py`, or a project lookup rule):
 

@@ -6,7 +6,7 @@ import type { View } from './views'
 
 // Nested layout: functions sit inside their module, modules inside their folders, tables inside a
 // Database group. Each group is laid out on its own: layered left to right when its members connect,
-// packed into a grid when they don't, flowing in the direction the person picked. An edge between groups is lifted to the level where it
+// packed into a grid when they don't or there are more than LAYERED_MAX of them, flowing in the direction the person picked. An edge between groups is lifted to the level where it
 // crosses, so groups line up by how they call each other, with room reserved for its label.
 export const NODE_WIDTH = 260
 export const NODE_HEIGHT = 78
@@ -28,6 +28,8 @@ const LAYERED = {
 }
 const PACKED = { 'elk.algorithm': 'rectpacking', 'elk.aspectRatio': '1.6', 'elk.spacing.nodeNode': '20' }
 const PADDING = { 'elk.padding': '[top=48,left=20,bottom=20,right=20]' }
+// Layered layout runs in the page and slows past a few hundred edges; a bigger group is packed instead.
+const LAYERED_MAX = 150
 
 /** The group a node is drawn inside: its container (not the project root), or Database for tables. */
 export function groupOf(graph: LoadedGraph, id: string): string | undefined {
@@ -93,7 +95,8 @@ export async function elkLayout(graph: LoadedGraph, view: View, direction: Direc
     if (!node.children?.length) continue
     node.edges = edges.get(id) ?? []
     const layered = { ...LAYERED, 'elk.direction': direction }
-    node.layoutOptions = { ...(node.edges.length ? layered : PACKED), ...(id === 'root' ? {} : PADDING) }
+    const packed = !node.edges.length || node.children.length > LAYERED_MAX
+    node.layoutOptions = { ...(packed ? PACKED : layered), ...(id === 'root' ? {} : PADDING) }
   }
   const laid = await elk.layout(made.get('root')!)
   const placed: Placed[] = []

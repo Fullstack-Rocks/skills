@@ -15,7 +15,7 @@ export type FlowNode = CardNode | GroupNode
 function groupNode(graph: LoadedGraph, p: Placed): GroupNode {
   const node = graph.byId.get(p.id)
   const database = p.id === DATABASE
-  const data = { label: node?.name ?? (database ? 'Database' : p.id), type: node?.type ?? (database ? 'database' : 'group'), health: graph.health.get(p.id) ?? 0, selected: false }
+  const data = { label: node?.name ?? (database ? 'Database' : p.id.replace(/^group:/, '')), type: node?.type ?? (database ? 'database' : 'group'), health: graph.health.get(p.id) ?? 0, selected: false }
   return { id: p.id, type: 'group', parentId: p.parent, position: { x: p.x, y: p.y }, width: p.width, height: p.height, data, selectable: p.id !== DATABASE }
 }
 

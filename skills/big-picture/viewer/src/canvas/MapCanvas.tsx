@@ -82,7 +82,7 @@ export function MapCanvas() {
       {layoutId === 0 && <Status>Laying out the graph…</Status>}
       <ReactFlow key={layoutId} nodes={shown} edges={edges} nodeTypes={NODE_TYPES} onNodesChange={onNodesChange}
         onEdgeClick={(_, e) => selectEdge({ id: e.id, source: e.source, target: e.target, label: String(e.label), members: (e.data?.members ?? []) as GraphEdge[] })}
-        fitView fitViewOptions={{ maxZoom: 1, padding: 0.08 }} minZoom={0.05} zoomOnDoubleClick={false}
+        fitView fitViewOptions={{ maxZoom: 1, padding: 0.08 }} minZoom={0.02} zoomOnDoubleClick={false}
         nodesConnectable={false} proOptions={{ hideAttribution: true }}
         onNodeClick={(_, n) => select(n.id)} onNodeDoubleClick={(_, n) => tab !== 'database' && n.id !== focus && dive(n.id)}
         onPaneClick={() => select(null)}>

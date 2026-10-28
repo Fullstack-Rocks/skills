@@ -23,11 +23,15 @@ Install what's missing yourself and tell the developer in one line what was inst
 
 ## Build
 
-1. Run `python3 scripts/build.py <project root>`. It prints one line: node, edge and finding counts, rule matches, the call source per language (`scip` or `approx`) and the time.
+1. When the root holds more than the project (worktree copies, prototypes), list the project's folders in `.big-picture/config.yml` as `include: [Backend, web]`; only they are built. Files `.gitignore` ignores, `node_modules` and virtualenvs, and minified JavaScript are always left out. Run `python3 scripts/build.py <project root>`. It prints one line: node, edge and finding counts, rule matches, the call source per language (`scip` or `approx`) and the time.
 2. Read every warning above that line (a failed indexer, a skipped health source) and fix or report it.
 3. Check coverage with `big-picture-query`: `bp find --type endpoint`, then `bp node` on one endpoint and one table. When a convention is missing (endpoints with no handler, a data layer with no table nodes), **teach** it.
+4. **Survey** the project for every part of the overall system the graph doesn't show yet, and teach each one before you report the build:
+   - **Database.** Tables with no columns in `bp db`, or none at all, mean the schema lives in ORM models or migrations. When no `.sql` file declares it, add to `.big-picture/config.yml` a `schema_commands` entry, run from the project root, that prints the DDL. For SQLAlchemy, use `<the project's python> -I {scripts}/sqlalchemy_ddl.py <models package> <module:Base>`; for another ORM, its own DDL or offline-migration command. Then teach the edge from each model to its table.
+   - **Services and infrastructure.** In every Compose file, Kubernetes manifest, Procfile and infrastructure-as-code config (SST, Terraform, CDK, Pulumi), each service, gateway, proxy, cache, queue, emulator and cloud resource gets a lens (**Add a lens**), along with the links between them (`depends_on`, routes).
+   - **External clients.** For each client library in the manifests that the code imports (Redis or Valkey, Kafka, RabbitMQ, Celery, boto3 or the AWS SDK, payment and mail SDKs), the service it reaches gets a node, with an edge from every module that uses it.
 
-Done when the build prints no warning you haven't reported, and every route style and data-access pattern the developer would name has nodes.
+Done when the build prints no warning you haven't reported, every route style and data-access pattern the developer would name has nodes, and every service in each Compose or infrastructure file, every external client the code imports, and every table the models declare is a node connected to what uses it. Anything you didn't teach is listed to the developer, with the reason.
 
 ## Teach a convention
 
