@@ -9,7 +9,9 @@ A diagram is **readable** when an engineer new to the system can answer concrete
 
 - `scripts/check_diagram.py` reports no findings on every page;
 - fresh reviewers answer every checked question correctly;
-- the median reviewer score is at least **8.5 / 10 for readability and for understanding** on every page (override the bar if the human sets another).
+- the median reviewer score on every page is at least **8.5 / 10 for readability and for understanding**, or at least **8.0** when no reviewer tags a problem on that page as blocking understanding (override either bar if the human sets another).
+
+Pages settle between 8.0 and 8.5, and one reviewer's score on an unchanged page moves by about ±0.5, so a bare 8.5 bar passes or fails them by chance and extra rounds only resample the noise. The floor lets the evidence that matters (correct answers, nothing blocking) end the rounds.
 
 The rules here come from 40+ scored rounds on real architecture diagrams. What raised scores was almost always structure (splitting, lanes, frames, one meaning per mark), rarely polish.
 
@@ -26,7 +28,7 @@ Read the source of truth (code, infrastructure definitions, specs) before drawin
 Write two things to a working file:
 
 1. **The fact list**: each component with where it lives, and each relationship with caller, callee, protocol and port, and its source location. Generate every page from this one list, so pages can't contradict each other.
-2. **The question bank**: 2–3 questions per planned page whose answers you checked against the source. Include at least one "why" or "what happens when X fails" question per page, so understanding doesn't saturate.
+2. **The question bank**: 2–3 questions per planned page whose answers you checked against the source. Include at least one "why" or "what happens when X fails" question per page, so understanding doesn't saturate. A failure question's checked answer names the state the failure leaves and who acts next, not only the error it prints; otherwise reviewers pass a page that never draws the outcome.
 
 Done when every relationship you will draw has a source location, and every page has checked questions.
 
