@@ -7,8 +7,8 @@ Fresh reviewers scoring rendered images are the readability test. One reviewer p
 1. Render every page to PNG (see `rendering.md`) and look at each one yourself first.
 2. Start **three new reviewer agents** with your environment's subagent tool. Never reuse a reviewer, so none is anchored on an earlier round. A cheaper model is fine.
 3. Give each the brief below, filled in. Score only pages that changed since they last passed; frozen pages stay frozen.
-4. Save each reviewer's JSON reply to a file, then run `python3 scripts/score_round.py reviewer-1.json reviewer-2.json reviewer-3.json`. It prints the median per page and which pages pass.
-5. Check every answer against your fact list. A wrong answer is an understanding defect whatever the score says; fix the page that misled.
+4. Check every answer against your fact list. A wrong answer is an understanding defect whatever the score says; note the page it came from and fix that page.
+5. Save each reviewer's JSON reply to a file, then run `python3 scripts/score_round.py reviewer-1.json reviewer-2.json reviewer-3.json --wrong <page>` (one `--wrong` per page a wrong answer came from). It prints each page's medians and verdict: a pass at 8.5, a pass at the 8.0 floor when no reviewer tagged a blocking problem on the page, or a fail with its reason.
 6. Fix problems tagged `blocks-understanding` first. Take a `polish` request only when it removes a misreading and the decisions log doesn't settle it.
 
 ## Reviewer brief
@@ -53,6 +53,6 @@ Reply with only this JSON:
 
 - **Checked questions are the most reliable signal.** Every wrong or partial answer pointed at a real defect: an ambiguous label, an unclear actor, a misread position.
 - **Ranked problems with fixes make a clear work list.** Letting reviewers return fewer than five stops nits being promoted to fill the list.
-- **Treat a single-reviewer change of 0.5 or less as noise.** That is why the gate uses the median of three.
+- **Treat a single-reviewer change of 0.5 or less as noise.** That is why the gate uses the median of three, and why it has a floor. Replaying three 5-round runs, the 8.5 bar alone kept pages at 8.0 to 8.5 in review for four more rounds while every answer stayed correct; with the 8.0 floor for pages nobody flagged as blocking, the same runs would have finished in 2 and 3 rounds.
 - **Reviewing many pages at once thins each reviewer's attention**, and the densest page drags. Keep a round to the pages that changed.
 - **Fix contradictions between pages first.** The largest single-round gain (+1.0 to +1.5 understanding) came from making pages agree with each other and answering the gaps a newcomer would ask about.
