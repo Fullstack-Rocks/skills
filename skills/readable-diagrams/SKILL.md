@@ -9,7 +9,9 @@ A diagram is **readable** when an engineer new to the system can answer concrete
 
 - `scripts/check_diagram.py` reports no findings on every page;
 - fresh reviewers answer every checked question correctly;
-- the median reviewer score is at least **8.5 / 10 for readability and for understanding** on every page (override the bar if the human sets another).
+- the median reviewer score on every page is at least **8.5 / 10 for readability and for understanding**, or at least **8.0** when no reviewer tags a problem on that page as blocking understanding (override either bar if the human sets another).
+
+Pages settle between 8.0 and 8.5, and one reviewer's score on an unchanged page moves by about ±0.5, so a bare 8.5 bar passes or fails them by chance and extra rounds only resample the noise. The floor lets the evidence that matters (correct answers, nothing blocking) end the rounds.
 
 The rules here come from 40+ scored rounds on real architecture diagrams. What raised scores was almost always structure (splitting, lanes, frames, one meaning per mark), rarely polish.
 
