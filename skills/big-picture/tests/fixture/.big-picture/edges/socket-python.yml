@@ -1,0 +1,6 @@
+id: socket-python
+language: Python
+message: sends a socket message
+rule: { pattern: 'socket.emit($MESSAGE, $$$REST)' }
+constraints: { MESSAGE: { kind: string } }
+metadata: { edge: sends, to: "message:{MESSAGE}" }

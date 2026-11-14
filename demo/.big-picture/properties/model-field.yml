@@ -1,0 +1,24 @@
+id: model-field
+language: Python
+message: a field of a dataclass model, which is a column of its table
+rule:
+  kind: expression_statement
+  has:
+    kind: assignment
+    all:
+      - has: { field: left, pattern: $FIELD }
+      - has: { field: type, pattern: $TYPE }
+  inside:
+    kind: block
+    inside:
+      kind: class_definition
+      inside:
+        kind: decorated_definition
+        has:
+          kind: decorator
+          regex: ^@dataclass
+metadata:
+  property: fields
+  value:
+    name: "{FIELD}"
+    type: "{TYPE}"

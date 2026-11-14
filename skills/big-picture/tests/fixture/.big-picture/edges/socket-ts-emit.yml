@@ -1,0 +1,6 @@
+id: socket-ts-emit
+language: TypeScript
+message: sends a socket message
+rule: { pattern: 'socket.emit($MESSAGE, $PAYLOAD)' }
+constraints: { MESSAGE: { kind: string } }
+metadata: { edge: sends, to: "message:{MESSAGE}" }

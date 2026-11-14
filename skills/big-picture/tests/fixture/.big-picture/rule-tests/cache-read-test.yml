@@ -1,0 +1,7 @@
+id: cache-read
+valid:
+  - cache.get("x")
+  - client.set("x", 1)
+invalid:
+  - client.get("order-total:1")
+  - client.get(key)

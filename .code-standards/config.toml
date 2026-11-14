@@ -1,0 +1,31 @@
+# code-standards: project config. Committed with the project; edit freely.
+
+# Files to review, by extension. Every tool picks its parser from the extension and skips files it
+# can't read, so supporting another language means adding its extension here.
+extensions = [".py", ".tsx", ".ts", ".sh"]
+# Extensions in the repo that are deliberately not reviewed. A changed file whose extension is in
+# neither list is reported, so a new file type gets a decision instead of being skipped silently.
+not_reviewed = [".json", ".yml", ".md", ".svg", ".diff", ".gif", ".jpg", ".woff2", ".toml", ".exp", ".html"]
+base = "origin/main"                  # changed files = diff from the merge-base with this ref
+exclude = ["**/migrations/**", "**/generated/**", "**/*.d.ts", "demo/**", "**/viewer/dist/**"]   # globs every tool skips
+
+[thresholds]
+complexity = 10          # lizard cyclomatic complexity, flagged when above
+function_lines = 80      # lizard function length in lines
+params = 5               # lizard parameter count
+duplicate_tokens = 50    # jscpd --min-tokens
+
+[duplication]
+# "repo": scan the whole repo, keep only clones that touch a changed file, so a copy of unchanged code is caught.
+#   jscpd reads about 20-50 MB of source a second, so above repo_max_mb the review falls back to "changed"
+#   and says so in a warning.
+# "changed": compare changed files only with each other.
+scope = "repo"
+repo_max_mb = 30         # size of the reviewed extensions, after `exclude`
+
+# Project linters, run as the project configures them. Files are appended to `command`.
+# format: ruff | eslint | oxlint | biome, or for any other linter:
+#   sarif  SARIF 2.1 JSON (golangci-lint, rubocop, clippy via clippy-sarif, semgrep, detekt, ruff, ...)
+#   unix   `path:line[:col]: message` lines
+# extensions: the files this linter receives (default: all reviewed extensions).
+# No project linters detected. Add [[linters]] blocks here.

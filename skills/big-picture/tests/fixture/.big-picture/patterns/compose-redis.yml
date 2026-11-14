@@ -1,0 +1,4 @@
+id: compose-redis
+files: ["docker-compose.yml", "compose.yml"]
+regex: '^  (?P<NAME>[\w-]+):\n    image: redis\b'
+metadata: { node: redis, id: "{NAME}" }

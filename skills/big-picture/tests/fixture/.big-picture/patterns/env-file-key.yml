@@ -1,0 +1,4 @@
+id: env-file-key
+files: [".env.example", "**/.env.example"]
+regex: '^(?P<KEY>[A-Z][A-Z0-9_]*)='
+metadata: { node: env-key, id: "{KEY}" }

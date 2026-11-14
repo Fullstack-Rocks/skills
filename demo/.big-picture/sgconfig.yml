@@ -1,0 +1,4 @@
+# big-picture: this project's node and edge rules. Format: big-picture's references/node-types.md.
+ruleDirs: [types, edges, properties]
+testConfigs:
+  - testDir: rule-tests

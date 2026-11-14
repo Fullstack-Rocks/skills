@@ -1,0 +1,7 @@
+title: Config
+types: [env-key]
+edges: [reads-env]
+neighbors: true
+colors:
+  env-key: "#ECD53F"
+  reads-env: "#ECD53F"

@@ -1,0 +1,8 @@
+id: db-reads
+valid:
+  - db.fetch_one(table, row_id)
+  - fetch_one("orders", 1)
+  - db.insert("orders", data)
+invalid:
+  - db.fetch_one("orders", order_id)
+  - get_db().fetch_many("orders", limit=limit)

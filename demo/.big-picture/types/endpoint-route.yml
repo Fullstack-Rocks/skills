@@ -1,0 +1,19 @@
+id: endpoint-route
+language: Python
+message: HTTP endpoint registered with app.http.route
+rule:
+  kind: decorated_definition
+  all:
+    - has:
+        field: definition
+        pattern: def $HANDLER($$$PARAMS)
+    - has:
+        kind: decorator
+        has:
+          pattern: route($METHOD, $PATH)
+metadata:
+  node: endpoint
+  id: "{METHOD} {PATH}"
+  link: handled-by
+  to: HANDLER
+  keys: ["http:{METHOD|upper} {PATH|route}"]   # what clients in other systems call it by

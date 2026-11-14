@@ -53,3 +53,8 @@ rule:
   has:
     field: function
     kind: subscript
+    # a generic class or builtin made concrete, Model[int](...) or list[str](), is a constructor call, not a lookup
+    not:
+      has:
+        field: value
+        regex: ^(_?[A-Z]\w*[a-z]\w*|list|dict|set|frozenset|tuple|type)$

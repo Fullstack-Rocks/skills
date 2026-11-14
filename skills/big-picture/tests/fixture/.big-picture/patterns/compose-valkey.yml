@@ -1,0 +1,4 @@
+id: compose-valkey
+files: ["docker-compose.yml", "compose.yml"]
+regex: '^  (?P<NAME>[\w-]+):\n    image: valkey/valkey\b'
+metadata: { node: valkey, id: "{NAME}" }

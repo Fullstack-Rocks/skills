@@ -1,0 +1,3 @@
+id: socket-ts-on
+valid: ['socket.on(name, show)', 'emitter.on("price.update", show)']
+invalid: ['socket.on("price.update", show)', "socket.on('ready', () => start())"]

@@ -1,0 +1,14 @@
+id: api-client-call
+language: TypeScript
+message: calls a backend endpoint through web/src/lib/apiClient
+rule:
+  any:
+    - pattern: apiClient.$VERB<$$$T>($PATH)
+    - pattern: apiClient.$VERB<$$$T>($PATH, $$$REST)
+    - pattern: apiClient.$VERB($PATH)
+    - pattern: apiClient.$VERB($PATH, $$$REST)
+constraints:
+  VERB: { regex: "^(get|post|put|patch|delete)$" }
+metadata:
+  edge: calls-api
+  to: "~http:{VERB|upper} {PATH|route}"     # whichever endpoint, in any system, carries this key

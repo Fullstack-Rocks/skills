@@ -2,6 +2,9 @@ id: py-lookup-call-subscript
 invalid:
   - handlers[kind](payload)
   - self.routes[path]()
+  - HANDLERS[kind](payload)
 valid:
   - value = handlers[kind]
   - handler(payload)
+  - Repository[Order](session=session)
+  - list[int]()

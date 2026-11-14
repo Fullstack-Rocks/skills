@@ -1,0 +1,5 @@
+# String literals, scanned for SQL that looks up a table through a JSON column (stages/lookups.py).
+id: bp-strings-python
+language: Python
+rule:
+  kind: string
