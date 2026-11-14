@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#install"><img alt="npx skills add Fullstack-Rocks/skills" src="https://img.shields.io/badge/npx%20skills%20add-Fullstack--Rocks%2Fskills-111111?style=flat-square&labelColor=ECFE8C"></a>
-  <a href="#the-skills"><img alt="5 skills" src="https://img.shields.io/badge/skills-5-111111?style=flat-square"></a>
+  <a href="#the-skills"><img alt="5 skills" src="https://img.shields.io/badge/skills-7-111111?style=flat-square"></a>
   <a href="benchmarks/"><img alt="benchmarked" src="https://img.shields.io/badge/benchmarked-%E2%88%9254%25%20code-111111?style=flat-square"></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-111111?style=flat-square"></a>
 </p>
@@ -64,6 +64,7 @@ Anything the agent can't justify comes back to you as a decision.
 | [**call-depth**](#call-depth) | Measures call-chain depth, memory hops, complexity and layout with parsers, in any language | *"How deep is the call chain from POST /orders/{id}/refund?"* |
 | [**code-standards**](#code-standards) | Reviews with your linters, taught ast-grep rules and a learned `standards.md`, and learns from rejected code | *"Is my change clean?"* · *"We never read env vars outside config"* |
 | [**delegate**](#delegate) | Hands tasks to Codex, Cursor, Antigravity, Gemini, the Gemini API or Claude and keeps a back-and-forth with each, live in a pane beside the chat | *"Have Codex build the API and Cursor the client, in parallel"* |
+| [**readable-diagrams**](#readable-diagrams) | Builds architecture and flow diagrams in the tool you choose, checks their geometry, and scores them with fresh reviewer agents until a newcomer can read them | *"Draw our AWS network so a new engineer can follow it"* |
 
 Every recording below is a real, interactive Claude Code session on the [demo shop](demo/), a 55-file Python API with a React/TS client. Long thinking stretches are sped up; everything else plays at its real pace.
 
@@ -128,7 +129,7 @@ npx skills add Fullstack-Rocks/skills --skill code-standards   # just one
 npx skills add Fullstack-Rocks/skills -g                       # for every project
 ```
 
-Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards` and `delegate` stand alone.
+Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards`, `delegate` and `readable-diagrams` stand alone.
 
 `delegate`'s Delegations panes are a Claude Code plugin. Install it, with the skill, for every session at a terminal session's prompt (in the desktop app: + next to the prompt box, Plugins, Add marketplace `Fullstack-Rocks/skills`, then Add plugin):
 
@@ -446,6 +447,18 @@ Everything is plain files in `.delegate/<id>/` in your repo (kept out of git): t
 
 ---
 
+## readable-diagrams
+
+**Diagrams a newcomer can read, proved by readers.** The agent asks which tool to draw in (draw.io, Mermaid, D2, PlantUML, Graphviz, Excalidraw or the project's own), builds one story per page from facts checked against your code, and runs the pages through `scripts/check_diagram.py`: crossing lines, lines through shapes or text, labels on bends or borders, small text, pages too wide, steps referenced but not drawn, legend rows used or unused. Then three fresh reviewer agents answer checked questions from the images alone and score readability and understanding; `scripts/score_round.py` gates on the median, 8.5 by default.
+
+**Try saying**
+- *"Draw our deploy pipeline so a new engineer can explain it."*
+- *"This diagram's lines go over each other; make it readable."*
+
+The layout rules come from 40+ scored rounds on four AWS architecture diagrams: what moved scores was structure (one story per page, lanes, sequence frames, one meaning per mark), rarely polish. The checker reads plain geometry JSON, so it works with any tool.
+
+---
+
 ## How they fit together
 
 ```
@@ -472,7 +485,7 @@ delegate:  brief ──> codex / cursor / antigravity / gemini / gemini-api / cl
 ## Requirements
 
 - **An agent with skills**, such as Claude Code, Codex or Cursor. Subagents with model selection are used by `um-maybe` and the module-plan scorer. Without them, the agent plays the colleague or scorer itself and says so.
-- **Python 3.10+** for `call-depth`, **3.11+** for `code-standards`. The scripts use only the standard library.
+- **Python 3.10+** for `call-depth` and `readable-diagrams`, **3.11+** for `code-standards`. The scripts use only the standard library.
 - **ast-grep, lizard and jscpd.** The agent installs them itself with whichever of npm, uv, pipx, cargo or pip the machine has. Only jscpd needs Node.js.
 - **Nothing from the project being measured.** Your own linters are used when your project configures them.
 - **For `delegate`:** the CLIs of the agents you delegate to, signed in (`codex`, `cursor-agent`, `agy`, `gemini`, `gemini-api`, `claude`), and git for `--write` worktrees. The pane needs a recent Claude Code.
