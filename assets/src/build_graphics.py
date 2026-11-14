@@ -314,6 +314,18 @@ def motif(skill: str) -> str:
                           + f'<path stroke="{LIME}" stroke-width="2.4" d="M-6 76 L268 76" opacity="0.5"/>'
                           + f'<path {s} d="M290 66 l10 10 l20 -22"/>'
                           + f'<rect {s} x="280" y="96" width="80" height="22" rx="6"/>',
+        "delegate": f'<rect {s} x="0" y="44" width="90" height="40" rx="10"/>'
+                    + "".join(f'<path {w} d="M90 64 C150 64 150 {y + 18} 210 {y + 18}"/>'
+                              f'<rect {w} x="210" y="{y}" width="90" height="36" rx="10"/>'
+                              for y in (0, 46, 92))
+                    + "".join(f'<circle cx="{x}" cy="64" r="4" fill="{LIME}"/>' for x in (318, 336, 354)),
+        "readable-diagrams": "".join(f'<path stroke="rgba(255,255,255,0.18)" stroke-width="1.5" d="M0 {y} L360 {y}"/>'
+                                     for y in (42, 88))
+                             + "".join(f'<rect {w} x="{x}" y="{y}" width="70" height="28" rx="7"/>'
+                                       for x, y in [(0, 6), (145, 51), (290, 97)])
+                             + f'<path {s} d="M70 20 L110 20 L110 65 L145 65"/>'
+                             + f'<path {s} d="M215 65 L255 65 L255 111 L290 111"/>'
+                             + f'<path {s} d="M300 14 l10 10 l20 -22"/>',
     }
     return f'    <g transform="translate(860 52)">{drawings[skill]}</g>'
 
@@ -324,6 +336,8 @@ BANNERS = {
     "under-engineering-review": "Audits existing code for depth, complexity and size.",
     "call-depth": "Measures call chains with parsers, in any language.",
     "code-standards": "A code review that learns what your team rejects.",
+    "delegate": "Other coding agents as teammates, never blocking.",
+    "readable-diagrams": "Diagrams a newcomer can read, proved by readers.",
 }
 
 
