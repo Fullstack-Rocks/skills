@@ -44,14 +44,15 @@ Build every page following [`references/layout-rules.md`](references/layout-rule
 
 1. Export each page's geometry to the JSON format in [`references/geometry-format.md`](references/geometry-format.md) and run `python3 scripts/check_diagram.py <geometry.json>`. Treat every finding as a bug; fix it in the layout, never by hiding it.
 2. Render every page to PNG and look at each one yourself, cropping where text is small. The render catches what geometry estimates miss: text overflowing a box, labels shifted by the tool's text layout, clipped lanes.
+3. Be the first reviewer. Answer every question in the bank from your PNGs alone, and for each answer name the step label, table cell or frame title it came from. An answer that lives only in a side note, or nowhere, is a bug: move the fact onto the step (see "Put the answer on the step" in the layout rules). Then walk every arrow: it starts at the actor that acts, a reply is dashed, and a waiting step names its trigger; on sequence pages, a loop frame covers every repeating step and states its end condition.
 
-Done when the checker prints `OK` and you have looked at every PNG of this build.
+Done when the checker prints `OK`, every question is answered from a label, cell or title on your own PNGs, and you have looked at every PNG of this build. These are the requests reviewers repeated round after round; settling them here is what lets pages pass in round 1.
 
 ## Step 5: Review rounds
 
 Run rounds as in [`references/review-protocol.md`](references/review-protocol.md): three fresh reviewer agents per round, images only, checked questions, the rubric, then `python3 scripts/score_round.py` for medians and the gate. Fix what blocks understanding first, rebuild (Step 4), and rerun.
 
-- **Freeze** a page once it passes. Edit it again only to fix a fact; a cleanup for consistency is what cost earlier diagrams their passes.
+- **Freeze** a page once it passes. Edit it again only to fix a wrong answer; a partial misreading or a cleanup for consistency goes in the decisions log instead, because edits to passed pages cost them their pass. Keep the passed version, and when an edited page scores lower, restore it.
 - **Restructure on a plateau.** When a page's median hasn't risen for two rounds, change its form (split it, turn prose into a table or a sequence, move detail to its own page) instead of polishing.
 - Stop after 8 rounds. Deliver the best version that passed most pages, and report the score table and what still falls short.
 

@@ -50,7 +50,7 @@
 ## Getting positions from a tool
 
 - **Your own generator:** dump the positions it computed. This is the most exact export.
-- **draw.io:** each `mxCell` has an `mxGeometry`. A child's x and y are relative to its parent, so add the parents' offsets. An edge's points are its `mxPoint`s in `<Array as="points">`, plus its two ends where it meets its source and target.
+- **draw.io:** run `scripts/drawio_export.py`, which reads the positions from the viewer's own rendering (see `rendering.md`). By hand: each `mxCell` has an `mxGeometry`. A child's x and y are relative to its parent, so add the parents' offsets. An edge's points are its `mxPoint`s in `<Array as="points">`, plus its two ends where it meets its source and target.
 - **SVG export from any tool** (Mermaid, D2, PlantUML, Graphviz): take `rect` and `g` bounding boxes for shapes, `path` and `polyline` points for edges (sample curves into straight segments), and `text` elements for texts.
 
 The render stays the final word on text sizes: the checker's estimates are within 20–30 px of the tool's layout. A clean check plus a PNG you have looked at is the bar.
@@ -66,8 +66,10 @@ The checker prints one finding per line, `KIND<TAB>page/id<TAB>detail`, preceded
 | `EDGE_THROUGH_SHAPE`, `EDGE_THROUGH_TEXT` | A line runs through a shape, a wait bar or a text |
 | `LABEL_ON_BEND` | An edge label sits on a bend |
 | `SHORT_EDGE` | An edge is shorter than `--min-edge` (40 px) |
+| `EDGE_DETOUR` | An edge turns back on itself (a U route), bends three times or more, or runs more than twice the distance between its ends |
 | `TEXT_OVERLAP`, `TEXT_OVER_SHAPE`, `TEXT_ON_BORDER` | Texts collide, cover a shape, or straddle a container border |
 | `OUTSIDE_PARENT`, `MISSING_PARENT`, `DANGLING_EDGE` | A shape sits outside its container, or an edge end is missing |
 | `SMALL_TEXT`, `PAGE_TOO_WIDE` | Text under `--min-font` (13 px), or a page wider than `--max-width` (2000 px) |
 | `TOO_MANY_STEPS`, `STEP_REF_MISSING` | More than `--max-steps` (15) numbered steps, or a text mentions a step the page doesn't number |
+| `STEP_DUPLICATE`, `STEP_ORDER` | Two edges carry the same step number, or a step sits above and left of the one before it (out of reading order) |
 | `LEGEND_MISSING`, `LEGEND_UNUSED` | A style is used without a legend row, or the legend lists a style the page doesn't use |

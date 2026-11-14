@@ -174,6 +174,28 @@ def parallel_gap(first: Segment, second: Segment) -> tuple[float, float] | None:
     return abs(first[0][across] - second[0][across]), high - low
 
 
+def bends(points: list[Point]) -> int:
+    """Real changes of direction along a polyline; collinear waypoints don't count."""
+    turns = 0
+    for a, b, c in zip(points, points[1:], points[2:]):
+        if abs(orientation(a, b, c)) > EPSILON * max(math.dist(a, b), math.dist(b, c), 1):
+            turns += 1
+    return turns
+
+
+def doubles_back(points: list[Point]) -> bool:
+    """A U-shaped route: two segments along the same axis heading in opposite directions."""
+    heading: dict[str, float] = {}
+    for a, b in zip(points, points[1:]):
+        kind = axis((a, b))
+        if kind is None:
+            continue
+        sign = math.copysign(1, (b[0] - a[0]) if kind == "h" else (b[1] - a[1]))
+        if heading.setdefault(kind, sign) != sign:
+            return True
+    return False
+
+
 def edge_length(edge: Edge) -> float:
     return sum(math.dist(a, b) for a, b in edge.segments)
 
@@ -231,6 +253,11 @@ def check_edge(page: Page, edge: Edge, limits: Limits) -> list[Finding]:
     length = edge_length(edge)
     if length < limits.min_edge:
         findings.append(("SHORT_EDGE", at(page, edge.id), f"{length:.0f} px long; arrowheads and dashes need {limits.min_edge:.0f}"))
+    turns = bends(edge.points)
+    direct = math.dist(edge.points[0], edge.points[-1])
+    if turns >= 3 or doubles_back(edge.points) or (length > 200 and length > 2 * max(direct, 1)):
+        findings.append(("EDGE_DETOUR", at(page, edge.id), f"runs {length:.0f} px with {turns} bends to cover {direct:.0f} px "
+                         "or turns back on itself; place its ends side by side or on one row"))
     if edge.label and any(edge.label.box.contains_point(bend) for bend in edge.points[1:-1]):
         findings.append(("LABEL_ON_BEND", at(page, edge.id), "label sits on a bend; move it to a straight segment"))
     return findings + edge_obstacles(page, edge)
@@ -289,6 +316,42 @@ def check_steps(page: Page, limits: Limits) -> list[Finding]:
     return findings
 
 
+def step_key(step: str) -> tuple[int, ...] | None:
+    return tuple(int(part) for part in step.split(".")) if re.fullmatch(r"\d+(?:\.\d+)*", step) else None
+
+
+def step_anchor(edge: Edge) -> Point:
+    if edge.label:
+        return (edge.label.box.x + edge.label.box.w / 2, edge.label.box.y + edge.label.box.h / 2)
+    a, b = edge.points[len(edge.points) // 2 - 1], edge.points[len(edge.points) // 2]
+    return ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+
+
+def check_step_order(page: Page, limits: Limits) -> list[Finding]:
+    """Each step number on one arrow, and the numbers following reading order: down the page or along a row."""
+    findings: list[Finding] = []
+    first: dict[str, str] = {}
+    numbered: list[tuple[tuple[int, ...], Edge]] = []
+    for edge in page.edges:
+        if not edge.step or len(edge.points) < 2:
+            continue
+        if edge.step in first:
+            findings.append(("STEP_DUPLICATE", at(page, edge.id), f"step {edge.step} is also on {first[edge.step]}; "
+                             "give each arrow its own number and leave side effects unnumbered"))
+            continue
+        first[edge.step] = edge.id
+        key = step_key(edge.step)
+        if key:
+            numbered.append((key, edge))
+    numbered.sort(key=lambda item: item[0])
+    for (_, before), (_, after) in zip(numbered, numbered[1:]):
+        (bx, by), (ax, ay) = step_anchor(before), step_anchor(after)
+        if ay < by - limits.min_gap and ax < bx + limits.min_gap:
+            findings.append(("STEP_ORDER", at(page, after.id), f"step {after.step} sits above and left of step {before.step}; "
+                             "number steps in reading order, top to bottom and left to right"))
+    return findings
+
+
 def check_legend(page: Page) -> list[Finding]:
     if page.legend is None:
         return []
@@ -305,7 +368,8 @@ def check_page(page: Page, limits: Limits) -> list[Finding]:
     drawable = [edge for edge in page.edges if len(edge.points) >= 2]
     for first, second in combinations(drawable, 2):
         findings += check_edge_pair(page, first, second, limits)
-    return findings + check_texts(page, limits) + check_steps(page, limits) + check_legend(page)
+    return (findings + check_texts(page, limits) + check_steps(page, limits) + check_step_order(page, limits)
+            + check_legend(page))
 
 
 def main() -> int:
