@@ -38,6 +38,11 @@ export function groupOf(graph: LoadedGraph, id: string): string | undefined {
   return parent === ROOT ? undefined : parent
 }
 
+/** The frame a node is drawn inside in this view: its capsule or system, else its container, else none. */
+export function frameOf(graph: LoadedGraph, view: View, id: string): string | undefined {
+  return view.groups ? view.groups.get(id) : view.flat ? undefined : groupOf(graph, id)
+}
+
 /** The nested ELK nodes for a view, and each node's holder ('root' at the top). */
 type Tree = { made: Map<string, ElkNode>; holderOf: Map<string, string> }
 
@@ -47,7 +52,7 @@ function elkTree(graph: LoadedGraph, view: View): Tree {
   for (const id of view.nodes) {
     // The node and the groups above it that don't exist yet, outermost first.
     const chain = [id]
-    const group = (node: string) => (view.groups ? view.groups.get(node) : view.flat ? undefined : groupOf(graph, node))
+    const group = (node: string) => frameOf(graph, view, node)
     for (let up = group(id); up && !made.has(up); up = group(up)) chain.unshift(up)
     let holder = group(chain[0]) ?? 'root'
     for (const member of chain) {

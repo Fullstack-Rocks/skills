@@ -12,12 +12,13 @@ export function edgesOf(graph: LoadedGraph, id: string, direction: 'out' | 'in')
   return (graph.incoming.get(id) ?? []).map((e) => [e, e.from])
 }
 
-/** Breadth-first steps up to `depth` away, following edges whose kind passes `keep`; each node once. */
-export function neighbors(graph: LoadedGraph, id: string, depth: number, direction: 'out' | 'in',
+/** Breadth-first steps up to `depth` away from one node or several, following edges whose kind passes `keep`;
+ * each node once. */
+export function neighbors(graph: LoadedGraph, id: string | string[], depth: number, direction: 'out' | 'in',
   keep: (kind: string) => boolean): Step[] {
-  const seen = new Set([id])
+  let frontier = [id].flat()
+  const seen = new Set(frontier)
   const found: Step[] = []
-  let frontier = [id]
   for (let step = 1; step <= depth && frontier.length; step++) {
     const next: string[] = []
     for (const current of frontier) {
@@ -38,10 +39,12 @@ export function entryPoints(graph: LoadedGraph, id: string): string[] {
     .map((s) => s.id).filter((other) => ENTRY_TYPES.has(graph.byId.get(other)?.type ?? '')).sort()
 }
 
-/** Nodes reachable downstream (not through contains) that lead nowhere further: tables, leaf functions. */
+/** Nodes reachable downstream (not through contains) from a node, or from everything a folder or module
+ * holds, that lead nowhere further: tables, leaf functions. */
 export function leaves(graph: LoadedGraph, id: string): string[] {
   const downstream = (kind: string) => kind !== 'contains'
-  return neighbors(graph, id, 12, 'out', downstream)
+  const inside = (node: string): string[] => [node, ...(graph.children.get(node) ?? []).flatMap(inside)]
+  return neighbors(graph, inside(id), 12, 'out', downstream)
     .map((s) => s.id).filter((other) => !edgesOf(graph, other, 'out').some(([e]) => downstream(e.kind)))
 }
 

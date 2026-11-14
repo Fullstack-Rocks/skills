@@ -5,13 +5,13 @@ HTTP, events, sockets and RPC are all keys the project's rules give. A key nothi
 import re
 
 from graph import Graph
-from stages.rules import ROUTE_PARAMETER, transform
+from stages.rules import ROUTE_PARAMETER, filters, transform
 
 FIX = ("Nothing declares this key: the call targets an endpoint, topic or message that no longer exists, "
        "or the rule that gives the other side its keys is missing (teach it with the big-picture skill).")
 
 
-LATE = re.compile(r"\{@(\w+)(?::(\w+))?((?:\|[^|}]+)*)\}")
+LATE = re.compile(r"\{@(\w+)(?::(\w+))?((?:\|(?:\\\||[^|}])+)*)\}")
 
 
 def property_value(values: list, name: str | None) -> str:
@@ -23,14 +23,23 @@ def property_value(values: list, name: str | None) -> str:
     return next((str(v["value"]) for v in values if isinstance(v, dict) and v.get("name") == name), "")
 
 
+def holders(graph: Graph, node: dict) -> list[dict]:
+    """The nodes around this one, innermost first (a router built inside a factory function), then its
+    file's own node: where a property it names is looked up."""
+    file, line = node.get("file", ""), node.get("start", 0)
+    around = sorted((n for n in graph.code_by_file.get(file, []) if n["id"] != node.get("id") and n["start"] <= line <= n["end"]),
+                    key=lambda n: n["end"] - n["start"])
+    return [*around, graph.nodes.get(graph.file_node.get(file, ""), {})]
+
+
 def late(graph: Graph, text: str, node_id: str) -> str:
     """Fill {@file} with the node's file and {@<property>} or {@<property>:<name>} from that property on
-    the file's own node (a router's prefix), then apply their filters."""
+    the innermost node around it that has it, else the file's own node (a router's prefix), then apply their filters."""
     node = graph.nodes.get(node_id, {})
-    holder = graph.nodes.get(graph.file_node.get(node.get("file", ""), ""), {})
     def fill(found: re.Match) -> str:
-        value = node.get("file", "") if found[1] == "file" else property_value(holder.get(found[1], []), found[2])
-        for name in filter(None, found[3].split("|")):
+        found_in = (property_value(h.get(found[1], []), found[2]) for h in holders(graph, node))
+        value = node.get("file", "") if found[1] == "file" else next((v for v in found_in if v), "")
+        for name in filters(found[3]):
             value = transform(value, name)
         return value
     return LATE.sub(fill, text)
@@ -38,7 +47,7 @@ def late(graph: Graph, text: str, node_id: str) -> str:
 
 def canonical(key: str) -> str:
     """One spelling per key: in its path (from the first /) every parameter is {}, no trailing slash,
-    no doubled slashes. The head (`http:crm:GET `, `topic:orders.created`) is kept as written."""
+    no doubled slashes. The head (`http:shop:GET `, `topic:orders.created`) is kept as written."""
     head, slash, path = key.partition("/")
     return head + (re.sub(r"/+", "/", ROUTE_PARAMETER.sub("{}", slash + path)).rstrip("/") or slash)
 

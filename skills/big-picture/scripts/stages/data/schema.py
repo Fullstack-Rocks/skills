@@ -24,7 +24,7 @@ FROM_JOIN = re.compile(r"\b(?:from|join)\s+([\w.\"]+)", re.I)
 
 
 def schema_of(name: str) -> str | None:
-    """crm."Orders" -> crm: the schema a qualified name declares, or None."""
+    """sales."Orders" -> sales: the schema a qualified name declares, or None."""
     parts = name.strip().split(".")
     return parts[-2].strip("\"`").lower() if len(parts) > 1 else None
 

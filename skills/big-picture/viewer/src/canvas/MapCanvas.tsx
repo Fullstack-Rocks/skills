@@ -5,6 +5,7 @@ import styled from 'styled-components'
 
 import { elkLayout } from '../data/layout'
 import { visibleGraph } from '../data/views'
+import { filterView } from '../filters/filterView'
 import { Breadcrumb } from '../nav/Breadcrumb'
 import { useGraph } from '../store/graph'
 import { useView } from '../store/view'
@@ -41,7 +42,7 @@ function FocusEdge() {
 
 export function MapCanvas() {
   const graph = useGraph((s) => s.graph)
-  const { focus, mode, selected, selectedEdge, select, selectEdge, dive, direction, edgeStyle, tab } = useView()
+  const { focus, mode, selected, selectedEdge, select, selectEdge, dive, direction, edgeStyle, tab, hidden } = useView()
   const [nodes, setNodes] = useNodesState<FlowNode>([])
   const [baseEdges, setEdges] = useState<Edge[]>([])
   const edges = useMemo(() => highlightEdges(baseEdges, nodes, selected, selectedEdge?.id ?? null).map((e): Edge => ({ ...e, type: edgeStyle })),
@@ -59,7 +60,7 @@ export function MapCanvas() {
   useEffect(() => {
     if (!graph) return
     let current = true
-    const view = visibleGraph(graph, focus, mode, tab)
+    const view = filterView(graph, visibleGraph(graph, focus, mode, tab), hidden)
     void elkLayout(graph, view, direction).then((placed) => {
       if (!current) return
       laidOut.current = toFlowNodes(graph, placed, view, focus, direction)
@@ -68,7 +69,7 @@ export function MapCanvas() {
       setLayoutId((n) => n + 1)
     })
     return () => { current = false }
-  }, [graph, focus, mode, direction, tab, setNodes, laidOut])
+  }, [graph, focus, mode, direction, tab, hidden, setNodes, laidOut])
 
   // Selection only restyles; it keeps positions the person dragged.
   useEffect(() => {

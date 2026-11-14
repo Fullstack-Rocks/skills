@@ -2,12 +2,16 @@ import { useState } from 'react'
 import styled, { ThemeProvider } from 'styled-components'
 
 import { MapCanvas } from './canvas/MapCanvas'
+import { FilterPane } from './filters/FilterPane'
 import { TopNav } from './nav/TopNav'
 import { NodePane } from './pane/NodePane'
 import { useGraph } from './store/graph'
 import { GlobalStyle, theme } from './theme'
 
 const PANE_KEY = 'big-picture.pane-width'
+const FILTERS_KEY = 'big-picture.filters-open'
+const FILTERS_WIDTH = 248
+const RAIL_WIDTH = 30
 const PANE_MIN = 320
 const PANE_DEFAULT = 460
 
@@ -24,6 +28,14 @@ function storedWidth(): number {
     return Number(localStorage.getItem(PANE_KEY)) || PANE_DEFAULT
   } catch {
     return PANE_DEFAULT
+  }
+}
+
+function storedFiltersOpen(): boolean {
+  try {
+    return localStorage.getItem(FILTERS_KEY) !== 'false'
+  } catch {
+    return true
   }
 }
 
@@ -45,6 +57,11 @@ export function App() {
   const graph = useGraph((s) => s.graph)
   const error = useGraph((s) => s.error)
   const [paneWidth, setPaneWidth] = useState(storedWidth)
+  const [filtersOpen, setFiltersOpen] = useState(storedFiltersOpen)
+  const toggleFilters = () => {
+    setFiltersOpen(!filtersOpen)
+    try { localStorage.setItem(FILTERS_KEY, String(!filtersOpen)) } catch { /* private window */ }
+  }
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
@@ -53,7 +70,8 @@ export function App() {
         {error && <Message>{error}</Message>}
         {!error && !graph && <Message>Loading the graph…</Message>}
         {graph && (
-          <Workspace id="workspace" style={{ gridTemplateColumns: `minmax(0, 1fr) 5px ${paneWidth}px` }}>
+          <Workspace id="workspace" style={{ gridTemplateColumns: `${filtersOpen ? FILTERS_WIDTH : RAIL_WIDTH}px minmax(0, 1fr) 5px ${paneWidth}px` }}>
+            <FilterPane open={filtersOpen} onToggle={toggleFilters} />
             <MapCanvas />
             <Splitter onPointerDown={(e) => startResize(e, setPaneWidth)} title="Drag to resize" />
             <NodePane />

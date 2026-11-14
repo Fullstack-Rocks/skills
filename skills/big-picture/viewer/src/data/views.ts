@@ -99,7 +99,7 @@ function databaseView(graph: LoadedGraph): View {
   const shown = new Set(graph.data.nodes.filter((n) => n.type === 'table' || n.type === 'lookup').map((n) => n.id))
   const edges = edgesAmong(graph, shown).filter((e) => DATABASE_KINDS.has(e.kind))
   const heights = new Map([...shown].map((id) => [id, TABLE_HEAD + TABLE_ROW * Math.max(graph.byId.get(id)?.columns?.length ?? 0, 1)]))
-  // a frame per database schema (crm, tasks, ...) when the DDL names any; unnamed tables share a default one
+  // a frame per database schema (sales, billing, ...) when the DDL names any; unnamed tables share a default one
   const named = [...shown].some((id) => graph.byId.get(id)?.schema)
   const tables = [...shown].filter((id) => graph.byId.get(id)?.type === 'table')
   const groups = new Map(named ? tables.map((id) => [id, `group:${graph.byId.get(id)?.schema ?? 'default'} schema`]) : [])
@@ -212,14 +212,18 @@ function healthView(graph: LoadedGraph): View {
   return { nodes: [...shown], edges: edgesAmong(graph, shown), outside: new Set() }
 }
 
+/** A tab's own picture at its root (and a capsule's inside Capsules); diving into a node from any tab shows that
+ * node the way the Map does: its subgraph, its leaves, or a module's or folder's contents. */
 export function visibleGraph(graph: LoadedGraph, focus: string, mode: Mode, tab: Tab): View {
-  const lens = graph.data.views?.find((v) => v.id === tab)
-  if (lens) return lensView(graph, lens)
-  if (tab === 'capsules') return capsulesView(graph, focus)
-  if (tab === 'systems') return systemsView(graph)
-  if (tab === 'health') return healthView(graph)
-  if (tab === 'database') return databaseView(graph)
   if (mode === 'leaves') return leavesView(graph, focus)
+  if (focus === ROOT || (tab === 'capsules' && graph.byId.get(focus)?.type === 'capsule')) {
+    const lens = graph.data.views?.find((v) => v.id === tab)
+    if (lens) return lensView(graph, lens)
+    if (tab === 'capsules') return capsulesView(graph, focus)
+    if (tab === 'systems') return systemsView(graph)
+    if (tab === 'health') return healthView(graph)
+    if (tab === 'database') return databaseView(graph)
+  }
   return tab === 'endpoints' ? endpointsView(graph, focus) : mapView(graph, focus)
 }
 

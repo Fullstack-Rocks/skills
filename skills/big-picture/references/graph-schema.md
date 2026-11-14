@@ -5,7 +5,7 @@ Written by `scripts/build.py` to `<root>/.big-picture/out/graph.json`; read by `
 ```json
 {
   "schemaVersion": 1,
-  "builtAt": "2026-10-27T18:00:00+00:00",
+  "builtAt": "2025-01-01T12:00:00+00:00",
   "root": "/abs/path/to/project",
   "coverage": { "python": "scip", "typescript": "approx" },
   "nodes": [], "edges": [], "findings": [], "repeats": [], "views": []
@@ -37,14 +37,14 @@ A `table` node also carries what it is, from SQL DDL (`*.sql`, or the output of 
 
 ```json
 { "id": "table:orders", "type": "table", "kind": "table | view | materialized view | temporary table",
-  "declared": true, "schema": "crm", "file": "db/schema.sql", "start": 9, "end": 16,
+  "declared": true, "schema": "sales", "file": "db/schema.sql", "start": 9, "end": 16,
   "columns": [{ "name": "customer_id", "type": "integer", "pk": false, "nullable": true, "unique": false,
                 "references": "customers.id", "default": "...", "check": "...", "inferred": false }],
   "constraints": ["CONSTRAINT orders_status_check CHECK (status IN ('new', 'paid'))"],
   "indexes": [{ "name": "orders_customer_idx", "unique": false, "columns": ["customer_id"] }] }
 ```
 
-`schema` is the database schema a qualified name declares (`crm.orders`); the Database tab frames tables by it. `declared: false` with `inferred: true` columns means the model's fields, with `id` as the key and `<x>_id` referencing `<x>s` by naming convention.
+`schema` is the database schema a qualified name declares (`sales.orders`); the Database tab frames tables by it. `declared: false` with `inferred: true` columns means the model's fields, with `id` as the key and `<x>_id` referencing `<x>s` by naming convention.
 
 A `lookup` node is a join or filter through a JSON column (`stages/data/lookups.py`, or a project lookup rule):
 
@@ -98,4 +98,4 @@ A `lookup` node is a join or filter through a JSON column (`stages/data/lookups.
   "sites": [["app/reports.py", 23, "fn:app/reports.py#order_total"], ["app/reports.py", 27, "fn:app/reports.py#order_status"]] }
 ```
 
-An operation is an edge-rule match: (rule, target, call name). `operation`: the same one from two or more functions; each also gets a `repeated-operation` finding. `shape`: the same rule and call on three or more targets (8 services reading their own table the same way), information only.
+An operation is an edge-rule match: (rule, target, call name). `operation`: the same one from two or more functions; each also gets a `repeated-operation` finding. `shape`: the same rule and call on three or more targets (several services reading their own table the same way), information only.

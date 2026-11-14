@@ -46,6 +46,16 @@ function noteUser(graph: LoadedGraph, users: Map<string, Set<string>>, edge: Gra
   users.set(contract, (users.get(contract) ?? new Set()).add(system))
 }
 
+/** A table no folder holds sits inside the schema or migration that defines it, so the Map shows one card per schema. */
+function foldTables(graph: LoadedGraph): void {
+  for (const node of graph.data.nodes.filter((n) => n.type === 'table' && !graph.parent.has(n.id))) {
+    const holder = (graph.incoming.get(node.id) ?? []).find((e) => e.kind === 'defines')?.from
+    if (!holder) continue
+    graph.parent.set(node.id, holder)
+    push(graph.children, holder, node.id)
+  }
+}
+
 export function indexGraph(data: GraphData): LoadedGraph {
   const graph: LoadedGraph = {
     data, byId: new Map(data.nodes.map((n) => [n.id, n])), outgoing: new Map(), incoming: new Map(),
@@ -62,6 +72,7 @@ export function indexGraph(data: GraphData): LoadedGraph {
     noteUser(graph, users, edge)
   }
   for (const [id, systems] of users) if (systems.size > 1) graph.shared.add(id)
+  foldTables(graph)
   for (const finding of data.findings) push(graph.findings, finding.node, finding)
   for (const node of data.nodes) if (!graph.parent.has(node.id)) totalHealth(graph, node.id)
   return graph

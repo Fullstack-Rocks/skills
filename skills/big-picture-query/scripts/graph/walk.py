@@ -1,4 +1,4 @@
-"""Walks over the loaded graph. The viewer's walks (big-picture, phase 2) must give the same answers."""
+"""Walks over the loaded graph. The viewer's walks (big-picture viewer/src/data/walk.ts) must give the same answers."""
 from pathlib import PurePosixPath
 
 from graph.load import Graph

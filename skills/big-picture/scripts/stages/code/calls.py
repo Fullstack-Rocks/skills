@@ -80,6 +80,17 @@ def add_scip_calls(graph: Graph, index: dict[str, list[Occurrence]], by_symbol: 
                 graph.add_edge(caller, target, "calls", "scip", "exact", (path, occ.line))
 
 
+
+def references(index: dict[str, list[Occurrence]], by_symbol: dict[str, str]) -> dict[tuple[str, int], list[str]]:
+    """The project functions each line names, for edge rules that link to what a captured name means."""
+    named: dict[tuple[str, int], list[str]] = {}
+    for path, occurrences in index.items():
+        for occ in occurrences:
+            if not occ.is_definition and occ.symbol in by_symbol:
+                named.setdefault((path, occ.line), []).append(by_symbol[occ.symbol])
+    return named
+
+
 def call_sites(root: Path, files: list[str]) -> list[dict]:
     """ast-grep matches of the packs' call rules: callee text, file and 1-based line."""
     sites = []

@@ -1,7 +1,7 @@
 """Stage 8: code that does the same thing in several places, found from the operations the project's
 edge rules match. An operation is (rule, target, call): db-reads on table:orders through fetch_one.
 - the same operation from two or more functions is a repeated operation, a health finding on each;
-- the same rule and call on three or more targets is a repeated shape (8 services each reading their
+- the same rule and call on three or more targets is a repeated shape (several services each reading their
   own table the same way), recorded as information, not counted as health.
 Matching is on what the code does, never on its text, so `if (x)` everywhere never counts."""
 import re
@@ -18,11 +18,14 @@ def operations(graph: Graph, matches: list[tuple[dict, dict, int]]) -> dict[tupl
     """(rule, target, call) -> [file, line, node id] for every edge-rule match."""
     found: dict[tuple[str, str, str], list[list]] = {}
     for match, meta, line in matches:
-        if "edge" not in meta:
+        if "edge" not in meta or "to_symbol" in meta:  # an edge to a function named, not an operation run
+            continue
+        holder = graph.enclosing(match["file"], line)
+        if not holder.startswith(("fn:", "endpoint:")):  # a declaration (a config, a Compose service), not code that runs
             continue
         call = CALL.search(match["text"])
         key = (match["ruleId"], meta["to"], call[1] if call else "")
-        found.setdefault(key, []).append([match["file"], line, graph.enclosing(match["file"], line)])
+        found.setdefault(key, []).append([match["file"], line, holder])
     return found
 
 

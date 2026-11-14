@@ -19,7 +19,7 @@ import time
 from pathlib import Path, PurePosixPath
 
 from graph import Graph
-from stages.code.calls import PYTHON, TYPESCRIPT, add_approx_calls, add_scip_calls, scip_indexes
+from stages.code.calls import PYTHON, TYPESCRIPT, add_approx_calls, add_scip_calls, references, scip_indexes
 from stages.code.functions import add_functions
 from stages.code.scip_index import read_index
 from stages.data.lookups import add_lookups
@@ -103,7 +103,7 @@ def main() -> None:
     add_scip_calls(graph, index, by_symbol)
     unindexed = note_coverage(graph, code, set(index))
     ambiguous = add_approx_calls(graph, unindexed) if unindexed else 0
-    matches = add_rule_matches(graph, include, scan_patterns(root, files))
+    matches = add_rule_matches(graph, include, scan_patterns(root, files), references(index, by_symbol))
     add_schema(graph, files + generated_schema(graph, config.get("schema_commands", []), Path(__file__).parent))
     lookups = add_lookups(graph, files, code)
     operations = add_openapi(graph, files)

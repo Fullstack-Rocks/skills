@@ -20,7 +20,7 @@ testConfigs:
   - testDir: rule-tests
 ```
 
-Filters: `lower`, `upper`, `snake`, `plural`, and `route`, which turns any URL template into one form (`` `/orders/${id}?x=1` ``, `/orders/:id`, `/orders/<id>`, `/orders/{id}` all become `/orders/{}`).
+Filters: `lower`, `upper`, `snake`, `kebab` (`ORDER_ITEM` and `OrderItem` both become `order-item`), `plural`, `match:<regex>` (its first group; write a `|` inside it as `\\|` in a double-quoted YAML string), and `route`, which turns any URL template into one form (`` `/orders/${id}?x=1` ``, `/orders/:id`, `/orders/<id>`, `/orders/{id}` all become `/orders/{}`).
 
 Each rule is an ordinary ast-grep rule (`id`, `language`, `rule`, optional `constraints`, `message`). Its `metadata` says what a match means. In templates, `{NAME}` is the text of capture `$NAME` with string quotes stripped, and filters transform it: `{NAME|snake|plural}` turns `OrderItem` into `order_items` (`lower`, `snake`, `plural`).
 
@@ -88,8 +88,8 @@ When both sides spell the same literal (an event topic, a socket message), skip 
 
 A key often needs facts the match itself can't see. These fill in after every rule has run:
 
-- `{@file}`: the matched file's path, usually cut down with `|match:<regex>` to its first group. `{@file|match:routes/(\w+)/}` names the app a FastAPI route lives in; `{@file|match:generated/(\w+)/}` names the backend a generated SDK calls.
-- `{@<property>}`: the first value of a property rule's property on the matched file's module, such as a router's prefix.
+- `{@file}`: the matched file's path, usually cut down with `|match:<regex>` to its first group. `{@file|match:services/(\w+)/}` names the service a route lives in; `{@file|match:generated/(\w+)/}` names the service a generated client calls.
+- `{@<property>}`: the first value of a property rule's property on the innermost node around the match that has it (a factory function that builds its router), else the file's module, such as a router's prefix.
 - `{@<property>:{CAPTURE}}`: the entry of that property whose `name` is the capture's text, for files with several (each `APIRouter` and its own prefix). The property rule then stores `value: { name: "{ROUTER}", value: "{PREFIX}" }`.
 
 ```yaml
@@ -101,7 +101,7 @@ metadata: { property: route_prefix, value: { name: "{ROUTER}", value: "{PREFIX}"
 keys: ["http:{@file|match:routes/(\\w+)/}:{METHOD|upper} {@route_prefix:{ROUTER}}{PATH}"]
 ```
 
-Keys compare after their path (from the first `/`) is normalised like `|route`, so `/{call_id}/x/` and `` `/${id}/x` `` meet. Each unresolved contract left after teaching is a real gap to report: a prefix held in a constant, a router another app mounts.
+Keys compare after their path (from the first `/`) is normalised like `|route`, so `/{order_id}/items/` and `` `/${id}/items` `` meet. Each unresolved contract left after teaching is a real gap to report: a prefix held in a constant, a router another service mounts.
 
 ## Edge rule: a match is an edge
 
@@ -120,7 +120,18 @@ metadata:
   to: "table:{TABLE}"       # target id: <type>:<name>; created when new
 ```
 
-The edge starts at the innermost function (or endpoint) holding the match, else the file's `module:` node.
+The edge starts at the innermost node with a line range holding the match (a function, an endpoint, a node a type rule made), else the file's `module:` node.
+
+When the target is a function the code passes by name rather than calls (a registered handler, a pipeline step, a callback), use `to_symbol: <capture>` instead of `to`: the edge goes to the project function that name refers to, resolved through SCIP, else the one function with that name (marked approx); it is skipped when neither finds exactly one.
+
+```yaml
+id: pipeline-step
+language: Python
+rule:
+  pattern: $MEMBER = Step(fn=$FN, $$$)
+  inside: { kind: class_definition, stopBy: end, has: { field: superclasses, regex: Pipeline } }
+metadata: { edge: has-step, to_symbol: FN }
+```
 
 ## Property rule: a match adds to the node around it
 

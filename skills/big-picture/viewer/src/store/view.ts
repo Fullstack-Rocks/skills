@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 
+import type { Hidden } from '../filters/filterView'
 import type { GraphEdge } from '../types'
 
 // What the person is doing: the node whose subgraph fills the canvas, how it is shown, and the
@@ -45,7 +46,12 @@ type ViewState = Settings & {
   reveal: (id: string, containers: string[]) => void
   setEdgeStyle: (edgeStyle: EdgeStyle) => void
   setDirection: (direction: Direction) => void
+  hidden: Hidden // what the filter pane hides, kept across tabs and dives until the person shows it again
+  toggleHidden: (group: keyof Hidden, value: string) => void
+  showAll: () => void
 }
+
+const NOTHING_HIDDEN: Hidden = { types: [], kinds: [], sections: [] }
 
 export const useView = create<ViewState>((set, get) => ({
   ...storedSettings(),
@@ -67,4 +73,10 @@ export const useView = create<ViewState>((set, get) => ({
   }),
   setEdgeStyle: (edgeStyle) => { set({ edgeStyle }); storeSettings({ edgeStyle, direction: get().direction }) },
   setDirection: (direction) => { set({ direction }); storeSettings({ edgeStyle: get().edgeStyle, direction }) },
+  hidden: NOTHING_HIDDEN,
+  toggleHidden: (group, value) => set((s) => {
+    const values = s.hidden[group]
+    return { hidden: { ...s.hidden, [group]: values.includes(value) ? values.filter((v) => v !== value) : [...values, value] } }
+  }),
+  showAll: () => set({ hidden: NOTHING_HIDDEN }),
 }))
