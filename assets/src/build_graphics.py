@@ -326,6 +326,16 @@ def motif(skill: str) -> str:
                              + f'<path {s} d="M70 20 L110 20 L110 65 L145 65"/>'
                              + f'<path {s} d="M215 65 L255 65 L255 111 L290 111"/>'
                              + f'<path {s} d="M300 14 l10 10 l20 -22"/>',
+        "ux-critic": f'<rect {w} x="0" y="4" width="230" height="130" rx="12"/><path {w} d="M0 30 L230 30"/>'
+                     + "".join(f'<circle cx="{x}" cy="17" r="3.5" fill="rgba(255,255,255,0.55)"/>' for x in (16, 30, 44))
+                     + f'<path {w} d="M22 52 L150 52"/><path {w} d="M22 68 L110 68"/>'
+                     + f'<rect {s} x="22" y="84" width="92" height="24" rx="7"/>'
+                     + f'<path fill="#000" stroke="{LIME}" stroke-width="2.4" stroke-linejoin="round" '
+                       'd="M96 92 L96 122 L104 114 L110 126 L116 123 L110 111 L121 111 Z"/>'
+                     + f'<rect {w} x="262" y="12" width="98" height="56" rx="16"/><path {w} d="M282 68 l-14 20 l32 -20"/>'
+                     + f'<path {s} d="M292 40 l10 10 l20 -22"/>'
+                     + "".join(f'<circle cx="{x}" cy="104" r="5" fill="{LIME if x < 330 else "none"}" '
+                               f'stroke="{LIME}" stroke-width="2"/>' for x in (290, 310, 330)),
     }
     return f'    <g transform="translate(860 52)">{drawings[skill]}</g>'
 
@@ -338,6 +348,7 @@ BANNERS = {
     "code-standards": "A code review that learns what your team rejects.",
     "delegate": "Other coding agents as teammates, never blocking.",
     "readable-diagrams": "Diagrams a newcomer can read, proved by readers.",
+    "ux-critic": "Fresh agents test your UI until a newcomer can use it.",
 }
 
 
