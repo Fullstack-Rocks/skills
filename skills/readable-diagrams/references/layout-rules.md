@@ -62,6 +62,7 @@ What raised and lowered scores across 40+ reviewer rounds on four architecture d
 
 - **Keep container zones to the header row** around the participant icons. Full-height zone columns put labels on their borders.
 - **Draw each alternative outcome in a dashed frame** whose tab states the condition ("If ai-runtime answers 2xx"). A header band alone reads as "next steps".
+- **Draw every way the flow fails as its own frame, ending in the state it leaves and who acts next** ("If the CLI fails or times out": exit 1, state.json says error, the lead tells the person). In four test runs a failure kept as a side note or a loop-exit condition was flagged as blocking by every blind reviewer, while the run's own reviewers passed it.
 - **Use a solid band for a separate scenario** ("Each time the relay starts…"), visibly different from an alternative's frame.
 - **Draw repetition as a loop frame around every step that repeats**, with the end condition in its title ("loop: poll every 1 s until a poll brings the reply"). A step left outside the frame, or an end condition in a loose sentence, was read as running once.
 - **Name the trigger in the label of every step that waits** ("⑨ once ⑧ brings the reply"). A step after a loop or a background run reads as immediate otherwise.
