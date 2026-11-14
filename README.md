@@ -466,6 +466,8 @@ The layout rules come from 40+ scored rounds on four AWS architecture diagrams: 
 
 ## ux-critic
 
+<p align="center"><img src="assets/banners/ux-critic.svg" alt="ux-critic: Fresh agents test your UI until a newcomer can use it." width="100%"></p>
+
 **Can a first-time user work this UI?** Fresh agents stand in for people who have never seen it. They see only the screen, never the code or what changed.
 
 - **Task testers** (a mid-tier model, one per task set) get goals, never directions, and work through them in a step browser: a headless Chromium driven one command at a time (`click 3`, `type`, `select`, `scroll`), with a screenshot and a numbered list of what can be clicked after each step. Every step replays from a clean start, so each session is a repeatable log.
