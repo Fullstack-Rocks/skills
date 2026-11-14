@@ -65,6 +65,7 @@ Anything the agent can't justify comes back to you as a decision.
 | [**code-standards**](#code-standards) | Reviews with your linters, taught ast-grep rules and a learned `standards.md`, and learns from rejected code | *"Is my change clean?"* · *"We never read env vars outside config"* |
 | [**delegate**](#delegate) | Hands tasks to Codex, Cursor, Antigravity, Gemini, the Gemini API or Claude and keeps a back-and-forth with each, live in a pane beside the chat | *"Have Codex build the API and Cursor the client, in parallel"* |
 | [**readable-diagrams**](#readable-diagrams) | Builds architecture and flow diagrams in the tool you choose, checks their geometry, and scores them with fresh reviewer agents until a newcomer can read them | *"Draw our AWS network so a new engineer can follow it"* |
+| [**ux-critic**](#ux-critic) | Fresh agents with no context try real tasks in your UI, rate each page at a glance and each label by name; findings are fixed and re-tested in rounds until it passes | *"Run the UX critic on the new checkout page"* |
 
 Every recording below is a real, interactive Claude Code session on the [demo shop](demo/), a 55-file Python API with a React/TS client. Long thinking stretches are sped up; everything else plays at its real pace.
 
@@ -129,7 +130,7 @@ npx skills add Fullstack-Rocks/skills --skill code-standards   # just one
 npx skills add Fullstack-Rocks/skills -g                       # for every project
 ```
 
-Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards`, `delegate` and `readable-diagrams` stand alone.
+Install the four under-engineering skills together: `under-engineering` calls `um-maybe` and `call-depth`, and `under-engineering-review` calls `call-depth`. `code-standards`, `delegate`, `readable-diagrams` and `ux-critic` stand alone.
 
 `delegate`'s Delegations panes are a Claude Code plugin. Install it, with the skill, for every session at a terminal session's prompt (in the desktop app: + next to the prompt box, Plugins, Add marketplace `Fullstack-Rocks/skills`, then Add plugin):
 
@@ -463,6 +464,20 @@ The layout rules come from 40+ scored rounds on four AWS architecture diagrams: 
 
 ---
 
+## ux-critic
+
+**Can a first-time user work this UI?** Fresh agents stand in for people who have never seen it. They see only the screen, never the code or what changed.
+
+- **Task testers** (a mid-tier model, one per task set) get goals, never directions, and work through them in a step browser: a headless Chromium driven one command at a time (`click 3`, `type`, `select`, `scroll`), with a screenshot and a numbered list of what can be clicked after each step. Every step replays from a clean start, so each session is a repeatable log.
+- **Glance raters** (the smallest model) see one page screenshot and say what the page is for, and how sure they are.
+- **Action-name raters** (the smallest model) say what every button and link does from its label alone, marking "~" for a guess and "??" for no idea.
+
+Tasks come from an inventory of what users do in today's product, each with an expected answer the tester never sees. Every finding is checked against the tester's screenshot, sorted as a product issue, task wording, a harness limitation or a broken owner rule, and fixed in the same loop. A round passes when every task is reached, navigation and calm score 8 or more for every set, no label is "??", and every page reads at 7 or more at a glance. The skill stops after two passing rounds in a row.
+
+Everything that outlives a session lives in your record folder: `ux.json` (the page list), the inventories, `ux-tasks.md`, `glance-test.md` and `design-rules.md`, the owner's rules that every round checks.
+
+---
+
 ## How they fit together
 
 ```
@@ -492,6 +507,7 @@ delegate:  brief ──> codex / cursor / antigravity / gemini / gemini-api / cl
 - **Python 3.10+** for `call-depth` and `readable-diagrams`, **3.11+** for `code-standards`. The scripts use only the standard library.
 - **ast-grep, lizard and jscpd.** The agent installs them itself with whichever of npm, uv, pipx, cargo or pip the machine has. Only jscpd needs Node.js.
 - **Nothing from the project being measured.** Your own linters are used when your project configures them.
+- **For `ux-critic`:** Node.js 18+, and once: `npm install --prefix <skill>/scripts` and `npx --prefix <skill>/scripts playwright-core install chromium-headless-shell`. Subagents with model selection.
 - **For `delegate`:** the CLIs of the agents you delegate to, signed in (`codex`, `cursor-agent`, `agy`, `gemini`, `gemini-api`, `claude`), and git for `--write` worktrees. The pane needs a recent Claude Code.
 
 ## Customizing

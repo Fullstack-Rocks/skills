@@ -18,9 +18,9 @@ What raised and lowered scores across 40+ reviewer rounds on four architecture d
   | "What does X have?" | Per-entity table: one row per entity, one column per attribute |
   | The whole system | Overview map |
 
-- **Steps that pass back and forth between actors make a sequence page from the start.** When any actor appears in more than two numbered steps, the story is about time, whatever its title ("the panes", "the MCP server"). In both test runs those pages began as topology, plateaued for three rounds on order and routing complaints, and passed only once redrawn as sequences.
+- **Steps that pass back and forth between actors make a sequence page from the start.** When any actor appears in more than two numbered steps, the story is about time, whatever its title ("the dashboard", "the API server"). In both test runs those pages began as topology, plateaued for three rounds on order and routing complaints, and passed only once redrawn as sequences.
 - **Draw all of a kind, or none of it.** When a page draws some relationships of a kind as arrows and lists the rest, readers take the missing arrows as "not allowed". Give each kind of relationship a page where every instance is an arrow, and put the complete inventory on a table page.
-- **The overview is only a map.** A few boxes, one line each, ending with "Details: page X". Every attempt to answer a detail question on the overview lowered its score. Tell reviewers it is the map. Still draw every way in: each actor that starts something (the lead, the person, an agent in another host) gets its own arrow into the system, and routes that are alternatives are grouped and labelled "or". A map without the person's path, or with two routes that look like a sequence, failed understanding in every round of one test.
+- **The overview is only a map.** A few boxes, one line each, ending with "Details: page X". Every attempt to answer a detail question on the overview lowered its score. Tell reviewers it is the map. Still draw every way in: each actor that starts something (a customer, an operator, another service) gets its own arrow into the system, and routes that are alternatives are grouped and labelled "or". A map without the person's path, or with two routes that look like a sequence, failed understanding in every round of one test.
 - **Put the hardest idea on its own page as a picture with concrete values.** For example, a tag explained with real tag values, or a strip of numbered runs with "why this order". Reviewers called these the best teaching parts every time.
 - **Keep the page about 2,000 px wide or less, with text at 13–16 px.** Reviewers see a scaled-down image; a 2,800 px strip made 12 px text unreadable and scored 5.
 
@@ -42,7 +42,7 @@ What raised and lowered scores across 40+ reviewer rounds on four architecture d
 - **Position is a claim.** Readers take an icon's container as fact, and a caption doesn't override it. A resource spanning two zones needs a drawn replica (a faded copy in the other zone, with a legend row), not a note.
 - **An arrow does what its label says.** A label saying "through X" on an arrow that skips X made a reviewer call the diagram self-contradicting.
 - **A note sits inside the container it describes.**
-- **Start an arrow at the actor that acts**, never at a state, file or result box: "diff" drawn from the worktree box read as the worktree pushing changes. Draw every reply or result coming back dashed, so it can't be read as a new call.
+- **Start an arrow at the actor that acts**, never at a state, file or result box: "refund" drawn from the order box read as the order issuing refunds. Draw every reply or result coming back dashed, so it can't be read as a new call.
 - **Start an arrow at the real caller.** An arrow starting from a group's border means "every member"; use that only for group-level rules, and give it a legend row.
 - **Name each concept once.** Two meanings for one word ("stage", "live", "record") were found quickly and cost understanding. Codes for steps or lanes must not collide with page ids.
 
@@ -54,22 +54,22 @@ What raised and lowered scores across 40+ reviewer rounds on four architecture d
 - **Number in reading order, one number per arrow.** The numbers run top to bottom and left to right; two flows on one page take 1.x and 2.x, each in its own band, so neither flow's arrows run through the other's. A side effect of a step (it also redraws, it also logs) stays unnumbered and says "also". Out-of-order and repeated numbers were blocking complaints in every round they appeared.
 - **Put the answer on the step.** A fact a checked question needs (what triggers the step, what it changes, who hears about it) goes in the step's own label. Reviewers missed facts kept only in side notes in every round, and those pages plateaued.
 - **Anchor every note to its step.** A note sits level with its step, names it in plain words ("Why step 4: …") and holds one fact, in a full sentence with a subject. Badges mark steps only: a note carrying a badge was read as a second step with the same number. A detail box must not cover a lifeline's wait bar.
-- **Gloss a parameter by its effect where it first appears**: `as_user: true` (the delegate is told the person wrote it). All three reviewers of one round read a bare flag as meaning its opposite.
+- **Gloss a parameter by its effect where it first appears**: `notify: true` (the customer gets an email). All three reviewers of one round read a bare flag as meaning its opposite.
 - **Name every token and identifier where it first appears**, with a one-clause "why".
 - **Explain jargon next to where it's used**, and put plain words before raw syntax.
 
 ## Sequence diagrams
 
 - **Keep container zones to the header row** around the participant icons. Full-height zone columns put labels on their borders.
-- **Draw each alternative outcome in a dashed frame** whose tab states the condition ("If ai-runtime answers 2xx"). A header band alone reads as "next steps".
-- **Draw every way the flow fails as its own frame, ending in the state it leaves and who acts next** ("If the CLI fails or times out": exit 1, state.json says error, the lead tells the person). In four test runs a failure kept as a side note or a loop-exit condition was flagged as blocking by every blind reviewer, while the run's own reviewers passed it.
-- **Use a solid band for a separate scenario** ("Each time the relay starts…"), visibly different from an alternative's frame.
+- **Draw each alternative outcome in a dashed frame** whose tab states the condition ("If the payment service answers 2xx"). A header band alone reads as "next steps".
+- **Draw every way the flow fails as its own frame, ending in the state it leaves and who acts next** ("If the payment call fails or times out": the order stays pending, the job retries, support is alerted). In four test runs a failure kept as a side note or a loop-exit condition was flagged as blocking by every blind reviewer, while the run's own reviewers passed it.
+- **Use a solid band for a separate scenario** ("Each time the worker starts…"), visibly different from an alternative's frame.
 - **Draw repetition as a loop frame around every step that repeats**, with the end condition in its title ("loop: poll every 1 s until a poll brings the reply"). A step left outside the frame, or an end condition in a loose sentence, was read as running once.
 - **Name the trigger in the label of every step that waits** ("⑨ once ⑧ brings the reply"). A step after a loop or a background run reads as immediate otherwise.
 - **Keep frame titles, notes and labels in the gutters between lifelines**, with a white background where a lifeline must pass behind them.
 - **Draw a held-open wait as a bar on the lifeline**, and a resumed wait as a dashed bar.
 - **Draw every answer that decides something or ends the flow** (a branch's reply, a token check, the stream ending), and leave out plain acknowledgements.
-- **Label what triggers each section** ("After step 9, while a delegated Run still streams").
+- **Label what triggers each section** ("After step 9, while the export still runs").
 
 ## Legend and style
 
