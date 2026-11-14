@@ -426,6 +426,8 @@ Pinned tool versions, the config format and the scripts are in [`skills/code-sta
 
 ## delegate
 
+<p align="center"><img src="assets/banners/delegate.svg" alt="delegate: Other coding agents as teammates, never blocking." width="100%"></p>
+
 **Other coding agents as teammates.** The agent hands a task to Codex, Cursor, Antigravity, Gemini, the Gemini API or Claude Code, keeps working while it runs, and talks to it turn by turn. Each delegate keeps its own session, so a follow-up lands with everything it has already read.
 
 | Harness | Runs | Read-only mode |
@@ -448,6 +450,8 @@ Everything is plain files in `.delegate/<id>/` in your repo (kept out of git): t
 ---
 
 ## readable-diagrams
+
+<p align="center"><img src="assets/banners/readable-diagrams.svg" alt="readable-diagrams: Diagrams a newcomer can read, proved by readers." width="100%"></p>
 
 **Diagrams a newcomer can read, proved by readers.** The agent asks which tool to draw in (draw.io, Mermaid, D2, PlantUML, Graphviz, Excalidraw or the project's own), builds one story per page from facts checked against your code, and runs the pages through `scripts/check_diagram.py`: crossing lines, lines through shapes or text, U-shaped and detouring arrows, labels on bends or borders, small text, pages too wide, steps out of reading order, repeated or referenced but not drawn, legend rows used or unused. For draw.io, `scripts/drawio_export.py` renders each page and exports its geometry straight from the draw.io viewer. Before any reviewer sees a page, the agent answers the question bank from its own renders, so a fact that lives only in a side note is moved onto its step. Then three fresh reviewer agents answer checked questions from the images alone and score readability and understanding; `scripts/score_round.py` gates on the median, 8.5 by default.
 
