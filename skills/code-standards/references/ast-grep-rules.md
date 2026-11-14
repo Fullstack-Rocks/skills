@@ -15,7 +15,7 @@ id: cs-env-outside-config
 language: Python            # the ast-grep language of the target files: Python, Tsx, Go, Ruby, Rust, Java, ...
 severity: warning           # error | warning | info | hint | off
 message: Read settings from app.config, not the environment   # what to do instead, one line
-note: Env reads scattered across modules hide config. Taught 2026-10-20.  # the developer's reason
+note: Env reads scattered across modules hide config. Taught YYYY-MM-DD.  # the developer's reason
 files: ["src/**"]           # optional: only these paths
 ignores: ["src/config.py"]  # optional: never these paths
 rule:

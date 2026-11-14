@@ -18,16 +18,16 @@ Everything runs locally, and a review makes no network calls. On a 55-file Pytho
 
 At init, the skill counts the repo's extensions and asks ast-grep which language parses each one, so a Go, Ruby, Rust or Java repo works the same as a Python one. When a change adds a file type that's in neither `extensions` nor `not_reviewed`, the review says so instead of skipping it silently.
 
-**Duplication across the repo.** By default (`[duplication] scope = "repo"`), jscpd scans every file with a reviewed extension and keeps only the clones that touch a reviewed file, so a new file that copies old code is flagged. jscpd reads about 20–50 MB of source a second. If the reviewed source is over `repo_max_mb` (30 by default), the review compares the changed files only with each other and prints a warning saying so. Measured on an M4 MacBook with jscpd 5.4.1, wall time for the whole review (`--files`, 3 runs, median):
+**Duplication across the repo.** By default (`[duplication] scope = "repo"`), jscpd scans every file with a reviewed extension and keeps only the clones that touch a reviewed file, so a new file that copies old code is flagged. jscpd reads about 20–50 MB of source a second. If the reviewed source is over `repo_max_mb` (30 by default), the review compares the changed files only with each other and prints a warning saying so. Measured on a laptop with jscpd 5.4.1, wall time for the whole review (`--files`, 3 runs, median):
 
 | Repo | Reviewed source | 10 files: `changed` → default | 100 files: `changed` → default |
 |---|---|---|---|
 | demo + benchmark fixture | 58 files, 0.03 MB | 0.04s → 0.05s | |
-| django | 2,621 `.py`, 18 MB | 0.05s → 0.61s | 0.26s → 0.67s |
-| TypeScript | 13,153 `.ts`, 23 MB | 0.06s → 1.48s | 0.25s → 1.35s |
-| vscode | 14,004 `.ts`, 209 MB: over the limit, falls back | 0.07s → 0.33s | 0.36s → 0.60s |
+| a large Python repo | 2,621 `.py`, 18 MB | 0.05s → 0.61s | 0.26s → 0.67s |
+| a large TypeScript repo | 13,153 `.ts`, 23 MB | 0.06s → 1.48s | 0.25s → 1.35s |
+| a very large TypeScript repo | 14,004 `.ts`, 209 MB: over the limit, falls back | 0.07s → 0.33s | 0.36s → 0.60s |
 
-A full repo scan of vscode took 7–8.5s, which is why the limit exists. Checking the size costs 0.1–0.3s on these repos, and it runs in parallel with the other tools. Set `scope = "changed"` to skip the repo scan, or raise `repo_max_mb` if a few more seconds are fine. jscpd's own `--changed` flag isn't used, because it writes `.jscpd-baseline.json` into the repo.
+A full repo scan of the largest one took 7–8.5s, which is why the limit exists. Checking the size costs 0.1–0.3s on these repos, and it runs in parallel with the other tools. Set `scope = "changed"` to skip the repo scan, or raise `repo_max_mb` if a few more seconds are fine. jscpd's own `--changed` flag isn't used, because it writes `.jscpd-baseline.json` into the repo.
 
 ## Install the tools
 
@@ -57,7 +57,7 @@ If a tool is still missing, the review continues without it and reports a warnin
   negations.log.md          # append-only: what was rejected, by whom, what it became
 ```
 
-`config.toml` replaces the `config.yml` from the original spec. Python's standard library parses TOML but not YAML, and TOML keeps comments.
+Config is TOML: Python's standard library parses it, and it keeps comments.
 
 ## Modes
 

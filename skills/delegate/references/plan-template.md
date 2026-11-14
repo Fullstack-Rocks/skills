@@ -16,7 +16,7 @@ goal: <one sentence: what done means for the whole plan>
 - why: research with sources and a browser to look at live sites
 - mode: write
 - uses: docs/PLAN.md (the brief for the whole site)
-- makes: research/game-ui.md
+- makes: research/checkout-ui.md
 - handed to: build-ui (the component list and accessibility rules)
 - done when: every component the spec needs has a construction note and its accessibility rules
 
@@ -25,9 +25,9 @@ goal: <one sentence: what done means for the whole plan>
 - agent: codex
 - model: gpt-6.1-sol
 - effort: medium
-- why: Codex paints UI mock-ups and layouts in the style bible
+- why: Codex paints UI mock-ups and layouts in the brand guide
 - mode: write
-- uses: docs/STYLE.md (the prompt prefix), art/style/anchor-*.png (style references)
+- uses: docs/BRAND.md (the prompt prefix), art/brand/*.png (style references)
 - makes: art/concepts/*.png
 - handed to: build-ui (the look the components must match)
 - done when: one mock-up per key screen, each readable as a layout with blank text bars
@@ -39,7 +39,7 @@ goal: <one sentence: what done means for the whole plan>
 - effort: high
 - why: React, CSS and tests, and the hardest code of the build
 - mode: write
-- uses: docs/SPEC.md, research/game-ui.md, art/concepts/*.png (match these mock-ups)
+- uses: docs/SPEC.md, research/checkout-ui.md, art/concepts/*.png (match these mock-ups)
 - makes: src/components/ui/**
 - handed to: build-pages (components every page is built from)
 - done when: every page in the spec can be built from these components, and they match the mock-ups

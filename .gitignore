@@ -2,3 +2,4 @@ __pycache__/
 .preview/
 .ruff_cache/
 .delegate/
+node_modules/
